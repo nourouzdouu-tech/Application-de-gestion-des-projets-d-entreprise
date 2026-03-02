@@ -1,14 +1,12 @@
 package com.dxc.dxc_platform.modules.admin.domain.entity;
 
 import jakarta.persistence.*;
-import lombok.*;
 
 import java.util.HashSet;
 import java.util.Set;
 
 @Entity
 @Table(name = "roles")
-@Getter @Setter @NoArgsConstructor @AllArgsConstructor @Builder
 public class Role {
 
     @Id
@@ -33,6 +31,31 @@ public class Role {
             joinColumns = @JoinColumn(name = "role_id"),
             inverseJoinColumns = @JoinColumn(name = "permission_id")
     )
-    @Builder.Default
     private Set<Permission> permissions = new HashSet<>();
+
+    // constructeur vide JPA
+    public Role() {}
+
+    public Role(String nom, String description) {
+        this.nom = nom;
+        this.description = description;
+    }
+
+    // getters/setters
+    public Long getId() { return id; }
+
+    public String getNom() { return nom; }
+    public void setNom(String nom) { this.nom = nom; }
+
+    public String getDescription() { return description; }
+    public void setDescription(String description) { this.description = description; }
+
+    public boolean isActive() { return active; }
+    public void setActive(boolean active) { this.active = active; }
+
+    public boolean isDeleted() { return deleted; }
+    public void setDeleted(boolean deleted) { this.deleted = deleted; }
+
+    public Set<Permission> getPermissions() { return permissions; }
+    public void setPermissions(Set<Permission> permissions) { this.permissions = permissions; }
 }
