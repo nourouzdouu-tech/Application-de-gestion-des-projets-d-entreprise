@@ -1,73 +1,71 @@
 package com.dxc.dxc_platform.modules.admin.web;
 
-import com.dxc.dxc_platform.modules.admin.domain.entity.User;
 import com.dxc.dxc_platform.modules.admin.service.UserAdminService;
-import lombok.RequiredArgsConstructor;
+import com.dxc.dxc_platform.modules.admin.web.dto.user.*;
+import jakarta.validation.Valid;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
-import java.util.Set;
 
 @RestController
 @RequestMapping("/api/admin/users")
-@RequiredArgsConstructor
 public class AdminUserController {
 
     private final UserAdminService userAdminService;
 
+    public AdminUserController(UserAdminService userAdminService) {
+        this.userAdminService = userAdminService;
+    }
+
     @PostMapping
-    public User createUser(@RequestBody CreateUserRequest request) {
-        return userAdminService.createUser(
-                request.getNom(),
-                request.getPrenom(),
-                request.getEmail(),
-                request.getPassword(),
-                request.getGenre(),
-                request.getRoleIds()
-        );
+    public ResponseEntity<UserResponse> create(@Valid @RequestBody CreateUserRequest req) {
+        return ResponseEntity.ok(userAdminService.create(req));
     }
 
     @GetMapping
-    public List<User> getAllUsers() {
-        return userAdminService.getAllUsers();
+    public ResponseEntity<Page<UserResponse>> search(
+            @RequestParam(required = false) String q,
+            @RequestParam(required = false) String role,
+            @RequestParam(required = false) Boolean enabled,
+            @PageableDefault(size = 10) Pageable pageable
+    ) {
+        return ResponseEntity.ok(userAdminService.search(q, role, enabled, pageable));
     }
 
     @GetMapping("/{id}")
-    public User getUserById(@PathVariable Long id) {
-        return userAdminService.getUserById(id);
+    public ResponseEntity<UserResponse> get(@PathVariable Long id) {
+        return ResponseEntity.ok(userAdminService.getById(id));
     }
 
-    @PutMapping("/{id}/unlock")
-    public void unlockUser(@PathVariable Long id, @RequestParam String newPassword) {
-        userAdminService.unlockUser(id, newPassword);
+    @PutMapping("/{id}")
+    public ResponseEntity<UserResponse> update(@PathVariable Long id,
+                                               @Valid @RequestBody UpdateUserRequest req) {
+        return ResponseEntity.ok(userAdminService.update(id, req));
+    }
+
+    @PatchMapping("/{id}/disable")
+    public ResponseEntity<Void> disable(@PathVariable Long id) {
+        userAdminService.disable(id);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PatchMapping("/{id}/enable")
+    public ResponseEntity<Void> enable(@PathVariable Long id) {
+        userAdminService.enable(id);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/{id}/reset-password")
+    public ResponseEntity<ResetPasswordResponse> resetPassword(@PathVariable Long id,
+                                                               @RequestBody(required = false) ResetPasswordRequest req) {
+        return ResponseEntity.ok(userAdminService.resetPassword(id, req));
     }
 
     @DeleteMapping("/{id}")
-    public void disableUser(@PathVariable Long id) {
-        userAdminService.disableUser(id);
-    }
-
-    // DTO pour la création utilisateur
-    public static class CreateUserRequest {
-        private String nom;
-        private String prenom;
-        private String email;
-        private String password;
-        private String genre;
-        private Set<Long> roleIds;
-
-        // getters et setters
-        public String getNom() { return nom; }
-        public void setNom(String nom) { this.nom = nom; }
-        public String getPrenom() { return prenom; }
-        public void setPrenom(String prenom) { this.prenom = prenom; }
-        public String getEmail() { return email; }
-        public void setEmail(String email) { this.email = email; }
-        public String getPassword() { return password; }
-        public void setPassword(String password) { this.password = password; }
-        public String getGenre() { return genre; }
-        public void setGenre(String genre) { this.genre = genre; }
-        public Set<Long> getRoleIds() { return roleIds; }
-        public void setRoleIds(Set<Long> roleIds) { this.roleIds = roleIds; }
+    public ResponseEntity<Void> softDelete(@PathVariable Long id) {
+        userAdminService.softDelete(id);
+        return ResponseEntity.noContent().build();
     }
 }

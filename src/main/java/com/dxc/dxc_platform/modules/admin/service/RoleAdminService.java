@@ -1,39 +1,24 @@
 package com.dxc.dxc_platform.modules.admin.service;
 
-import com.dxc.dxc_platform.modules.admin.domain.entity.Role;
-import com.dxc.dxc_platform.modules.admin.repository.RoleRepository;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
+import com.dxc.dxc_platform.modules.admin.web.dto.role.*;
 
 import java.util.List;
 
-@Service
-@RequiredArgsConstructor
-public class RoleAdminService {
+public interface RoleAdminService {
 
-    private final RoleRepository roleRepository;
+    RoleResponse create(CreateRoleRequest req);
 
-    public Role createRole(Role role) {
+    List<RoleResponse> list();
 
-        if (roleRepository.existsByNom(role.getNom())) {
-            throw new RuntimeException("Role already exists");
-        }
+    RoleResponse get(Long id);
 
-        return roleRepository.save(role);
-    }
+    RoleResponse update(Long id, UpdateRoleRequest req);
 
-    public List<Role> getAllRoles() {
-        return roleRepository.findAll();
-    }
+    void activate(Long id);
 
-    public Role getRoleById(Long id) {
-        return roleRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Role not found"));
-    }
+    void deactivate(Long id);
 
-    public void deleteRole(Long id) {
-        Role role = getRoleById(id);
-        role.setDeleted(true); // soft delete
-        roleRepository.save(role);
-    }
+    RoleResponse updatePermissions(Long id, UpdateRolePermissionsRequest req);
+
+    void softDelete(Long id);
 }

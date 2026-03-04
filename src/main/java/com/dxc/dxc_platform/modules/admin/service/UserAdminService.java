@@ -1,72 +1,24 @@
 package com.dxc.dxc_platform.modules.admin.service;
 
-import com.dxc.dxc_platform.modules.admin.domain.entity.Role;
-import com.dxc.dxc_platform.modules.admin.domain.entity.User;
-import com.dxc.dxc_platform.modules.admin.repository.RoleRepository;
-import com.dxc.dxc_platform.modules.admin.repository.UserRepository;
-import lombok.RequiredArgsConstructor;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.stereotype.Service;
+import com.dxc.dxc_platform.modules.admin.web.dto.user.*;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
-import java.time.LocalDateTime;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+public interface UserAdminService {
 
-@Service
-@RequiredArgsConstructor
-public class UserAdminService {
+    UserResponse create(CreateUserRequest req);
 
-    private final UserRepository userRepository;
-    private final RoleRepository roleRepository;
-    private final PasswordEncoder passwordEncoder;
+    Page<UserResponse> search(String q, String role, Boolean enabled, Pageable pageable);
 
-    public User createUser(String nom, String prenom, String email, String password, String genre, Set<Long> roleIds) {
+    UserResponse getById(Long id);
 
-        if (userRepository.existsByEmail(email)) {
-            throw new RuntimeException("Email already exists");
-        }
+    UserResponse update(Long id, UpdateUserRequest req);
 
-        Set<Role> roles = new HashSet<>(roleRepository.findAllById(roleIds));
+    void disable(Long id);
 
-        User user = User.builder()
-                .nom(nom)
-                .prenom(prenom)
-                .email(email)
-                .passwordHash(passwordEncoder.encode(password))
-                .genre(Enum.valueOf(com.dxc.dxc_platform.modules.admin.domain.enums.Genre.class, genre))
-                .roles(roles)
-                .createdAt(LocalDateTime.now())
-                .enabled(true)
-                .locked(false)
-                .failedAttempts(0)
-                .mustChangePassword(false)
-                .build();
+    void enable(Long id);
 
-        return userRepository.save(user);
-    }
+    ResetPasswordResponse resetPassword(Long id, ResetPasswordRequest req);
 
-    public List<User> getAllUsers() {
-        return userRepository.findAll();
-    }
-
-    public User getUserById(Long id) {
-        return userRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("User not found"));
-    }
-
-    public void disableUser(Long id) {
-        User user = getUserById(id);
-        user.setEnabled(false);
-        userRepository.save(user);
-    }
-
-    public void unlockUser(Long id, String newPassword) {
-        User user = getUserById(id);
-        user.setEnabled(true);
-        user.setLocked(false);
-        user.setFailedAttempts(0);
-        user.setPasswordHash(passwordEncoder.encode(newPassword));
-        userRepository.save(user);
-    }
+    void softDelete(Long id);
 }
