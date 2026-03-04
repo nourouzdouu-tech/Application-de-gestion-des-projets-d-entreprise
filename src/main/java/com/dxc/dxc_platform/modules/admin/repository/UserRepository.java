@@ -6,30 +6,36 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
 
+@Repository
 public interface UserRepository extends JpaRepository<User, Long> {
-
-    boolean existsByEmailAndDeletedFalse(String email);
 
     Optional<User> findByIdAndDeletedFalse(Long id);
 
+    // Requis par Spring Security (CustomUserDetailsService)
     Optional<User> findByEmailAndDeletedFalse(String email);
 
+    boolean existsByEmailAndDeletedFalse(String email);
+
     @Query("""
-        select u from User u
-        where u.deleted = false
-          and (:qLike = '%' or lower(u.email) like :qLike
-               or lower(u.nom) like :qLike
-               or lower(u.prenom) like :qLike)
-          and (:enabled is null or u.enabled = :enabled)
-          and (:roleLower = '' or exists (
-                select 1 from u.roles r where lower(r.nom) = :roleLower
-          ))
+        SELECT u FROM User u
+        JOIN u.roles r
+        WHERE u.deleted = false
+          AND (:enabled IS NULL OR u.enabled = :enabled)
+          AND (:role = '' OR LOWER(r.nom) = :role)
+          AND (
+              LOWER(u.email)  LIKE :q OR
+              LOWER(u.prenom) LIKE :q OR
+              LOWER(u.nom)    LIKE :q
+          )
     """)
-    Page<User> search(@Param("qLike") String qLike,
-                      @Param("enabled") Boolean enabled,
-                      @Param("roleLower") String roleLower,
-                      Pageable pageable);
+    Page<User> search(
+            @Param("q")       String q,
+            @Param("enabled") Boolean enabled,
+            @Param("role")    String role,
+            Pageable pageable
+    );
 }
