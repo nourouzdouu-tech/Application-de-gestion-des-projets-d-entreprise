@@ -4,6 +4,7 @@ import com.dxc.dxc_platform.modules.admin.domain.entity.Permission;
 import com.dxc.dxc_platform.modules.admin.domain.entity.Role;
 import com.dxc.dxc_platform.modules.admin.domain.entity.User;
 import com.dxc.dxc_platform.modules.admin.repository.UserRepository;
+import com.dxc.dxc_platform.shared.util.RoleNormalizer;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -28,28 +29,32 @@ public class CustomUserDetailsService implements UserDetailsService {
     @Override
     public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
         User user = userRepository.findByEmailAndDeletedFalse(email)
-                .orElseThrow(() -> new UsernameNotFoundException("Utilisateur introuvable: " + email));
+                .orElseThrow(() -> new UsernameNotFoundException(
+                        "Utilisateur introuvable: " + email));
 
         List<GrantedAuthority> authorities = new ArrayList<>();
 
         for (Role role : user.getRoles()) {
-            // Ajouter le rôle avec préfixe ROLE_
-            authorities.add(new SimpleGrantedAuthority("ROLE_" + role.getNom().toUpperCase()));
+            authorities.add(new SimpleGrantedAuthority(
+                    RoleNormalizer.toSpringRole(role.getNom())));
 
-            // Ajouter aussi toutes les permissions du rôle
             for (Permission permission : role.getPermissions()) {
                 authorities.add(new SimpleGrantedAuthority(permission.getNom()));
             }
         }
 
+        // ⚠️ accountLocked et disabled toujours FALSE ici
+        // La vérification du verrouillage est gérée manuellement dans AuthServiceImpl
+        // Si on passe locked=true ici, Spring Security intercepte AVANT registerFailedAttempt
+        // et la 3ème tentative ne compte jamais
         return org.springframework.security.core.userdetails.User.builder()
                 .username(user.getEmail())
                 .password(user.getPasswordHash())
                 .authorities(authorities)
                 .accountExpired(false)
-                .accountLocked(user.isLocked())
+                .accountLocked(false)    // ← toujours false ici
                 .credentialsExpired(false)
-                .disabled(!user.isEnabled())
+                .disabled(false)         // ← toujours false ici
                 .build();
     }
 }

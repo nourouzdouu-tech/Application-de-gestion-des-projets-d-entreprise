@@ -54,7 +54,7 @@ public class AuthServiceImpl implements AuthService {
     @Override
     public AuthResponse login(LoginRequest request) {
 
-        // 1 ─ Charger le user
+        // 1 ─ Charger le user depuis la DB
         User user = userRepository.findByEmailAndDeletedFalse(request.email())
                 .orElseThrow(() -> new NotFoundException(
                         "USER_NOT_FOUND", "Utilisateur introuvable"));
@@ -68,7 +68,7 @@ public class AuthServiceImpl implements AuthService {
             throw new DisabledException("Compte désactivé. Contactez l'administrateur.");
         }
 
-        // 3 ─ Tenter l'authentification
+        // 3 ─ Tenter l'authentification Spring Security
         try {
             authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(
@@ -77,18 +77,15 @@ public class AuthServiceImpl implements AuthService {
                     )
             );
         } catch (BadCredentialsException e) {
-            // Incrémenter dans une transaction SÉPARÉE → committé immédiatement
-            // registerFailedAttempt lance LockedException si MAX atteint
-            loginAttemptService.registerFailedAttempt(request.email());
-
-            // Si on arrive ici → pas encore verrouillé
-            int remaining = loginAttemptService.getRemainingAttempts(request.email());
+            // registerFailedAttempt retourne le nombre restant
+            // et lance LockedException si MAX atteint
+            int remaining = loginAttemptService.registerFailedAttempt(request.email());
             throw new BadCredentialsException(
                     "Mot de passe incorrect. " + remaining
                             + " tentative(s) restante(s) avant verrouillage.");
         }
 
-        // 4 ─ Succès → reset tentatives dans transaction séparée
+        // 4 ─ Succès → reset tentatives
         loginAttemptService.resetAttempts(request.email());
 
         // 5 ─ Générer JWT

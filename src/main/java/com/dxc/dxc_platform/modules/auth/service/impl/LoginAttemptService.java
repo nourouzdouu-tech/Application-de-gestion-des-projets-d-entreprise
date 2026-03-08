@@ -14,49 +14,41 @@ public class LoginAttemptService {
     private static final int MAX_FAILED_ATTEMPTS = 3;
 
     private final UserRepository userRepository;
+    private final LockUserService lockUserService;
 
-    public LoginAttemptService(UserRepository userRepository) {
+    public LoginAttemptService(UserRepository userRepository,
+                               LockUserService lockUserService) {
         this.userRepository = userRepository;
+        this.lockUserService = lockUserService;
     }
 
-    /**
-     * Incrémente les tentatives échouées dans une transaction SÉPARÉE
-     * pour que le save() soit commité même si une exception est lancée après.
-     */
     @Transactional(propagation = Propagation.REQUIRES_NEW)
-    public void registerFailedAttempt(String email) {
+    public int registerFailedAttempt(String email) {
+
         User user = userRepository.findByEmailAndDeletedFalse(email)
-                .orElseThrow(() -> new NotFoundException("USER_NOT_FOUND", "Utilisateur introuvable"));
+                .orElseThrow(() -> new NotFoundException(
+                        "USER_NOT_FOUND", "Utilisateur introuvable"));
 
         int attempts = user.getFailedAttempts() + 1;
-        user.setFailedAttempts(attempts);
+        System.out.println(">>> TENTATIVE " + attempts + " pour " + email);
 
         if (attempts >= MAX_FAILED_ATTEMPTS) {
-            user.setLocked(true);
-            user.setEnabled(false);
-            userRepository.saveAndFlush(user);
+            // Verrouiller dans un bean séparé → transaction propre commitée
+            // AVANT de lancer l'exception
+            lockUserService.lockUser(email);
             throw new LockedException(
                     "Compte verrouillé après " + MAX_FAILED_ATTEMPTS
                             + " tentatives échouées. Contactez l'administrateur.");
         }
 
-        userRepository.saveAndFlush(user);
+        userRepository.incrementFailedAttempts(email);
+        System.out.println(">>> incrementFailedAttempts() TERMINÉ");
+        return MAX_FAILED_ATTEMPTS - attempts;
     }
 
-    /**
-     * Remet les tentatives à zéro après un login réussi.
-     */
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void resetAttempts(String email) {
-        userRepository.findByEmailAndDeletedFalse(email).ifPresent(user -> {
-            user.setFailedAttempts(0);
-            userRepository.saveAndFlush(user);
-        });
-    }
-
-    public int getRemainingAttempts(String email) {
-        return userRepository.findByEmailAndDeletedFalse(email)
-                .map(u -> MAX_FAILED_ATTEMPTS - u.getFailedAttempts())
-                .orElse(0);
+        userRepository.resetFailedAttempts(email);
+        System.out.println(">>> resetAttempts() TERMINÉ pour " + email);
     }
 }

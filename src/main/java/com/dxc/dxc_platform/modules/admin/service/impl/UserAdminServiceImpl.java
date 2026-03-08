@@ -105,6 +105,7 @@ public class UserAdminServiceImpl implements UserAdminService {
         user.setEmail(req.email());
         user.setGenre(req.genre());
         user.setRoles(Set.of(role));
+        userRepository.save(user);
 
         return toResponse(user);
     }
@@ -114,6 +115,7 @@ public class UserAdminServiceImpl implements UserAdminService {
         User user = userRepository.findByIdAndDeletedFalse(id)
                 .orElseThrow(() -> new NotFoundException("USER_NOT_FOUND", "Utilisateur introuvable: " + id));
         user.setEnabled(false);
+        userRepository.save(user);
     }
 
     @Override
@@ -123,6 +125,7 @@ public class UserAdminServiceImpl implements UserAdminService {
         user.setEnabled(true);
         user.setFailedAttempts(0);
         user.setLocked(false);
+        userRepository.save(user);
     }
 
     @Override
@@ -140,6 +143,7 @@ public class UserAdminServiceImpl implements UserAdminService {
         user.setFailedAttempts(0);
         user.setLocked(false);
         user.setMustChangePassword(true);
+        userRepository.save(user);
 
         return new ResetPasswordResponse(user.getId(), tempPassword, true);
     }
@@ -150,6 +154,7 @@ public class UserAdminServiceImpl implements UserAdminService {
                 .orElseThrow(() -> new NotFoundException("USER_NOT_FOUND", "Utilisateur introuvable: " + id));
         user.setDeleted(true);
         user.setEnabled(false);
+        userRepository.save(user);
     }
 
     private UserResponse toResponse(User u) {
