@@ -1,9 +1,9 @@
 package com.dxc.dxc_platform.security;
 
-import com.dxc.dxc_platform.modules.admin.domain.entity.Permission;
-import com.dxc.dxc_platform.modules.admin.domain.entity.Role;
-import com.dxc.dxc_platform.modules.admin.domain.entity.User;
-import com.dxc.dxc_platform.modules.admin.repository.UserRepository;
+import com.dxc.dxc_platform.entity.Permission;
+import com.dxc.dxc_platform.entity.Role;
+import com.dxc.dxc_platform.entity.User;
+import com.dxc.dxc_platform.repository.UserRepository;
 import com.dxc.dxc_platform.shared.util.RoleNormalizer;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
