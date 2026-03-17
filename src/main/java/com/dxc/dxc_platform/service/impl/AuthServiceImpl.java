@@ -1,18 +1,15 @@
 package com.dxc.dxc_platform.service.impl;
 
-import com.dxc.dxc_platform.entity.Role;
+import com.dxc.dxc_platform.dto.AuthDto;
 import com.dxc.dxc_platform.entity.User;
+import com.dxc.dxc_platform.mapper.AuthMapper;
 import com.dxc.dxc_platform.repository.UserRepository;
-import com.dxc.dxc_platform.service.AuthService;
-import com.dxc.dxc_platform.dto.AuthResponse;
-import com.dxc.dxc_platform.dto.ChangePasswordRequest;
-import com.dxc.dxc_platform.dto.LoginRequest;
 import com.dxc.dxc_platform.security.jwt.JwtService;
+import com.dxc.dxc_platform.service.AuthService;
 import com.dxc.dxc_platform.shared.exception.NotFoundException;
 import com.dxc.dxc_platform.shared.util.RoleNormalizer;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
-import org.springframework.security.authentication.DisabledException;
 import org.springframework.security.authentication.LockedException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -20,9 +17,6 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.util.Set;
-import java.util.stream.Collectors;
 
 @Service
 public class AuthServiceImpl implements AuthService {
@@ -33,42 +27,36 @@ public class AuthServiceImpl implements AuthService {
     private final UserDetailsService userDetailsService;
     private final PasswordEncoder passwordEncoder;
     private final LoginAttemptService loginAttemptService;
+    private final AuthMapper authMapper;
 
     public AuthServiceImpl(AuthenticationManager authenticationManager,
                            UserRepository userRepository,
                            JwtService jwtService,
                            UserDetailsService userDetailsService,
                            PasswordEncoder passwordEncoder,
-                           LoginAttemptService loginAttemptService) {
+                           LoginAttemptService loginAttemptService,
+                           AuthMapper authMapper) {
         this.authenticationManager = authenticationManager;
         this.userRepository = userRepository;
         this.jwtService = jwtService;
         this.userDetailsService = userDetailsService;
         this.passwordEncoder = passwordEncoder;
         this.loginAttemptService = loginAttemptService;
+        this.authMapper = authMapper;
     }
 
-    // ─────────────────────────────────────────────────────────────────────────
-    // LOGIN
-    // ─────────────────────────────────────────────────────────────────────────
     @Override
-    public AuthResponse login(LoginRequest request) {
+    public AuthDto.Response login(AuthDto.LoginRequest request) {
 
-        // 1 ─ Charger le user depuis la DB
         User user = userRepository.findByEmailAndDeletedFalse(request.email())
                 .orElseThrow(() -> new NotFoundException(
                         "USER_NOT_FOUND", "Utilisateur introuvable"));
 
-        // 2 ─ Vérifier verrouillage / désactivation
         if (user.isLocked()) {
             throw new LockedException(
                     "Compte verrouillé après 3 tentatives. Contactez l'administrateur.");
         }
-        if (!user.isEnabled()) {
-            throw new DisabledException("Compte désactivé. Contactez l'administrateur.");
-        }
 
-        // 3 ─ Tenter l'authentification Spring Security
         try {
             authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(
@@ -77,47 +65,36 @@ public class AuthServiceImpl implements AuthService {
                     )
             );
         } catch (BadCredentialsException e) {
-            // registerFailedAttempt retourne le nombre restant
-            // et lance LockedException si MAX atteint
             int remaining = loginAttemptService.registerFailedAttempt(request.email());
             throw new BadCredentialsException(
                     "Mot de passe incorrect. " + remaining
                             + " tentative(s) restante(s) avant verrouillage.");
         }
 
-        // 4 ─ Succès → reset tentatives
         loginAttemptService.resetAttempts(request.email());
 
-        // 5 ─ Générer JWT
         UserDetails userDetails = userDetailsService.loadUserByUsername(request.email());
         String token = jwtService.generateToken(userDetails);
 
-        // 6 ─ Rôles depuis la DB
-        Set<String> roles = user.getRoles().stream()
-                .map(Role::getNom)
-                .collect(Collectors.toSet());
-
-        // 7 ─ Redirection dynamique depuis la DB
         String redirectTo = buildRedirectFromDb(user);
 
-        return new AuthResponse(
+        AuthDto.Response base = authMapper.toResponse(user);
+
+        return new AuthDto.Response(
                 token,
-                "Bearer",
-                user.getEmail(),
-                user.getPrenom(),
-                user.getNom(),
-                roles,
+                base.tokenType(),
+                base.email(),
+                base.prenom(),
+                base.nom(),
+                base.roles(),
                 redirectTo,
-                user.isMustChangePassword()
+                base.mustChangePassword()
         );
     }
 
-    // ─────────────────────────────────────────────────────────────────────────
-    // CHANGER MOT DE PASSE
-    // ─────────────────────────────────────────────────────────────────────────
     @Override
     @Transactional
-    public void changePassword(String email, ChangePasswordRequest request) {
+    public void changePassword(String email, AuthDto.ChangePasswordRequest request) {
 
         User user = userRepository.findByEmailAndDeletedFalse(email)
                 .orElseThrow(() -> new NotFoundException(
@@ -142,9 +119,6 @@ public class AuthServiceImpl implements AuthService {
         userRepository.saveAndFlush(user);
     }
 
-    // ─────────────────────────────────────────────────────────────────────────
-    // REDIRECTION DEPUIS LA DB
-    // ─────────────────────────────────────────────────────────────────────────
     private String buildRedirectFromDb(User user) {
         return user.getRoles().stream()
                 .findFirst()

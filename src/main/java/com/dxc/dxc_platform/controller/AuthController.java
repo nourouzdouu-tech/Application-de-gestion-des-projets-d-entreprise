@@ -1,9 +1,7 @@
 package com.dxc.dxc_platform.controller;
 
+import com.dxc.dxc_platform.dto.AuthDto;
 import com.dxc.dxc_platform.service.AuthService;
-import com.dxc.dxc_platform.dto.AuthResponse;
-import com.dxc.dxc_platform.dto.ChangePasswordRequest;
-import com.dxc.dxc_platform.dto.LoginRequest;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -26,13 +24,10 @@ public class AuthController {
         this.authService = authService;
     }
 
-    // ─────────────────────────────────────────────────────────────────────────
-    // POST /api/auth/login
-    // ─────────────────────────────────────────────────────────────────────────
     @PostMapping("/login")
-    public ResponseEntity<?> login(@Valid @RequestBody LoginRequest request) {
+    public ResponseEntity<?> login(@Valid @RequestBody AuthDto.LoginRequest request) {
         try {
-            AuthResponse response = authService.login(request);
+            AuthDto.Response response = authService.login(request);
             return ResponseEntity.ok(response);
 
         } catch (LockedException e) {
@@ -56,25 +51,17 @@ public class AuthController {
         }
     }
 
-    // ─────────────────────────────────────────────────────────────────────────
-    // POST /api/auth/logout
-    // JWT est stateless → le logout côté serveur vide le contexte de sécurité
-    // Le frontend doit supprimer le token de son côté (localStorage / cookie)
-    // ─────────────────────────────────────────────────────────────────────────
     @PostMapping("/logout")
     public ResponseEntity<?> logout(Authentication authentication) {
         SecurityContextHolder.clearContext();
         return ResponseEntity.ok(Map.of(
-                "message", "Déconnexion réussie. "
+                "message", "Déconnexion réussie."
         ));
     }
 
-    // ─────────────────────────────────────────────────────────────────────────
-    // POST /api/auth/change-password
-    // ─────────────────────────────────────────────────────────────────────────
     @PostMapping("/change-password")
     public ResponseEntity<?> changePassword(
-            @Valid @RequestBody ChangePasswordRequest request,
+            @Valid @RequestBody AuthDto.ChangePasswordRequest request,
             Authentication authentication) {
         try {
             authService.changePassword(authentication.getName(), request);
@@ -96,9 +83,6 @@ public class AuthController {
         }
     }
 
-    // ─────────────────────────────────────────────────────────────────────────
-    // GET /api/auth/me
-    // ─────────────────────────────────────────────────────────────────────────
     @GetMapping("/me")
     public ResponseEntity<Map<String, Object>> me(Authentication authentication) {
         return ResponseEntity.ok(Map.of(

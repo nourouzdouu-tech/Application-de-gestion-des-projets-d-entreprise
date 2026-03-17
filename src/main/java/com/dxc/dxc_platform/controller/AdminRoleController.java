@@ -1,10 +1,7 @@
 package com.dxc.dxc_platform.controller;
 
+import com.dxc.dxc_platform.dto.RoleDto;
 import com.dxc.dxc_platform.service.RoleAdminService;
-import com.dxc.dxc_platform.dto.role.CreateRoleRequest;
-import com.dxc.dxc_platform.dto.role.RoleResponse;
-import com.dxc.dxc_platform.dto.role.UpdateRolePermissionsRequest;
-import com.dxc.dxc_platform.dto.role.UpdateRoleRequest;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -22,23 +19,23 @@ public class AdminRoleController {
     }
 
     @PostMapping
-    public ResponseEntity<RoleResponse> create(@Valid @RequestBody CreateRoleRequest req) {
+    public ResponseEntity<RoleDto.Response> create(@Valid @RequestBody RoleDto.CreateRequest req) {
         return ResponseEntity.ok(roleAdminService.create(req));
     }
 
     @GetMapping
-    public ResponseEntity<List<RoleResponse>> list() {
+    public ResponseEntity<List<RoleDto.Response>> list() {
         return ResponseEntity.ok(roleAdminService.list());
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<RoleResponse> get(@PathVariable Long id) {
+    public ResponseEntity<RoleDto.Response> get(@PathVariable Long id) {
         return ResponseEntity.ok(roleAdminService.get(id));
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<RoleResponse> update(@PathVariable Long id,
-                                               @Valid @RequestBody UpdateRoleRequest req) {
+    public ResponseEntity<RoleDto.Response> update(@PathVariable Long id,
+                                                   @Valid @RequestBody RoleDto.UpdateRequest req) {
         return ResponseEntity.ok(roleAdminService.update(id, req));
     }
 
@@ -55,8 +52,8 @@ public class AdminRoleController {
     }
 
     @PutMapping("/{id}/permissions")
-    public ResponseEntity<RoleResponse> updatePermissions(@PathVariable Long id,
-                                                          @RequestBody UpdateRolePermissionsRequest req) {
+    public ResponseEntity<RoleDto.Response> updatePermissions(@PathVariable Long id,
+                                                              @RequestBody RoleDto.UpdatePermissionsRequest req) {
         return ResponseEntity.ok(roleAdminService.updatePermissions(id, req));
     }
 

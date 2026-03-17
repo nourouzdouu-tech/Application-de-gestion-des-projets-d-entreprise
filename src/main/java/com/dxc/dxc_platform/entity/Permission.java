@@ -10,21 +10,18 @@ public class Permission {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(length = 60, nullable = false, unique = true)
+    @Column(nullable = false, unique = true)
     private String nom;
 
     @Column(length = 255)
     private String description;
 
-    // Constructeur vide obligatoire pour JPA
     public Permission() {}
 
     public Permission(String nom, String description) {
         this.nom = nom;
         this.description = description;
     }
-
-    // Getters & Setters
 
     public Long getId() {
         return id;

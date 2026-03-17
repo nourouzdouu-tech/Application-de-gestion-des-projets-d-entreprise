@@ -1,7 +1,7 @@
 package com.dxc.dxc_platform.controller;
 
+import com.dxc.dxc_platform.dto.PermissionDto;
 import com.dxc.dxc_platform.service.PermissionAdminService;
-import com.dxc.dxc_platform.dto.PermissionDto.*;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -19,14 +19,14 @@ public class AdminPermissionController {
     }
 
     @PostMapping
-    public ResponseEntity<PermissionResponse> create(
-            @Valid @RequestBody CreatePermissionRequest request
+    public ResponseEntity<PermissionDto.Response> create(
+            @Valid @RequestBody PermissionDto.CreateRequest request
     ) {
         return ResponseEntity.ok(permissionService.create(request));
     }
 
     @GetMapping
-    public ResponseEntity<List<PermissionResponse>> list() {
+    public ResponseEntity<List<PermissionDto.Response>> list() {
         return ResponseEntity.ok(permissionService.list());
     }
 
@@ -37,9 +37,9 @@ public class AdminPermissionController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<PermissionResponse> update(
+    public ResponseEntity<PermissionDto.Response> update(
             @PathVariable Long id,
-            @Valid @RequestBody UpdatePermissionRequest request
+            @Valid @RequestBody PermissionDto.UpdateRequest request
     ) {
         return ResponseEntity.ok(permissionService.update(id, request));
     }

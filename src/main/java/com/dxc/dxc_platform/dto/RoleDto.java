@@ -2,11 +2,14 @@ package com.dxc.dxc_platform.dto;
 
 import jakarta.validation.constraints.NotBlank;
 
-public class PermissionDto {
+import java.util.Set;
+
+public class RoleDto {
 
     public record CreateRequest(
             @NotBlank String nom,
-            String description
+            String description,
+            Set<String> permissionCodes
     ) {}
 
     public record UpdateRequest(
@@ -14,10 +17,16 @@ public class PermissionDto {
             String description
     ) {}
 
+    public record UpdatePermissionsRequest(
+            Set<String> permissionCodes
+    ) {}
+
     public record Response(
             Long id,
             String nom,
-            String description
+            String description,
+            boolean active,
+            Set<PermissionDto.Summary> permissions
     ) {}
 
     public record Summary(

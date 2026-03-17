@@ -1,8 +1,9 @@
 package com.dxc.dxc_platform.service.impl;
 
-import com.dxc.dxc_platform.dto.user.*;
+import com.dxc.dxc_platform.dto.UserDto;
 import com.dxc.dxc_platform.entity.Role;
 import com.dxc.dxc_platform.entity.User;
+import com.dxc.dxc_platform.mapper.UserMapper;
 import com.dxc.dxc_platform.repository.RoleRepository;
 import com.dxc.dxc_platform.repository.UserRepository;
 import com.dxc.dxc_platform.service.UserAdminService;
@@ -16,7 +17,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Set;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 @Service
 @Transactional
@@ -25,22 +25,25 @@ public class UserAdminServiceImpl implements UserAdminService {
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
     private final PasswordEncoder passwordEncoder;
+    private final UserMapper userMapper;
 
     public UserAdminServiceImpl(UserRepository userRepository,
                                 RoleRepository roleRepository,
-                                PasswordEncoder passwordEncoder) {
+                                PasswordEncoder passwordEncoder,
+                                UserMapper userMapper) {
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
         this.passwordEncoder = passwordEncoder;
+        this.userMapper = userMapper;
     }
 
     @Override
-    public UserResponse create(CreateUserRequest req) {
+    public UserDto.Response create(UserDto.CreateRequest req) {
         if (userRepository.existsByEmailAndDeletedFalse(req.email())) {
             throw new ConflictException("EMAIL_ALREADY_USED", "Email déjà utilisé");
         }
 
-        Role role = roleRepository.findByNomAndDeletedFalse(req.roleCode())
+        Role role = roleRepository.findByNom(req.roleCode())
                 .orElseThrow(() -> new NotFoundException("ROLE_NOT_FOUND", "Rôle introuvable: " + req.roleCode()));
 
         User user = new User(
@@ -51,7 +54,6 @@ public class UserAdminServiceImpl implements UserAdminService {
                 passwordEncoder.encode(req.password())
         );
 
-        user.setEnabled(true);
         user.setFailedAttempts(0);
         user.setLocked(false);
         user.setMustChangePassword(false);
@@ -59,13 +61,12 @@ public class UserAdminServiceImpl implements UserAdminService {
         user.setRoles(Set.of(role));
 
         user = userRepository.save(user);
-        return toResponse(user);
+        return userMapper.toResponse(user);
     }
 
     @Override
     @Transactional(readOnly = true)
-    public Page<UserResponse> search(String q, String role, Boolean enabled, Pageable pageable) {
-
+    public Page<UserDto.Response> search(String q, String role, Boolean locked, Pageable pageable) {
         String qLike = "%";
         if (q != null && !q.isBlank()) {
             qLike = "%" + q.toLowerCase() + "%";
@@ -76,19 +77,20 @@ public class UserAdminServiceImpl implements UserAdminService {
             roleLower = role.toLowerCase();
         }
 
-        return userRepository.search(qLike, enabled, roleLower, pageable)
-                .map(this::toResponse);
-    }
-    @Override
-    @Transactional(readOnly = true)
-    public UserResponse getById(Long id) {
-        User user = userRepository.findByIdAndDeletedFalse(id)
-                .orElseThrow(() -> new NotFoundException("USER_NOT_FOUND", "Utilisateur introuvable: " + id));
-        return toResponse(user);
+        return userRepository.search(qLike, locked, roleLower, pageable)
+                .map(userMapper::toResponse);
     }
 
     @Override
-    public UserResponse update(Long id, UpdateUserRequest req) {
+    @Transactional(readOnly = true)
+    public UserDto.Response getById(Long id) {
+        User user = userRepository.findByIdAndDeletedFalse(id)
+                .orElseThrow(() -> new NotFoundException("USER_NOT_FOUND", "Utilisateur introuvable: " + id));
+        return userMapper.toResponse(user);
+    }
+
+    @Override
+    public UserDto.Response update(Long id, UserDto.UpdateRequest req) {
         User user = userRepository.findByIdAndDeletedFalse(id)
                 .orElseThrow(() -> new NotFoundException("USER_NOT_FOUND", "Utilisateur introuvable: " + id));
 
@@ -97,24 +99,24 @@ public class UserAdminServiceImpl implements UserAdminService {
             throw new ConflictException("EMAIL_ALREADY_USED", "Email déjà utilisé");
         }
 
-        Role role = roleRepository.findByNomAndDeletedFalse(req.roleCode())
+        Role roleObj = roleRepository.findByNom(req.roleCode())
                 .orElseThrow(() -> new NotFoundException("ROLE_NOT_FOUND", "Rôle introuvable: " + req.roleCode()));
 
         user.setPrenom(req.prenom());
         user.setNom(req.nom());
         user.setEmail(req.email());
         user.setGenre(req.genre());
-        user.setRoles(Set.of(role));
+        user.setRoles(Set.of(roleObj));
         userRepository.save(user);
 
-        return toResponse(user);
+        return userMapper.toResponse(user);
     }
 
     @Override
     public void disable(Long id) {
         User user = userRepository.findByIdAndDeletedFalse(id)
                 .orElseThrow(() -> new NotFoundException("USER_NOT_FOUND", "Utilisateur introuvable: " + id));
-        user.setEnabled(false);
+        user.setLocked(true);
         userRepository.save(user);
     }
 
@@ -122,14 +124,13 @@ public class UserAdminServiceImpl implements UserAdminService {
     public void enable(Long id) {
         User user = userRepository.findByIdAndDeletedFalse(id)
                 .orElseThrow(() -> new NotFoundException("USER_NOT_FOUND", "Utilisateur introuvable: " + id));
-        user.setEnabled(true);
         user.setFailedAttempts(0);
         user.setLocked(false);
         userRepository.save(user);
     }
 
     @Override
-    public ResetPasswordResponse resetPassword(Long id, ResetPasswordRequest req) {
+    public UserDto.ResetPasswordResponse resetPassword(Long id, UserDto.ResetPasswordRequest req) {
         User user = userRepository.findByIdAndDeletedFalse(id)
                 .orElseThrow(() -> new NotFoundException("USER_NOT_FOUND", "Utilisateur introuvable: " + id));
 
@@ -139,13 +140,12 @@ public class UserAdminServiceImpl implements UserAdminService {
                         : generateTempPassword();
 
         user.setPasswordHash(passwordEncoder.encode(tempPassword));
-        user.setEnabled(true);
         user.setFailedAttempts(0);
         user.setLocked(false);
         user.setMustChangePassword(true);
         userRepository.save(user);
 
-        return new ResetPasswordResponse(user.getId(), tempPassword, true);
+        return new UserDto.ResetPasswordResponse(user.getId(), tempPassword, true);
     }
 
     @Override
@@ -153,26 +153,8 @@ public class UserAdminServiceImpl implements UserAdminService {
         User user = userRepository.findByIdAndDeletedFalse(id)
                 .orElseThrow(() -> new NotFoundException("USER_NOT_FOUND", "Utilisateur introuvable: " + id));
         user.setDeleted(true);
-        user.setEnabled(false);
+        user.setLocked(true);
         userRepository.save(user);
-    }
-
-    private UserResponse toResponse(User u) {
-        Set<String> roleNames = u.getRoles().stream()
-                .map(Role::getNom)
-                .collect(Collectors.toSet());
-
-        return new UserResponse(
-                u.getId(),
-                u.getEmail(),
-                u.getPrenom(),
-                u.getNom(),
-                u.getGenre(),
-                u.isEnabled(),
-                u.getFailedAttempts(),
-                u.isMustChangePassword(),
-                roleNames
-        );
     }
 
     private String generateTempPassword() {

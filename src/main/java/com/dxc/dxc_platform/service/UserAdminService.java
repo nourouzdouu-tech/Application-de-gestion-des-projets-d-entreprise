@@ -1,24 +1,24 @@
 package com.dxc.dxc_platform.service;
 
-import com.dxc.dxc_platform.dto.user.*;
+import com.dxc.dxc_platform.dto.UserDto;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
 public interface UserAdminService {
 
-    UserResponse create(CreateUserRequest req);
+    UserDto.Response create(UserDto.CreateRequest req);
 
-    Page<UserResponse> search(String q, String role, Boolean enabled, Pageable pageable);
+    Page<UserDto.Response> search(String q, String role, Boolean locked, Pageable pageable);
 
-    UserResponse getById(Long id);
+    UserDto.Response getById(Long id);
 
-    UserResponse update(Long id, UpdateUserRequest req);
+    UserDto.Response update(Long id, UserDto.UpdateRequest req);
 
     void disable(Long id);
 
     void enable(Long id);
 
-    ResetPasswordResponse resetPassword(Long id, ResetPasswordRequest req);
+    UserDto.ResetPasswordResponse resetPassword(Long id, UserDto.ResetPasswordRequest req);
 
     void softDelete(Long id);
 }

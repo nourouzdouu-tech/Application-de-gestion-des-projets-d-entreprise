@@ -1,14 +1,12 @@
 package com.dxc.dxc_platform.service.impl;
 
+import com.dxc.dxc_platform.dto.RoleDto;
 import com.dxc.dxc_platform.entity.Permission;
 import com.dxc.dxc_platform.entity.Role;
+import com.dxc.dxc_platform.mapper.RoleMapper;
 import com.dxc.dxc_platform.repository.PermissionRepository;
 import com.dxc.dxc_platform.repository.RoleRepository;
 import com.dxc.dxc_platform.service.RoleAdminService;
-import com.dxc.dxc_platform.dto.role.CreateRoleRequest;
-import com.dxc.dxc_platform.dto.role.RoleResponse;
-import com.dxc.dxc_platform.dto.role.UpdateRolePermissionsRequest;
-import com.dxc.dxc_platform.dto.role.UpdateRoleRequest;
 import com.dxc.dxc_platform.shared.exception.ConflictException;
 import com.dxc.dxc_platform.shared.exception.NotFoundException;
 import org.springframework.stereotype.Service;
@@ -25,89 +23,96 @@ public class RoleAdminServiceImpl implements RoleAdminService {
 
     private final RoleRepository roleRepository;
     private final PermissionRepository permissionRepository;
+    private final RoleMapper roleMapper;
 
     public RoleAdminServiceImpl(RoleRepository roleRepository,
-                                PermissionRepository permissionRepository) {
+                                PermissionRepository permissionRepository,
+                                RoleMapper roleMapper) {
         this.roleRepository = roleRepository;
         this.permissionRepository = permissionRepository;
+        this.roleMapper = roleMapper;
     }
 
     @Override
-    public RoleResponse create(CreateRoleRequest req) {
-        if (roleRepository.existsByNomAndDeletedFalse(req.nom())) {
+    public RoleDto.Response create(RoleDto.CreateRequest req) {
+        if (roleRepository.existsByNom(req.nom())) {
             throw new ConflictException("ROLE_ALREADY_EXISTS", "Rôle existe déjà: " + req.nom());
         }
 
         Role role = new Role(req.nom(), req.description());
         role.setActive(true);
-        role.setDeleted(false);
         role.setPermissions(resolvePermissions(req.permissionCodes()));
 
         role = roleRepository.save(role);
-        return toResponse(role);
+        return roleMapper.toResponse(role);
     }
 
     @Override
     @Transactional(readOnly = true)
-    public List<RoleResponse> list() {
-        return roleRepository.findAllByDeletedFalse()
+    public List<RoleDto.Response> list() {
+        return roleRepository.findAll()
                 .stream()
-                .map(this::toResponse)
+                .map(roleMapper::toResponse)
                 .toList();
     }
 
     @Override
     @Transactional(readOnly = true)
-    public RoleResponse get(Long id) {
-        Role role = roleRepository.findByIdAndDeletedFalse(id)
+    public RoleDto.Response get(Long id) {
+        Role role = roleRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("ROLE_NOT_FOUND", "Rôle introuvable: " + id));
-        return toResponse(role);
+        return roleMapper.toResponse(role);
     }
 
     @Override
-    public RoleResponse update(Long id, UpdateRoleRequest req) {
-        Role role = roleRepository.findByIdAndDeletedFalse(id)
+    public RoleDto.Response update(Long id, RoleDto.UpdateRequest req) {
+        Role role = roleRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("ROLE_NOT_FOUND", "Rôle introuvable: " + id));
 
         if (!role.getNom().equalsIgnoreCase(req.nom())
-                && roleRepository.existsByNomAndDeletedFalse(req.nom())) {
+                && roleRepository.existsByNom(req.nom())) {
             throw new ConflictException("ROLE_ALREADY_EXISTS", "Rôle existe déjà: " + req.nom());
         }
 
         role.setNom(req.nom());
         role.setDescription(req.description());
-        return toResponse(role);
+
+        role = roleRepository.save(role);
+        return roleMapper.toResponse(role);
     }
 
     @Override
     public void activate(Long id) {
-        Role role = roleRepository.findByIdAndDeletedFalse(id)
+        Role role = roleRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("ROLE_NOT_FOUND", "Rôle introuvable: " + id));
         role.setActive(true);
+        roleRepository.save(role);
     }
 
     @Override
     public void deactivate(Long id) {
-        Role role = roleRepository.findByIdAndDeletedFalse(id)
+        Role role = roleRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("ROLE_NOT_FOUND", "Rôle introuvable: " + id));
         role.setActive(false);
+        roleRepository.save(role);
     }
 
     @Override
-    public RoleResponse updatePermissions(Long id, UpdateRolePermissionsRequest req) {
-        Role role = roleRepository.findByIdAndDeletedFalse(id)
+    public RoleDto.Response updatePermissions(Long id, RoleDto.UpdatePermissionsRequest req) {
+        Role role = roleRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("ROLE_NOT_FOUND", "Rôle introuvable: " + id));
 
         role.setPermissions(resolvePermissions(req.permissionCodes()));
-        return toResponse(role);
+        role = roleRepository.save(role);
+        return roleMapper.toResponse(role);
     }
 
     @Override
     public void softDelete(Long id) {
-        Role role = roleRepository.findByIdAndDeletedFalse(id)
+        Role role = roleRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("ROLE_NOT_FOUND", "Rôle introuvable: " + id));
-        role.setDeleted(true);
-        role.setActive(false);
+
+        roleRepository.delete(role);
     }
 
     private Set<Permission> resolvePermissions(Set<String> codes) {
@@ -122,19 +127,5 @@ public class RoleAdminServiceImpl implements RoleAdminService {
                                 "Permission introuvable: " + code
                         )))
                 .collect(Collectors.toSet());
-    }
-
-    private RoleResponse toResponse(Role r) {
-        Set<String> perms = r.getPermissions().stream()
-                .map(Permission::getNom)
-                .collect(Collectors.toSet());
-
-        return new RoleResponse(
-                r.getId(),
-                r.getNom(),
-                r.getDescription(),
-                r.isActive(),
-                perms
-        );
     }
 }

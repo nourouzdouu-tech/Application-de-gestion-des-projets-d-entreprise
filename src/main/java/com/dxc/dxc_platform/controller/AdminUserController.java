@@ -1,6 +1,6 @@
 package com.dxc.dxc_platform.controller;
 
-import com.dxc.dxc_platform.dto.user.*;
+import com.dxc.dxc_platform.dto.UserDto;
 import com.dxc.dxc_platform.service.UserAdminService;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
@@ -20,28 +20,28 @@ public class AdminUserController {
     }
 
     @PostMapping
-    public ResponseEntity<UserResponse> create(@Valid @RequestBody CreateUserRequest req) {
+    public ResponseEntity<UserDto.Response> create(@Valid @RequestBody UserDto.CreateRequest req) {
         return ResponseEntity.ok(userAdminService.create(req));
     }
 
     @GetMapping
-    public ResponseEntity<Page<UserResponse>> search(
+    public ResponseEntity<Page<UserDto.Response>> search(
             @RequestParam(required = false) String q,
             @RequestParam(required = false) String role,
-            @RequestParam(required = false) Boolean enabled,
+            @RequestParam(required = false) Boolean locked,
             @PageableDefault(size = 10) Pageable pageable
     ) {
-        return ResponseEntity.ok(userAdminService.search(q, role, enabled, pageable));
+        return ResponseEntity.ok(userAdminService.search(q, role, locked, pageable));
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<UserResponse> get(@PathVariable Long id) {
+    public ResponseEntity<UserDto.Response> get(@PathVariable Long id) {
         return ResponseEntity.ok(userAdminService.getById(id));
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<UserResponse> update(@PathVariable Long id,
-                                               @Valid @RequestBody UpdateUserRequest req) {
+    public ResponseEntity<UserDto.Response> update(@PathVariable Long id,
+                                                   @Valid @RequestBody UserDto.UpdateRequest req) {
         return ResponseEntity.ok(userAdminService.update(id, req));
     }
 
@@ -58,8 +58,9 @@ public class AdminUserController {
     }
 
     @PostMapping("/{id}/reset-password")
-    public ResponseEntity<ResetPasswordResponse> resetPassword(@PathVariable Long id,
-                                                               @RequestBody(required = false) ResetPasswordRequest req) {
+    public ResponseEntity<UserDto.ResetPasswordResponse> resetPassword(
+            @PathVariable Long id,
+            @RequestBody(required = false) UserDto.ResetPasswordRequest req) {
         return ResponseEntity.ok(userAdminService.resetPassword(id, req));
     }
 

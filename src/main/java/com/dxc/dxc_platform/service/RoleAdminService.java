@@ -1,27 +1,24 @@
 package com.dxc.dxc_platform.service;
 
-import com.dxc.dxc_platform.dto.role.CreateRoleRequest;
-import com.dxc.dxc_platform.dto.role.RoleResponse;
-import com.dxc.dxc_platform.dto.role.UpdateRolePermissionsRequest;
-import com.dxc.dxc_platform.dto.role.UpdateRoleRequest;
+import com.dxc.dxc_platform.dto.RoleDto;
 
 import java.util.List;
 
 public interface RoleAdminService {
 
-    RoleResponse create(CreateRoleRequest req);
+    RoleDto.Response create(RoleDto.CreateRequest req);
 
-    List<RoleResponse> list();
+    List<RoleDto.Response> list();
 
-    RoleResponse get(Long id);
+    RoleDto.Response get(Long id);
 
-    RoleResponse update(Long id, UpdateRoleRequest req);
+    RoleDto.Response update(Long id, RoleDto.UpdateRequest req);
 
     void activate(Long id);
 
     void deactivate(Long id);
 
-    RoleResponse updatePermissions(Long id, UpdateRolePermissionsRequest req);
+    RoleDto.Response updatePermissions(Long id, RoleDto.UpdatePermissionsRequest req);
 
     void softDelete(Long id);
 }

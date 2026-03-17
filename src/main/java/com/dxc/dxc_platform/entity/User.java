@@ -21,17 +21,14 @@ public class User {
     @Column(length = 60)
     private String prenom;
 
-    @Column(length = 60)
+    @Column
     private String nom;
 
-    @Column(name = "password_hash", nullable = false)
+    @Column(name = "password_hash", nullable = false, unique = true)
     private String passwordHash;
 
     @Column(nullable = false)
     private LocalDateTime createdAt;
-
-    @Column(nullable = false)
-    private boolean enabled = true;
 
     @Column(nullable = false)
     private int failedAttempts = 0;
@@ -45,8 +42,8 @@ public class User {
     @Column(nullable = false)
     private boolean deleted = false;
 
-    @Enumerated(EnumType.STRING)
-    @Column(length = 10)
+    @Convert(converter = Genre.GenreConverter.class)
+    @Column(nullable = false)
     private Genre genre;
 
     @ManyToMany(fetch = FetchType.EAGER)
@@ -57,7 +54,6 @@ public class User {
     )
     private Set<Role> roles = new HashSet<>();
 
-    // JPA constructor
     public User() {}
 
     public User(String email, String prenom, String nom, Genre genre, String passwordHash) {
@@ -69,42 +65,95 @@ public class User {
         this.createdAt = LocalDateTime.now();
     }
 
-    // getters/setters
-    public Long getId() { return id; }
+    public Long getId() {
+        return id;
+    }
 
-    public String getEmail() { return email; }
-    public void setEmail(String email) { this.email = email; }
+    public String getEmail() {
+        return email;
+    }
 
-    public String getPrenom() { return prenom; }
-    public void setPrenom(String prenom) { this.prenom = prenom; }
+    public void setEmail(String email) {
+        this.email = email;
+    }
 
-    public String getNom() { return nom; }
-    public void setNom(String nom) { this.nom = nom; }
+    public String getPrenom() {
+        return prenom;
+    }
 
-    public String getPasswordHash() { return passwordHash; }
-    public void setPasswordHash(String passwordHash) { this.passwordHash = passwordHash; }
+    public void setPrenom(String prenom) {
+        this.prenom = prenom;
+    }
 
-    public LocalDateTime getCreatedAt() { return createdAt; }
-    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+    public String getNom() {
+        return nom;
+    }
 
-    public boolean isEnabled() { return enabled; }
-    public void setEnabled(boolean enabled) { this.enabled = enabled; }
+    public void setNom(String nom) {
+        this.nom = nom;
+    }
 
-    public int getFailedAttempts() { return failedAttempts; }
-    public void setFailedAttempts(int failedAttempts) { this.failedAttempts = failedAttempts; }
+    public String getPasswordHash() {
+        return passwordHash;
+    }
 
-    public boolean isLocked() { return locked; }
-    public void setLocked(boolean locked) { this.locked = locked; }
+    public void setPasswordHash(String passwordHash) {
+        this.passwordHash = passwordHash;
+    }
 
-    public boolean isMustChangePassword() { return mustChangePassword; }
-    public void setMustChangePassword(boolean mustChangePassword) { this.mustChangePassword = mustChangePassword; }
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
 
-    public boolean isDeleted() { return deleted; }
-    public void setDeleted(boolean deleted) { this.deleted = deleted; }
+    public void setCreatedAt(LocalDateTime createdAt) {
+        this.createdAt = createdAt;
+    }
 
-    public Genre getGenre() { return genre; }
-    public void setGenre(Genre genre) { this.genre = genre; }
+    public int getFailedAttempts() {
+        return failedAttempts;
+    }
 
-    public Set<Role> getRoles() { return roles; }
-    public void setRoles(Set<Role> roles) { this.roles = roles; }
+    public void setFailedAttempts(int failedAttempts) {
+        this.failedAttempts = failedAttempts;
+    }
+
+    public boolean isLocked() {
+        return locked;
+    }
+
+    public void setLocked(boolean locked) {
+        this.locked = locked;
+    }
+
+    public boolean isMustChangePassword() {
+        return mustChangePassword;
+    }
+
+    public void setMustChangePassword(boolean mustChangePassword) {
+        this.mustChangePassword = mustChangePassword;
+    }
+
+    public boolean isDeleted() {
+        return deleted;
+    }
+
+    public void setDeleted(boolean deleted) {
+        this.deleted = deleted;
+    }
+
+    public Genre getGenre() {
+        return genre;
+    }
+
+    public void setGenre(Genre genre) {
+        this.genre = genre;
+    }
+
+    public Set<Role> getRoles() {
+        return roles;
+    }
+
+    public void setRoles(Set<Role> roles) {
+        this.roles = roles;
+    }
 }
