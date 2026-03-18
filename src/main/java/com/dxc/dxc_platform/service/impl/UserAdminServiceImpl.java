@@ -15,6 +15,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
 
@@ -58,7 +59,9 @@ public class UserAdminServiceImpl implements UserAdminService {
         user.setLocked(false);
         user.setMustChangePassword(false);
         user.setDeleted(false);
-        user.setRoles(Set.of(role));
+        Set<Role> roles = new HashSet<>();
+        roles.add(role);
+        user.setRoles(roles);
 
         user = userRepository.save(user);
         return userMapper.toResponse(user);
@@ -106,7 +109,9 @@ public class UserAdminServiceImpl implements UserAdminService {
         user.setNom(req.nom());
         user.setEmail(req.email());
         user.setGenre(req.genre());
-        user.setRoles(Set.of(roleObj));
+        Set<Role> roles = new HashSet<>();
+        roles.add(roleObj);
+        user.setRoles(roles);
         userRepository.save(user);
 
         return userMapper.toResponse(user);

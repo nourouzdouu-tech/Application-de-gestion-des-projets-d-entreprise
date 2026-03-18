@@ -47,49 +47,65 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public AuthDto.Response login(AuthDto.LoginRequest request) {
-
-        User user = userRepository.findByEmailAndDeletedFalse(request.email())
-                .orElseThrow(() -> new NotFoundException(
-                        "USER_NOT_FOUND", "Utilisateur introuvable"));
-
-        if (user.isLocked()) {
-            throw new LockedException(
-                    "Compte verrouillé après 3 tentatives. Contactez l'administrateur.");
-        }
-
         try {
-            authenticationManager.authenticate(
-                    new UsernamePasswordAuthenticationToken(
-                            request.email(),
-                            request.password()
-                    )
+            User user = userRepository.findByEmailAndDeletedFalse(request.email())
+                    .orElseThrow(() -> new NotFoundException(
+                            "USER_NOT_FOUND", "Utilisateur introuvable"));
+
+            if (user.isLocked()) {
+                throw new LockedException(
+                        "Compte verrouillé après 3 tentatives. Contactez l'administrateur.");
+            }
+
+            try {
+                authenticationManager.authenticate(
+                        new UsernamePasswordAuthenticationToken(
+                                request.email(),
+                                request.password()
+                        )
+                );
+            } catch (BadCredentialsException e) {
+                int remaining = loginAttemptService.registerFailedAttempt(request.email());
+                throw new BadCredentialsException(
+                        "Mot de passe incorrect. " + remaining
+                                + " tentative(s) restante(s) avant verrouillage.");
+            }
+
+            loginAttemptService.resetAttempts(request.email());
+
+            UserDetails userDetails = userDetailsService.loadUserByUsername(request.email());
+            String token = jwtService.generateToken(userDetails);
+
+            String redirectTo = buildRedirectFromDb(user);
+
+            AuthDto.Response base = authMapper.toResponse(user);
+
+            System.out.println(">>> LOGIN RÉUSSI pour: " + request.email());
+            System.out.println(">>> Token généré: " + token.substring(0, 20) + "...");
+            System.out.println(">>> Response base avant retour: " + base);
+
+            AuthDto.Response finalResponse = new AuthDto.Response(
+                    token,
+                    base.tokenType(),
+                    base.email(),
+                    base.prenom(),
+                    base.nom(),
+                    base.roles(),
+                    redirectTo,
+                    base.mustChangePassword()
             );
-        } catch (BadCredentialsException e) {
-            int remaining = loginAttemptService.registerFailedAttempt(request.email());
-            throw new BadCredentialsException(
-                    "Mot de passe incorrect. " + remaining
-                            + " tentative(s) restante(s) avant verrouillage.");
+
+            System.out.println(">>> Final Response objet créé: " + finalResponse);
+            System.out.println(">>> Token dans final: " + finalResponse.accessToken());
+            System.out.println(">>> RedirectTo dans final: " + finalResponse.redirectTo());
+
+            return finalResponse;
+        } catch (Exception e) {
+            System.err.println(">>> ERREUR LOGIN EXCEPTION: " + e.getClass().getName());
+            System.err.println(">>> MESSAGE: " + e.getMessage());
+            e.printStackTrace();
+            throw e;
         }
-
-        loginAttemptService.resetAttempts(request.email());
-
-        UserDetails userDetails = userDetailsService.loadUserByUsername(request.email());
-        String token = jwtService.generateToken(userDetails);
-
-        String redirectTo = buildRedirectFromDb(user);
-
-        AuthDto.Response base = authMapper.toResponse(user);
-
-        return new AuthDto.Response(
-                token,
-                base.tokenType(),
-                base.email(),
-                base.prenom(),
-                base.nom(),
-                base.roles(),
-                redirectTo,
-                base.mustChangePassword()
-        );
     }
 
     @Override

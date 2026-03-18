@@ -1,6 +1,7 @@
 package com.dxc.dxc_platform.controller;
 
 import com.dxc.dxc_platform.dto.AuthDto;
+import com.dxc.dxc_platform.repository.UserRepository;
 import com.dxc.dxc_platform.service.AuthService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -92,4 +93,5 @@ public class AuthController {
                         .toList()
         ));
     }
+
 }
