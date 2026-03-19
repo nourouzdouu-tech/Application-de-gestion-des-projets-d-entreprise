@@ -1,0 +1,93 @@
+import { Injectable, inject } from '@angular/core';
+import { HttpClient, HttpParams } from '@angular/common/http';
+import { Observable } from 'rxjs';
+
+export interface RoleSummary {
+  id: number;
+  nom: string;
+}
+export interface PermissionSummary {
+  id: number;
+  nom: string;
+}
+export interface RoleResponse {
+  id: number;
+  nom: string;
+  description: string;
+  active: boolean;
+  permissions: PermissionSummary[];
+}
+export interface UserUpdateRequest {
+  prenom: string;
+  nom: string;
+  email: string;
+  genre: string;
+  roleCode: string;
+}
+
+export interface UserResponse {
+  id: number;
+  email: string;
+  prenom: string;
+  nom: string;
+  genre: 'M' | 'F';
+  failedAttempts: number;
+  locked: boolean;
+  mustChangePassword: boolean;
+  roles: RoleSummary[];
+}
+
+export interface UserCreateRequest {
+  prenom: string;
+  nom: string;
+  email: string;
+  genre: string;
+  roleCode: string;
+  password: string;
+}
+
+export interface PageResponse<T> {
+  content: T[];
+  totalElements: number;
+  totalPages: number;
+  size: number;
+  number: number;
+}
+
+@Injectable({ providedIn: 'root' })
+export class AdminService {
+  private http = inject(HttpClient);
+  private apiUrl = 'http://localhost:8080/api/admin/users';
+
+  getUsers(page: number, size = 5, q = '', role = '', locked?: boolean): Observable<PageResponse<UserResponse>> {
+    let params = new HttpParams()
+      .set('page', (page - 1).toString())
+      .set('size', size.toString());
+    if (q) params = params.set('q', q);
+    if (role) params = params.set('role', role);
+    if (locked !== undefined) params = params.set('locked', locked.toString());
+    return this.http.get<PageResponse<UserResponse>>(this.apiUrl, { params });
+  }
+
+  createUser(req: UserCreateRequest): Observable<UserResponse> {
+    return this.http.post<UserResponse>(this.apiUrl, req);
+  }
+
+  deleteUser(id: number): Observable<void> {
+    return this.http.delete<void>(`${this.apiUrl}/${id}`);
+  }
+
+  disableUser(id: number): Observable<void> {
+    return this.http.patch<void>(`${this.apiUrl}/${id}/disable`, {});
+  }
+
+  enableUser(id: number): Observable<void> {
+    return this.http.patch<void>(`${this.apiUrl}/${id}/enable`, {});
+  }
+  getRoles(): Observable<RoleResponse[]> {
+  return this.http.get<RoleResponse[]>('http://localhost:8080/api/admin/roles');
+}
+updateUser(id: number, req: UserUpdateRequest): Observable<UserResponse> {
+  return this.http.put<UserResponse>(`${this.apiUrl}/${id}`, req);
+}
+}

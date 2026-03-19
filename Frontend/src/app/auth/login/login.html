@@ -1,0 +1,167 @@
+<div class="login-container">
+  <!-- Left Hero Section -->
+  <div class="left-section">
+    <!-- DXC Logo -->
+    <div class="logo-container">
+      <img [src]="dxcLogo" alt="DXC Technology" class="logo" />
+    </div>
+
+    <!-- Hero Message -->
+    <div class="hero-content">
+      <h1 class="hero-title">
+        Offrir l'excellence<br />
+        à nos clients<br />
+        et à nos collègues.
+      </h1>
+      <p class="hero-description">
+        Accédez à la plateforme DXC pour gérer vos projets,
+        collaborer avec vos équipes et stimuler l'innovation.
+      </p>
+    </div>
+
+    <!-- Footer Copyright -->
+    <div class="footer-copyright">
+      <p>© 2026 DXC Technology</p>
+    </div>
+  </div>
+
+  <!-- Right Login Section -->
+  <div class="right-section">
+    <div class="login-card">
+      <!-- Card Header -->
+      <div class="card-header">
+        <h2 class="card-title">Bienvenue</h2>
+        <p class="card-subtitle">
+          Veuillez saisir vos identifiants pour accéder à votre compte.
+        </p>
+      </div>
+
+      <!-- Error Message -->
+      @if (errorMessage()) {
+        <div class="error-message">
+          {{ errorMessage() }}
+        </div>
+      }
+
+      <!-- Login Form -->
+      <form [formGroup]="loginForm" (ngSubmit)="onSubmit()" class="login-form">
+        <!-- Email Field -->
+        <div class="form-group">
+          <label for="email" class="form-label">Adresse Email</label>
+          <div class="input-container">
+            <svg
+              class="input-icon"
+              [attr.aria-hidden]="true"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+            >
+              <path
+                d="M3 8l9 6 9-6M3 8v10a2 2 0 002 2h14a2 2 0 002-2V8M3 8l6 4m12-4l-6 4"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+            <input
+              id="email"
+              type="email"
+              formControlName="email"
+              placeholder="name@dxc.ma"
+              class="form-input"
+              required
+            />
+          </div>
+          @if (email?.invalid && email?.touched) {
+            <span class="error-text">Veuillez entrer une adresse email valide</span>
+          }
+        </div>
+
+        <!-- Password Field -->
+        <div class="form-group">
+          <label for="password" class="form-label">Mot de passe</label>
+          <div class="input-container">
+            <svg
+              class="input-icon"
+              [attr.aria-hidden]="true"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+            >
+              <path
+                d="M12 1C6.477 1 2 5.477 2 11v2c0 5.523 4.477 10 10 10s10-4.477 10-10v-2c0-5.523-4.477-10-10-10zm0 2c4.418 0 8 3.582 8 8v2c0 4.418-3.582 8-8 8s-8-3.582-8-8v-2c0-4.418 3.582-8 8-8z"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+            <input
+              id="password"
+              [type]="showPassword() ? 'text' : 'password'"
+              formControlName="password"
+              placeholder="••••••••"
+              class="form-input"
+              required
+            />
+            <button
+              type="button"
+              (click)="togglePasswordVisibility()"
+              class="toggle-password"
+              [attr.aria-label]="showPassword() ? 'Masquer le mot de passe' : 'Afficher le mot de passe'"
+            >
+              @if (showPassword()) {
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                  <path
+                    d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
+                  <circle cx="12" cy="12" r="3" stroke-width="2" />
+                </svg>
+              } @else {
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                  <path
+                    d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4A9.97 9.97 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
+                  <line x1="1" y1="1" x2="23" y2="23" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                </svg>
+              }
+            </button>
+          </div>
+          @if (password?.invalid && password?.touched) {
+            <span class="error-text">Le mot de passe doit contenir au moins 8 caractères</span>
+          }
+        </div>
+
+        <!-- Submit Button -->
+        <button
+          type="submit"
+          [disabled]="!loginForm.valid || isLoading()"
+          class="submit-button"
+          [class.loading]="isLoading()"
+        >
+          @if (!isLoading()) {
+            <svg
+              class="button-icon"
+              viewBox="0 0 24 24"
+              fill="currentColor"
+              [attr.aria-hidden]="true"
+            >
+              <path
+                d="M13.5 0h-12v24h12V0zm8.5 11h-8v2h8v-2zM14.5 3v2h8V3h-8z"
+              />
+            </svg>
+            Se connecter
+          } @else {
+            <span class="spinner"></span>
+            Connexion en cours...
+          }
+        </button>
+      </form>
+    </div>
+  </div>
+</div>
