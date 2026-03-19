@@ -1,0 +1,161 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="SELECTIVE" />
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="d6d90c51-4d5c-4da4-945a-1cea9d95d7af" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/.gitattributes" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/.mvn/wrapper/maven-wrapper.properties" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/mvnw" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/mvnw.cmd" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/pom.xml" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/dxc/dxc_platform/DxcPlatformApplication.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/dxc/dxc_platform/config/CorsConfig.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/dxc/dxc_platform/config/SecurityBeansConfig.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/dxc/dxc_platform/config/SecurityConfig.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/dxc/dxc_platform/controller/AdminPermissionController.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/dxc/dxc_platform/controller/AdminRoleController.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/dxc/dxc_platform/controller/AdminUserController.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/dxc/dxc_platform/controller/AuthController.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/dxc/dxc_platform/dto/AuthDto.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/dxc/dxc_platform/dto/PermissionDto.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/dxc/dxc_platform/dto/RoleDto.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/dxc/dxc_platform/dto/UserDto.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/dxc/dxc_platform/entity/Permission.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/dxc/dxc_platform/entity/Role.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/dxc/dxc_platform/entity/User.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/dxc/dxc_platform/enums/Genre.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/dxc/dxc_platform/mapper/AuthMapper.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/dxc/dxc_platform/mapper/PermissionMapper.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/dxc/dxc_platform/mapper/RoleMapper.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/dxc/dxc_platform/mapper/UserMapper.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/dxc/dxc_platform/repository/PermissionRepository.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/dxc/dxc_platform/repository/RoleRepository.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/dxc/dxc_platform/repository/UserRepository.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/dxc/dxc_platform/security/CustomUserDetails.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/dxc/dxc_platform/security/CustomUserDetailsService.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/dxc/dxc_platform/security/JwtService.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/dxc/dxc_platform/security/SecurityUtils.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/dxc/dxc_platform/security/jwt/JwtAuthenticationFilter.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/dxc/dxc_platform/security/jwt/JwtService.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/dxc/dxc_platform/service/AuthService.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/dxc/dxc_platform/service/PermissionAdminService.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/dxc/dxc_platform/service/RoleAdminService.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/dxc/dxc_platform/service/UserAdminService.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/dxc/dxc_platform/service/impl/AuthServiceImpl.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/dxc/dxc_platform/service/impl/LockUserService.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/dxc/dxc_platform/service/impl/LoginAttemptService.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/dxc/dxc_platform/service/impl/PermissionAdminServiceImpl.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/dxc/dxc_platform/service/impl/RoleAdminServiceImpl.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/dxc/dxc_platform/service/impl/UserAdminServiceImpl.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/dxc/dxc_platform/shared/config/JpaConfig.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/dxc/dxc_platform/shared/config/OpenApiConfig.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/dxc/dxc_platform/shared/dto/ApiErrorResponse.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/dxc/dxc_platform/shared/dto/ApiResponse.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/dxc/dxc_platform/shared/exception/BusinessException.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/dxc/dxc_platform/shared/exception/ConflictException.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/dxc/dxc_platform/shared/exception/ForbiddenException.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/dxc/dxc_platform/shared/exception/NotFoundException.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/dxc/dxc_platform/shared/exception/UnauthorizedException.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/dxc/dxc_platform/shared/handler/GlobalExceptionHandler.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/dxc/dxc_platform/shared/util/EmailSender.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/dxc/dxc_platform/shared/util/RandomPasswordGenerator.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/java/com/dxc/dxc_platform/shared/util/RoleNormalizer.java" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main/resources/application.properties" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/test/java/com/dxc/dxc_platform/DxcPlatformApplicationTests.java" beforeDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="FileTemplateManagerImpl">
+    <option name="RECENT_TEMPLATES">
+      <list>
+        <option value="Class" />
+      </list>
+    </option>
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+  </component>
+  <component name="MavenImportPreferences">
+    <option name="generalSettings">
+      <MavenGeneralSettings>
+        <option name="mavenHomeTypeForPersistence" value="WRAPPER" />
+      </MavenGeneralSettings>
+    </option>
+  </component>
+  <component name="ProjectColorInfo">{
+  &quot;associatedIndex&quot;: 3
+}</component>
+  <component name="ProjectId" id="3ABLdoqVma4LfT34wNOZdgYLPeI" />
+  <component name="ProjectLevelVcsManager">
+    <ConfirmationsSetting value="2" id="Add" />
+  </component>
+  <component name="ProjectViewState">
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "RequestMappingsPanelOrder0": "0",
+    "RequestMappingsPanelOrder1": "1",
+    "RequestMappingsPanelWidth0": "75",
+    "RequestMappingsPanelWidth1": "75",
+    "RunOnceActivity.ShowReadmeOnStart": "true",
+    "Spring Boot.DxcPlatformApplication.executor": "Run",
+    "git-widget-placeholder": "main",
+    "ignore.virus.scanning.warn.message": "true",
+    "kotlin-language-version-configured": "true",
+    "last_opened_file_path": "C:/Users/Nour/Documents/PFE/dxc-platform/Backend",
+    "node.js.detected.package.eslint": "true",
+    "node.js.detected.package.tslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "node.js.selected.package.tslint": "(autodetect)",
+    "nodejs_package_manager_path": "npm",
+    "settings.editor.selected.configurable": "reference.projectsettings.compiler.annotationProcessors",
+    "vue.rearranger.settings.migration": "true"
+  }
+}]]></component>
+  <component name="RunManager">
+    <configuration name="DxcPlatformApplication" type="SpringBootApplicationConfigurationType" factoryName="Spring Boot" nameIsGenerated="true">
+      <option name="FRAME_DEACTIVATION_UPDATE_POLICY" value="UpdateClassesAndResources" />
+      <module name="dxc-platform" />
+      <option name="SPRING_BOOT_MAIN_CLASS" value="com.dxc.dxc_platform.DxcPlatformApplication" />
+      <method v="2">
+        <option name="Make" enabled="true" />
+      </method>
+    </configuration>
+  </component>
+  <component name="SharedIndexes">
+    <attachedChunks>
+      <set>
+        <option value="bundled-jdk-9823dce3aa75-28b599e66164-intellij.indexing.shared.core-IU-242.23339.11" />
+        <option value="bundled-js-predefined-d6986cc7102b-5c90d61e3bab-JavaScript-IU-242.23339.11" />
+      </set>
+    </attachedChunks>
+  </component>
+  <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="d6d90c51-4d5c-4da4-945a-1cea9d95d7af" name="Changes" comment="" />
+      <created>1772061107415</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1772061107415</updated>
+      <workItem from="1772061108738" duration="15400000" />
+      <workItem from="1772298674715" duration="5921000" />
+      <workItem from="1772323968551" duration="6212000" />
+      <workItem from="1772459509148" duration="6069000" />
+      <workItem from="1772642261157" duration="1955000" />
+      <workItem from="1773098119315" duration="27632000" />
+    </task>
+    <servers />
+  </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="3" />
+  </component>
+</project>
