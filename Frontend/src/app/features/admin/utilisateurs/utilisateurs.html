@@ -66,8 +66,13 @@
 </div>
   </aside>
 
-  <!-- ===== MAIN CONTENT ===== -->
+    <!-- ===== MAIN CONTENT ===== -->
   <main class="main-content">
+
+    <!-- DASHBOARD VIEW -->
+    @if (activeNavItem() === 'dashboard') {
+      <app-dashboard />
+    } @else {
 
     <!-- Breadcrumb -->
     <div class="breadcrumb">
@@ -285,9 +290,12 @@
         </div>
       }
 
-    </div>
+     </div>
+
+    }
 
   </main>
+  <!-- ===== FIN MAIN CONTENT ===== -->
   <!-- ===== MODAL CRÉER UTILISATEUR ===== -->
   @if (showModal()) {
   <div class="modal-overlay" (click)="closeModal()">
