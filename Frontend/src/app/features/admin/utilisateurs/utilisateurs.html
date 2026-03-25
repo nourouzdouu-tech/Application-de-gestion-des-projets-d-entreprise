@@ -5,11 +5,7 @@
     <div class="sidebar-top">
       <!-- Logo -->
       <div class="sidebar-logo">
-        <svg viewBox="0 0 120 40" fill="none" xmlns="http://www.w3.org/2000/svg" class="dxc-logo-svg">
-          <text x="0" y="30" font-family="Inter, sans-serif" font-size="28" font-weight="800"
-            fill="white">DXC</text>
-        </svg>
-        <span class="logo-sub">Technology</span>
+        <img src="/assets/DXC_logo.png" alt="DXC Technology" class="dxc-logo-img">
       </div>
 
       <!-- Nav -->
@@ -72,11 +68,13 @@
     <!-- DASHBOARD VIEW -->
     @if (activeNavItem() === 'dashboard') {
       <app-dashboard />
+    } @else if (activeNavItem() === 'roles') {
+      <app-roles (navigateToDashboard)="setNav('dashboard')" />
     } @else {
 
     <!-- Breadcrumb -->
     <div class="breadcrumb">
-      <span class="breadcrumb-parent">Tableau de bord</span>
+      <span class="breadcrumb-parent" (click)="setNav('dashboard')" style="cursor: pointer;">Tableau de bord</span>
       <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
         <polyline points="9 18 15 12 9 6" />
       </svg>

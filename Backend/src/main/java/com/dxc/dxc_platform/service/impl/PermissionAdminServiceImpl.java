@@ -81,5 +81,6 @@ public class PermissionAdminServiceImpl implements PermissionAdminService {
 
         permission = permissionRepository.save(permission);
         return permissionMapper.toResponse(permission);
+        
     }
 }

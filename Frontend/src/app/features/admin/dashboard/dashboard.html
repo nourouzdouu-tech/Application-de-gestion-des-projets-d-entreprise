@@ -8,11 +8,11 @@
       Chargement du dashboard...
     </div>
   } @else {
-  <div class="search-bar-section">
+  <!--<div class="search-bar-section">
     <input type="text" placeholder="Rechercher des données, des utilisateurs ou des projets..." class="search-input" />
   </div>
 
-  <!--<div class="user-info-badge">
+  <div class="user-info-badge">
     <div class="profile-badge">
       <div class="profile-initial">AD</div>
       <div class="profile-text">
@@ -30,7 +30,7 @@
         <p class="title-description">Suivez et gérez les performances du système et l'engagement des utilisateurs.</p>
       </div>
 
-      <div class="action-buttons">
+     <!-- <div class="action-buttons">
         <button class="btn btn-secondary">
           <span class="btn-calendar">📅</span>
           <span class="btn-text">30 derniers<br />jours</span>
@@ -39,7 +39,7 @@
           <span class="btn-export">📊</span>
           <span class="btn-text">Exporter les<br />données</span>
         </button>
-      </div>
+      </div>-->
     </div>
 
     <div class="kpi-grid">
@@ -141,8 +141,8 @@
           <div class="col-utilisateur">UTILISATEUR</div>
           <div class="col-projet">PROJET</div>
           <div class="col-status">STATUT DE CHARGE</div>
-          <div class="col-validation">DERNIÈRE VALIDATION</div>
-          <div class="col-action">ACTION</div>
+          <!-- <div class="col-validation">DERNIÈRE VALIDATION</div>
+           <div class="col-action">ACTION</div>--> 
         </div>
 
         <div class="table-row" *ngFor="let alert of alertData()">
@@ -159,10 +159,10 @@
           <div class="col-status">
             <span class="status-badge" [ngClass]="getStatusClass(alert.status)">{{ alert.status }}</span>
           </div>
-          <div class="col-validation">{{ alert.lastValidation }}</div>
+         <!--  <div class="col-validation">{{ alert.lastValidation }}</div>
           <div class="col-action">
             <button class="action-btn">⋮</button>
-          </div>
+          </div>-->
               </div>
     </div>
   </div>

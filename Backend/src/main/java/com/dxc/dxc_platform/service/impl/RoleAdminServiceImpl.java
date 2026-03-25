@@ -52,16 +52,39 @@ public class RoleAdminServiceImpl implements RoleAdminService {
     public List<RoleDto.Response> list() {
         return roleRepository.findAll()
                 .stream()
-                .map(roleMapper::toResponse)
+                .map(role -> {
+                    RoleDto.Response response = roleMapper.toResponse(role);
+                    Long userCount = roleRepository.countUsersForRole(role.getId());
+                    return new RoleDto.Response(
+                            response.id(),
+                            response.nom(),
+                            response.description(),
+                            response.active(),
+                            response.permissions(),
+                            userCount.intValue()
+                    );
+                })
                 .toList();
     }
+
 
     @Override
     @Transactional(readOnly = true)
     public RoleDto.Response get(Long id) {
         Role role = roleRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("ROLE_NOT_FOUND", "Rôle introuvable: " + id));
-        return roleMapper.toResponse(role);
+
+        RoleDto.Response response = roleMapper.toResponse(role);
+        Long userCount = roleRepository.countUsersForRole(role.getId());
+
+        return new RoleDto.Response(
+                response.id(),
+                response.nom(),
+                response.description(),
+                response.active(),
+                response.permissions(),
+                userCount.intValue()
+        );
     }
 
     @Override
@@ -76,6 +99,15 @@ public class RoleAdminServiceImpl implements RoleAdminService {
 
         role.setNom(req.nom());
         role.setDescription(req.description());
+
+        if (req.active() != null) {
+            role.setActive(req.active());
+        }
+
+        if (req.permissionIds() != null) {
+            List<Permission> permissions = permissionRepository.findAllById(req.permissionIds());
+            role.setPermissions(new HashSet<>(permissions));
+        }
 
         role = roleRepository.save(role);
         return roleMapper.toResponse(role);
@@ -128,4 +160,5 @@ public class RoleAdminServiceImpl implements RoleAdminService {
                         )))
                 .collect(Collectors.toSet());
     }
+
 }

@@ -13,8 +13,10 @@ public class RoleDto {
     ) {}
 
     public record UpdateRequest(
-            @NotBlank String nom,
-            String description
+            String nom,
+            String description,
+            Boolean active,
+            Set<Long> permissionIds
     ) {}
 
     public record UpdatePermissionsRequest(
@@ -26,7 +28,8 @@ public class RoleDto {
             String nom,
             String description,
             boolean active,
-            Set<PermissionDto.Summary> permissions
+            Set<PermissionDto.Summary> permissions,
+            Integer usersCount
     ) {}
 
     public record Summary(

@@ -62,4 +62,5 @@ public class AdminRoleController {
         roleAdminService.softDelete(id);
         return ResponseEntity.noContent().build();
     }
+
 }

@@ -5,11 +5,12 @@ import { Router } from '@angular/router';
 import { AdminService, UserResponse, RoleResponse } from '../../../core/services/admin.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { Dashboard } from '../dashboard/dashboard';
+import { Roles } from '../roles/roles';
 
 @Component({
   selector: 'app-utilisateurs',
   standalone: true,
-  imports: [CommonModule, FormsModule, Dashboard],
+  imports: [CommonModule, FormsModule, Dashboard, Roles],
   templateUrl: './utilisateurs.html',
   styleUrls: ['./utilisateurs.css']
 })

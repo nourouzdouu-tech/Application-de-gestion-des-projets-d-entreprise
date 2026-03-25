@@ -16,6 +16,7 @@ export interface RoleResponse {
   description: string;
   active: boolean;
   permissions: PermissionSummary[];
+  usersCount?: number;
 }
 export interface UserUpdateRequest {
   prenom: string;
@@ -36,7 +37,18 @@ export interface UserResponse {
   mustChangePassword: boolean;
   roles: RoleSummary[];
 }
+export interface RoleCreateRequest {
+  nom: string;
+  description: string;
+  permissionIds?: number[];
+}
 
+export interface RoleUpdateRequest {
+  nom: string;
+  description: string;
+  active: boolean;
+  permissionIds?: number[];
+}
 export interface UserCreateRequest {
   prenom: string;
   nom: string;
@@ -44,6 +56,20 @@ export interface UserCreateRequest {
   genre: string;
   roleCode: string;
   password: string;
+}
+export interface DashboardStats {
+  totalUsers: number;
+  activeUsers: number;
+  inactiveUsers: number;
+  totalRoles: number;
+  usersPerRole: { [roleId: string]: number };
+}
+
+export interface RoleStats {
+  roleId: number;
+  roleName: string;
+  userCount: number;
+  percentage: number;
 }
 
 export interface PageResponse<T> {
@@ -90,4 +116,50 @@ export class AdminService {
 updateUser(id: number, req: UserUpdateRequest): Observable<UserResponse> {
   return this.http.put<UserResponse>(`${this.apiUrl}/${id}`, req);
 }
+
+  // ===== DASHBOARD STATS =====
+  getDashboardStats(): Observable<DashboardStats> {
+    return this.http.get<DashboardStats>('http://localhost:8080/api/admin/dashboard/stats');
+  }
+
+  getRoleStats(): Observable<RoleStats[]> {
+    return this.http.get<RoleStats[]>('http://localhost:8080/api/admin/dashboard/role-stats');
+  }
+
+  getUsersByRole(roleId: number): Observable<UserResponse[]> {
+    return this.http.get<UserResponse[]>(`http://localhost:8080/api/admin/roles/${roleId}/users`);
+  }
+
+  getActiveUserCount(): Observable<number> {
+    return this.http.get<number>('http://localhost:8080/api/admin/dashboard/active-users');
+  }
+
+    getInactiveUserCount(): Observable<number> {
+    return this.http.get<number>('http://localhost:8080/api/admin/dashboard/inactive-users');
+  }
+
+  // ===== ROLE MANAGEMENT =====
+  createRole(req: RoleCreateRequest): Observable<RoleResponse> {
+    return this.http.post<RoleResponse>('http://localhost:8080/api/admin/roles', req);
+  }
+
+  updateRole(id: number, req: RoleUpdateRequest): Observable<RoleResponse> {
+    return this.http.put<RoleResponse>(`http://localhost:8080/api/admin/roles/${id}`, req);
+  }
+
+  deleteRole(id: number): Observable<void> {
+    return this.http.delete<void>(`http://localhost:8080/api/admin/roles/${id}`);
+  }
+
+  getRole(id: number): Observable<RoleResponse> {
+    return this.http.get<RoleResponse>(`http://localhost:8080/api/admin/roles/${id}`);
+  }
+
+  getPermissions(): Observable<PermissionSummary[]> {
+    return this.http.get<PermissionSummary[]>('http://localhost:8080/api/admin/permissions');
+  }
+
+  createPermission(req: { nom: string; description: string }): Observable<PermissionSummary> {
+    return this.http.post<PermissionSummary>('http://localhost:8080/api/admin/permissions', req);
+  }
 }

@@ -59,6 +59,12 @@
   height: 28px;
 }
 
+.dxc-logo-img {
+  max-width: 120px;
+  height: auto;
+  object-fit: contain;
+}
+
 .logo-sub {
   font-size: 11px;
   font-weight: 600;
