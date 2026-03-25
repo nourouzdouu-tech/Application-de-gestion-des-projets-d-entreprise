@@ -35,4 +35,9 @@ public class AuthDto {
             String redirectTo,
             boolean mustChangePassword
     ) {}
+    public record UpdateProfileRequest(
+            String nom,
+            String prenom,
+            String email
+    ) {}
 }

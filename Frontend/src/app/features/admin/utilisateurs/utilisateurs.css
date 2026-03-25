@@ -1030,3 +1030,26 @@
 }
 .toast-success { background-color: #16a34a; }
 .toast-error   { background-color: #dc2626; }
+.action-enable {
+  color: #16a34a;
+}
+.action-enable:hover {
+  background-color: #f0fdf4;
+  border-color: #86efac;
+  color: #15803d;
+}
+.action-disable {
+  color: #9ca3af;
+}
+.action-disable:hover {
+  background-color: #fff7ed;
+  border-color: #fdba74;
+  color: #ea580c;
+}
+.profile-value {
+  background: #f9fafb;
+  padding: 10px;
+  border-radius: 8px;
+  font-size: 14px;
+  color: #374151;
+}

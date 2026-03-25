@@ -91,5 +91,11 @@ removeUser(): void {
   localStorage.removeItem('auth_user');
   localStorage.removeItem('auth_token');
 }
+updateProfile(data: any): Observable<AuthResponse> {
+  return this.http.put<AuthResponse>(
+    `${this.apiUrl}/update-profile`, 
+    data
+  );
+}
 
 }

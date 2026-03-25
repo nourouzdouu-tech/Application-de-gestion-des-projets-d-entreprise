@@ -25,6 +25,14 @@ export class Utilisateurs implements OnInit {
   totalPages = signal(0);
   currentPage = signal(1);
   searchQuery = signal('');
+  filterRole = signal('');
+  showProfileModal = signal(false);
+
+profileNom = signal('');
+profilePrenom = signal('');
+profileEmail = signal('');
+filterStatus = signal<string>('');
+profilePassword = signal('');
   itemsPerPage = 5;
   loading = signal(false);
   activeNavItem = signal('utilisateurs');
@@ -71,24 +79,45 @@ export class Utilisateurs implements OnInit {
   }
 
   loadUsers() {
-    this.loading.set(true);
-    this.adminService.getUsers(this.currentPage(), this.itemsPerPage, this.searchQuery())
-      .subscribe({
-        next: (page) => {
-          this.users.set(page.content);
-          this.totalElements.set(page.totalElements);
-          this.totalPages.set(page.totalPages);
-          this.loading.set(false);
-        },
-        error: () => this.loading.set(false)
-      });
+  this.loading.set(true);
+  this.adminService.getUsers(
+    this.currentPage(),
+    this.itemsPerPage,
+    this.searchQuery(),
+    this.filterRole()
+  ).subscribe({
+    next: (page) => {
+      this.users.set(page.content);
+      this.totalElements.set(page.totalElements);
+      this.totalPages.set(page.totalPages);
+      this.loading.set(false);
+    },
+    error: () => this.loading.set(false)
+  });
+}
+onFilterRole(value: string) {
+  this.filterRole.set(value);
+  this.currentPage.set(1);
+  this.loadUsers();
+}
+
+ onSearch(value: string) {
+  const search = value.toLowerCase().trim();
+
+  this.searchQuery.set(value);
+  this.currentPage.set(1);
+
+  // 🔥 détecter statut
+  if (search === 'actif') {
+    this.filterStatus.set('ACTIVE');
+  } else if (search === 'inactif') {
+    this.filterStatus.set('INACTIVE');
+  } else {
+    this.filterStatus.set('');
   }
 
-  onSearch(value: string) {
-    this.searchQuery.set(value);
-    this.currentPage.set(1);
-    this.loadUsers();
-  }
+  this.loadUsers();
+}
 
   setPage(page: number) {
     if (page >= 1 && page <= this.totalPages()) {
@@ -98,12 +127,24 @@ export class Utilisateurs implements OnInit {
   }
 
   toggleUserStatus(user: UserResponse) {
-    if (user.locked) {
-      this.adminService.enableUser(user.id).subscribe(() => this.loadUsers());
-    } else {
-      this.adminService.disableUser(user.id).subscribe(() => this.loadUsers());
-    }
+  if (user.locked) {
+    this.adminService.enableUser(user.id).subscribe({
+      next: () => {
+        this.showSuccess('Utilisateur activé avec succès !');
+        this.loadUsers();
+      },
+      error: () => this.showError('Erreur lors de l\'activation')
+    });
+  } else {
+    this.adminService.disableUser(user.id).subscribe({
+      next: () => {
+        this.showSuccess('Utilisateur désactivé avec succès !');
+        this.loadUsers();
+      },
+      error: () => this.showError('Erreur lors de la désactivation')
+    });
   }
+}
 
   deleteUser(id: number) {
     this.confirmMessage.set('Voulez-vous vraiment supprimer cet utilisateur ? Cette action est irréversible.');
@@ -254,4 +295,51 @@ export class Utilisateurs implements OnInit {
     const colors = ['#E8F4FD', '#FFF0E8', '#F0F0FF', '#E8FFF0', '#FFF0F0', '#F5F0FF'];
     return colors[index % colors.length];
   }
+  openProfile() {
+  const user = this.currentUser();
+
+  this.profileNom.set(user?.nom || '');
+  this.profilePrenom.set(user?.prenom || '');
+  this.profileEmail.set(user?.email || '');
+  this.profilePassword.set('');
+
+  this.showProfileModal.set(true);
+}
+
+closeProfile() {
+  this.showProfileModal.set(false);
+}
+updateProfile() {
+  const data = {
+    nom: this.profileNom(),
+    prenom: this.profilePrenom(),
+    email: this.profileEmail()
+  };
+
+  this.authService.updateProfile(data).subscribe({
+
+    // ✅ ICI TU METS next(res)
+    next: (res) => {
+
+      // 🔥 sauvegarder dans localStorage
+      this.authService.saveUser(res);
+
+      // 🔥 mettre à jour le signal Angular
+      this.currentUser.set({
+        email: res.email,
+        prenom: res.prenom,
+        nom: res.nom,
+        roles: res.roles
+      });
+
+      this.showSuccess('Profil modifié avec succès !');
+      this.closeProfile();
+    },
+
+    error: (err) => {
+      console.log("ERREUR BACKEND 👉", err);
+      this.showError(err.error?.message || 'Erreur lors de la modification');
+    }
+  });
+}
 }

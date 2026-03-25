@@ -142,4 +142,25 @@ public class AuthServiceImpl implements AuthService {
                         .toLowerCase().replace("_", "-"))
                 .orElse("/dashboard");
     }
+    @Override
+    @Transactional
+    public AuthDto.Response updateProfile(String email, AuthDto.UpdateProfileRequest request) {
+
+        User user = userRepository.findByEmailAndDeletedFalse(email)
+                .orElseThrow(() -> new NotFoundException(
+                        "USER_NOT_FOUND", "Utilisateur introuvable"));
+
+        if (!user.getEmail().equalsIgnoreCase(request.email())
+                && userRepository.existsByEmailAndDeletedFalse(request.email())) {
+            throw new RuntimeException("Email déjà utilisé");
+        }
+
+        user.setNom(request.nom());
+        user.setPrenom(request.prenom());
+        user.setEmail(request.email());
+
+        userRepository.save(user);
+
+        return authMapper.toResponse(user); // 🔥 OBLIGATOIRE
+    }
 }

@@ -93,5 +93,15 @@ public class AuthController {
                         .toList()
         ));
     }
+    @PutMapping("/update-profile")
+    public ResponseEntity<AuthDto.Response> updateProfile(
+            @RequestBody AuthDto.UpdateProfileRequest request,
+            Authentication authentication) {
+
+        AuthDto.Response response =
+                authService.updateProfile(authentication.getName(), request);
+
+        return ResponseEntity.ok(response);
+    }
 
 }

@@ -29,7 +29,8 @@ public class AdminUserController {
             @RequestParam(required = false) String q,
             @RequestParam(required = false) String role,
             @RequestParam(required = false) Boolean locked,
-            @PageableDefault(size = 10) Pageable pageable
+            @PageableDefault(size = 10) Pageable pageable,
+            @RequestParam(required = false) String status
     ) {
         return ResponseEntity.ok(userAdminService.search(q, role, locked, pageable));
     }

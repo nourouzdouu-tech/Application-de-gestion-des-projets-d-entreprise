@@ -45,13 +45,14 @@
     </div>
 
     <!-- User Profile at bottom -->
-    <div class="sidebar-profile">
+   <div class="sidebar-profile" (click)="openProfile()">
   <div class="profile-avatar">{{ authService.getInitials() }}</div>
   <div class="profile-info">
     <span class="profile-name">{{ currentUser()?.prenom }} {{ currentUser()?.nom }}</span>
     <span class="profile-email">{{ currentUser()?.email }}</span>
   </div>
-  <button class="logout-btn" title="Déconnexion" (click)="logout()">
+  <button class="logout-btn" title="Déconnexion"
+  (click)="logout(); $event.stopPropagation()">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
       stroke-linecap="round" stroke-linejoin="round">
       <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
@@ -84,25 +85,37 @@
     <!-- Page Header -->
     <div class="page-header">
       <h1 class="page-title">Gestion des Utilisateurs</h1>
-      <div class="header-actions">
-        <!-- Search -->
-        <div class="search-wrapper">
-          <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="11" cy="11" r="8" />
-            <line x1="21" y1="21" x2="16.65" y2="16.65" />
-          </svg>
-          <input type="text" class="search-input" placeholder="Rechercher un utilisateur..."
-            [value]="searchQuery()" (input)="onSearch($any($event.target).value)" />
-        </div>
-        <!-- Create Button -->
-        <button class="btn-create" (click)="openModal()">
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-    <line x1="12" y1="5" x2="12" y2="19" />
-    <line x1="5" y1="12" x2="19" y2="12" />
-  </svg>
-  Créer utilisateur
-</button>
-      </div>
+     <div class="header-actions">
+  <!-- Search -->
+  <div class="search-wrapper">
+    <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <circle cx="11" cy="11" r="8" />
+      <line x1="21" y1="21" x2="16.65" y2="16.65" />
+    </svg>
+    <input type="text" class="search-input" placeholder="Rechercher par nom, prénom, email..."
+      [value]="searchQuery()" (input)="onSearch($any($event.target).value)" />
+  </div>
+
+  <!-- Filtre rôle -->
+  <div class="select-wrapper" style="min-width: 160px;">
+    <select class="search-input" style="padding-left: 12px;"
+      (change)="onFilterRole($any($event.target).value)">
+      <option value="">Tous les rôles</option>
+      @for (role of roles(); track role.id) {
+        <option [value]="role.nom">{{ role.nom }}</option>
+      }
+    </select>
+  </div>
+
+  <!-- Create Button -->
+  <button class="btn-create" (click)="openModal()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+      <line x1="12" y1="5" x2="12" y2="19" />
+      <line x1="5" y1="12" x2="19" y2="12" />
+    </svg>
+    Créer utilisateur
+  </button>
+</div>
     </div>
 
     <!-- Stats Cards -->
@@ -245,6 +258,25 @@
                         <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
                       </svg>
                     </button>
+                    <button class="action-btn"
+    [class.action-enable]="user.locked"
+    [class.action-disable]="!user.locked"
+    [title]="user.locked ? 'Activer' : 'Désactiver'"
+    (click)="toggleUserStatus(user)">
+    @if (user.locked) {
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+        stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+        <path d="M7 11V7a5 5 0 0 1 9.9-1"/>
+      </svg>
+    } @else {
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+        stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+        <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+      </svg>
+    }
+  </button>
                   </div>
                 </td>
               </tr>
@@ -531,6 +563,51 @@
       <button class="confirm-btn-cancel" (click)="confirmNo()">Annuler</button>
       <button class="confirm-btn-delete" (click)="confirmYes()">Supprimer</button>
     </div>
+  </div>
+</div>
+}
+@if (showProfileModal()) {
+<div class="modal-overlay" (click)="closeProfile()">
+  <div class="modal-container" (click)="$event.stopPropagation()">
+
+    <!-- HEADER -->
+    <div class="modal-header">
+      <h2 class="modal-title">Mon profil</h2>
+      <button class="btn-close" (click)="closeProfile()">X</button>
+    </div>
+
+    <!-- BODY -->
+    <div class="modal-body">
+
+      <div class="form-group">
+        <label>Nom</label>
+        <input type="text" class="form-control"
+          [value]="profileNom()"
+          (input)="profileNom.set($any($event.target).value)" />
+      </div>
+
+      <div class="form-group">
+        <label>Prénom</label>
+        <input type="text" class="form-control"
+          [value]="profilePrenom()"
+          (input)="profilePrenom.set($any($event.target).value)" />
+      </div>
+
+      <div class="form-group">
+        <label>Email</label>
+        <input type="email" class="form-control"
+          [value]="profileEmail()"
+          (input)="profileEmail.set($any($event.target).value)" />
+      </div>
+
+
+    </div>
+
+    <!-- FOOTER -->
+    <div class="modal-footer">
+      <button class="btn-cancel" (click)="closeProfile()">Fermer</button>
+    </div>
+
   </div>
 </div>
 }
