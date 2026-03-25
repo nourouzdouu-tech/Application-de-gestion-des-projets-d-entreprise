@@ -8,164 +8,154 @@
       Chargement du dashboard...
     </div>
   } @else {
-  <!--<div class="search-bar-section">
-    <input type="text" placeholder="Rechercher des données, des utilisateurs ou des projets..." class="search-input" />
+    <div class="main-content">
+      <div class="page-title">
+        <div class="title-content">
+          <h1 class="heading-title">Aperçu Analytique</h1>
+          <p class="title-description">Suivez et gérez les performances du système et l'engagement des utilisateurs.</p>
+        </div>
+      </div>
+
+      <div class="kpi-grid">
+        <div class="kpi-card" *ngFor="let kpi of kpiData()">
+          <div class="kpi-content">
+            <div class="kpi-header">
+              <h3 class="kpi-title">{{ kpi.title }}</h3>
+              <span class="kpi-icon">{{ kpi.icon }}</span>
+            </div>
+            <div class="kpi-value">{{ kpi.value }}</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="charts-container">
+        <div class="chart-card evolution-chart">
+          <div class="chart-header">
+            <h2 class="chart-title">Évolution Utilisateurs</h2>
+            <div class="chart-options">
+              <select class="options-select">
+                <option>Monthly</option>
+                <option>Weekly</option>
+                <option>Daily</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="chart-placeholder">
+            <svg class="line-chart" viewBox="0 0 400 200" preserveAspectRatio="xMidYMid meet">
+              <polyline points="20,180 80,150 140,100 200,120 260,80 320,90 380,40" fill="none" stroke="#8f8b9d" stroke-width="2" />
+              <circle cx="20" cy="180" r="3" fill="#8f8b9d" />
+              <circle cx="380" cy="40" r="3" fill="#8f8b9d" />
+            </svg>
+          </div>
+
+          <div class="chart-legend">
+            <div class="legend-item" *ngFor="let month of monthlyData">
+              <span class="legend-month">{{ month.month }}</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="chart-card validation-chart">
+          <div class="chart-header">
+            <h2 class="chart-title">Validation vs Rejet</h2>
+            <div class="chart-legend-inline">
+              <div class="legend-item">
+                <span class="legend-dot valid"></span>
+                <span class="legend-label">VALID</span>
+              </div>
+              <div class="legend-item">
+                <span class="legend-dot reject"></span>
+                <span class="legend-label">REJECT</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="bar-chart">
+            <div class="chart-bars" *ngFor="let data of chartData">
+              <div class="bar-group">
+                <div class="bar-container">
+                  <div class="bar valid" [style.height]="getChartHeight(data.valid) + 'px'"></div>
+                </div>
+                <div class="bar-container">
+                  <div class="bar reject" [style.height]="getChartRejectHeight(data.reject) + 'px'"></div>
+                </div>
+              </div>
+              <span class="bar-label">{{ data.week }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="load-section">
+        <h2 class="section-title">Charge par Utilisateur</h2>
+        <p class="section-description">Utilisateurs récupérés depuis la base</p>
+
+        <div class="user-load-list">
+          <div class="user-load-item" *ngFor="let user of users()">
+            <div class="user-load-header">
+              <span class="user-name">{{ user.prenom }} {{ user.nom }}</span>
+              <span class="user-percentage">{{ getUserLoad(user) }}%</span>
+            </div>
+            <div class="progress-bar">
+              <div class="progress-fill" [style.width.%]="getUserLoad(user)"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="alerts-section">
+        <div class="alerts-header">
+          <h2 class="section-title">Moniteur Haute Charge & Alertes de Validation</h2>
+          <a href="#" class="view-all-alerts">Voir toutes les alertes</a>
+        </div>
+
+        <div class="alerts-table">
+  <div class="table-header">
+    <div class="col-utilisateur">UTILISATEUR</div>
+    <div class="col-email">EMAIL</div>
+    <div class="col-role">RÔLE</div>
+    <div class="col-status">STATUT</div>
+    
   </div>
 
-  <div class="user-info-badge">
-    <div class="profile-badge">
-      <div class="profile-initial">AD</div>
-      <div class="profile-text">
-        <div class="profile-name">Admin</div>
-        <div class="profile-name">Jihane</div>
-        <div class="profile-name">Dbc</div>
-      </div>
-    </div>
-  </div>-->
-
-  <div class="main-content">
-    <div class="page-title">
-      <div class="title-content">
-        <h1 class="heading-title">Aperçu Analytique</h1>
-        <p class="title-description">Suivez et gérez les performances du système et l'engagement des utilisateurs.</p>
-      </div>
-
-     <!-- <div class="action-buttons">
-        <button class="btn btn-secondary">
-          <span class="btn-calendar">📅</span>
-          <span class="btn-text">30 derniers<br />jours</span>
-        </button>
-        <button class="btn btn-primary" (click)="exportData()">
-          <span class="btn-export">📊</span>
-          <span class="btn-text">Exporter les<br />données</span>
-        </button>
-      </div>-->
-    </div>
-
-    <div class="kpi-grid">
-  <div class="kpi-card" *ngFor="let kpi of kpiData()">
-        <div class="kpi-content">
-          <div class="kpi-header">
-            <h3 class="kpi-title">{{ kpi.title }}</h3>
-            <span class="kpi-icon">{{ kpi.icon }}</span>
+  <div class="table-row" *ngFor="let user of users()">
+    <div class="col-utilisateur">
+      <div class="user-info">
+        <div class="user-avatar">
+          {{ getUserInitials(user) }}
+        </div>
+        <div class="user-details">
+          <div class="user-name">
+            {{ user.prenom }} {{ user.nom }}
           </div>
-          <div class="kpi-value">{{ kpi.value }}</div>
-        </div>
-      </div>
-    </div>
-
-    <div class="charts-container">
-      <div class="chart-card evolution-chart">
-        <div class="chart-header">
-          <h2 class="chart-title">Évolution Utilisateurs</h2>
-          <div class="chart-options">
-            <select class="options-select">
-              <option>Monthly</option>
-              <option>Weekly</option>
-              <option>Daily</option>
-            </select>
-          </div>
-        </div>
-
-        <div class="chart-placeholder">
-          <svg class="line-chart" viewBox="0 0 400 200" preserveAspectRatio="xMidYMid meet">
-            <polyline points="20,180 80,150 140,100 200,120 260,80 320,90 380,40" fill="none" stroke="#8f8b9d" stroke-width="2" />
-            <circle cx="20" cy="180" r="3" fill="#8f8b9d" />
-            <circle cx="380" cy="40" r="3" fill="#8f8b9d" />
-          </svg>
-        </div>
-
-        <div class="chart-legend">
-          <div class="legend-item" *ngFor="let month of monthlyData">
-            <span class="legend-month">{{ month.month }}</span>
-          </div>
-        </div>
-      </div>
-
-      <div class="chart-card validation-chart">
-        <div class="chart-header">
-          <h2 class="chart-title">Validation vs Rejet</h2>
-          <div class="chart-legend-inline">
-            <div class="legend-item">
-              <span class="legend-dot valid"></span>
-              <span class="legend-label">VALID</span>
-            </div>
-            <div class="legend-item">
-              <span class="legend-dot reject"></span>
-              <span class="legend-label">REJECT</span>
-            </div>
-          </div>
-        </div>
-
-        <div class="bar-chart">
-          <div class="chart-bars" *ngFor="let data of chartData">
-            <div class="bar-group">
-              <div class="bar-container">
-                <div class="bar valid" [style.height]="getChartHeight(data.valid) + 'px'"></div>
-              </div>
-              <div class="bar-container">
-                <div class="bar reject" [style.height]="getChartRejectHeight(data.reject) + 'px'"></div>
-              </div>
-            </div>
-            <span class="bar-label">{{ data.week }}</span>
+          <div class="user-role">
+            {{ getRoleNames(user) }}
           </div>
         </div>
       </div>
     </div>
 
-    <div class="load-section">
-      <h2 class="section-title">Charge par Utilisateur</h2>
-      <p class="section-description">Real-time resource utilization monitoring</p>
-
-      <div class="user-load-list">
-        <div class="user-load-item" *ngFor="let user of userLoadData">
-          <div class="user-load-header">
-            <span class="user-name">{{ user.name }}</span>
-            <span class="user-percentage">{{ user.percentage }}%</span>
-          </div>
-          <div class="progress-bar">
-            <div class="progress-fill" [style.width.%]="user.percentage"></div>
-          </div>
-        </div>
-      </div>
+    <div class="col-email">
+      {{ user.email }}
     </div>
 
-    <div class="alerts-section">
-      <div class="alerts-header">
-        <h2 class="section-title">Moniteur Haute Charge & Alertes de Validation</h2>
-        <a href="#" class="view-all-alerts">Voir toutes les alertes</a>
-      </div>
-
-      <div class="alerts-table">
-        <div class="table-header">
-          <div class="col-utilisateur">UTILISATEUR</div>
-          <div class="col-projet">PROJET</div>
-          <div class="col-status">STATUT DE CHARGE</div>
-          <!-- <div class="col-validation">DERNIÈRE VALIDATION</div>
-           <div class="col-action">ACTION</div>--> 
-        </div>
-
-        <div class="table-row" *ngFor="let alert of alertData()">
-          <div class="col-utilisateur">
-            <div class="user-info">
-              <div class="user-avatar">{{ alert.name.charAt(0) }}</div>
-              <div class="user-details">
-                <div class="user-name">{{ alert.name }}</div>
-                <div class="user-role">{{ alert.role }}</div>
-              </div>
-            </div>
-          </div>
-          <div class="col-projet">{{ alert.project }}</div>
-          <div class="col-status">
-            <span class="status-badge" [ngClass]="getStatusClass(alert.status)">{{ alert.status }}</span>
-          </div>
-         <!--  <div class="col-validation">{{ alert.lastValidation }}</div>
-          <div class="col-action">
-            <button class="action-btn">⋮</button>
-          </div>-->
-              </div>
+    <div class="col-role">
+      {{ getRoleNames(user) }}
     </div>
+
+    <div class="col-status">
+      <span
+        class="status-badge"
+        [ngClass]="getUserStatusClass(user)">
+        {{ getUserStatus(user) }}
+      </span>
+    </div>
+
+    
   </div>
 </div>
+      </div>
+    </div>
   }
 </div>

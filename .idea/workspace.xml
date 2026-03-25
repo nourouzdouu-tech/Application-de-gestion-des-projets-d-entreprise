@@ -6,18 +6,9 @@
   <component name="ChangeListManager">
     <list default="true" id="d6d90c51-4d5c-4da4-945a-1cea9d95d7af" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Backend/mvnw" beforeDir="false" afterPath="$PROJECT_DIR$/Backend/mvnw" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Backend/src/main/java/com/dxc/dxc_platform/DxcPlatformApplication.java" beforeDir="false" afterPath="$PROJECT_DIR$/Backend/src/main/java/com/dxc/dxc_platform/DxcPlatformApplication.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Backend/src/main/java/com/dxc/dxc_platform/controller/AdminUserController.java" beforeDir="false" afterPath="$PROJECT_DIR$/Backend/src/main/java/com/dxc/dxc_platform/controller/AdminUserController.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Backend/src/main/java/com/dxc/dxc_platform/controller/AuthController.java" beforeDir="false" afterPath="$PROJECT_DIR$/Backend/src/main/java/com/dxc/dxc_platform/controller/AuthController.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Backend/src/main/java/com/dxc/dxc_platform/dto/AuthDto.java" beforeDir="false" afterPath="$PROJECT_DIR$/Backend/src/main/java/com/dxc/dxc_platform/dto/AuthDto.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Backend/src/main/java/com/dxc/dxc_platform/service/AuthService.java" beforeDir="false" afterPath="$PROJECT_DIR$/Backend/src/main/java/com/dxc/dxc_platform/service/AuthService.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Backend/src/main/java/com/dxc/dxc_platform/service/impl/AuthServiceImpl.java" beforeDir="false" afterPath="$PROJECT_DIR$/Backend/src/main/java/com/dxc/dxc_platform/service/impl/AuthServiceImpl.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Backend/src/main/resources/application.properties" beforeDir="false" afterPath="$PROJECT_DIR$/Backend/src/main/resources/application.properties" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Frontend/src/app/core/services/auth.service.ts" beforeDir="false" afterPath="$PROJECT_DIR$/Frontend/src/app/core/services/auth.service.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Frontend/src/app/features/admin/utilisateurs/utilisateurs.css" beforeDir="false" afterPath="$PROJECT_DIR$/Frontend/src/app/features/admin/utilisateurs/utilisateurs.css" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Frontend/src/app/features/admin/utilisateurs/utilisateurs.html" beforeDir="false" afterPath="$PROJECT_DIR$/Frontend/src/app/features/admin/utilisateurs/utilisateurs.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Frontend/src/app/features/admin/utilisateurs/utilisateurs.ts" beforeDir="false" afterPath="$PROJECT_DIR$/Frontend/src/app/features/admin/utilisateurs/utilisateurs.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Frontend/src/app/features/admin/dashboard/dashboard.css" beforeDir="false" afterPath="$PROJECT_DIR$/Frontend/src/app/features/admin/dashboard/dashboard.css" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Frontend/src/app/features/admin/dashboard/dashboard.html" beforeDir="false" afterPath="$PROJECT_DIR$/Frontend/src/app/features/admin/dashboard/dashboard.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Frontend/src/app/features/admin/dashboard/dashboard.ts" beforeDir="false" afterPath="$PROJECT_DIR$/Frontend/src/app/features/admin/dashboard/dashboard.ts" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />

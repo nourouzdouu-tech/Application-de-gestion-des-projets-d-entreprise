@@ -557,3 +557,55 @@
   .charts-container { grid-template-columns: 1fr; }
   .table-header, .table-row { grid-template-columns: 1fr; }
 }
+.table-header,
+.table-row {
+  display: grid;
+  grid-template-columns: 2.2fr 2fr 1.5fr 1.2fr 1.6fr;
+  gap: 20px;
+  padding: 16px 0;
+  align-items: center;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.table-header {
+  border-bottom: 2px solid #e2e8f0;
+  font-weight: 700;
+  font-size: 12px;
+  color: #64748b;
+  text-transform: uppercase;
+  background-color: #f8fafc;
+}
+
+.table-row {
+  padding: 20px 0;
+  transition: background-color 0.3s ease;
+}
+
+.table-row:hover {
+  background-color: #f8fafc;
+}
+
+.col-utilisateur { grid-column: 1; }
+.col-email { grid-column: 2; font-size: 14px; color: #64748b; }
+.col-role { grid-column: 3; font-size: 13px; color: #475569; font-weight: 600; }
+.col-status { grid-column: 4; display: flex; align-items: center; }
+.col-charge { grid-column: 5; display: flex; flex-direction: column; gap: 6px; }
+
+.mini-progress {
+  height: 6px;
+  background: #e2e8f0;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.mini-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #8f8b9d, #a9a7b5);
+  border-radius: 4px;
+}
+
+.col-charge span {
+  font-size: 12px;
+  font-weight: 600;
+  color: #475569;
+}

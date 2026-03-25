@@ -113,4 +113,31 @@ export class Dashboard implements OnInit {
   getChartRejectHeight(reject: number): string {
     return `${reject * 2}px`;
   }
+  getUserLoad(user: UserResponse): number {
+  if (user.locked) return 95;
+  if (user.failedAttempts >= 3) return 80;
+  if (user.mustChangePassword) return 65;
+  return 45;
+}
+getUserInitials(user: UserResponse): string {
+  return (user.prenom?.charAt(0) + user.nom?.charAt(0)).toUpperCase();
+}
+
+getRoleNames(user: UserResponse): string {
+  return user.roles?.map(r => r.nom).join(', ') || 'Sans rôle';
+}
+
+
+
+getUserStatus(user: UserResponse): string {
+  if (user.locked) return 'Critical';
+  if (user.failedAttempts >= 3) return 'Warning';
+  return 'Optimal';
+}
+
+getUserStatusClass(user: UserResponse): string {
+  if (user.locked) return 'status-critical';
+  if (user.failedAttempts >= 3) return 'status-warning';
+  return 'status-optimal';
+}
 }
