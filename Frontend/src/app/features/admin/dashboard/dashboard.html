@@ -1,51 +1,61 @@
 <div class="dashboard-container">
   @if (loading()) {
-    <div style="display:flex; align-items:center; justify-content:center; padding:100px; gap:12px; color:#9ca3af; font-size:14px;">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="24" height="24">
+    <div class="loading-state">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="26" height="26">
         <circle cx="12" cy="12" r="10" />
         <path d="M12 2a10 10 0 0 1 10 10" stroke="#7c3aed" />
       </svg>
-      Chargement du dashboard...
+      <span>Chargement du dashboard...</span>
     </div>
   } @else {
     <div class="main-content">
-      <div class="page-title">
-        <div class="title-content">
+      <div class="hero-section">
+        <div class="hero-left">
+          <span class="hero-badge">Dashboard Admin</span>
           <h1 class="heading-title">Aperçu Analytique</h1>
-          <p class="title-description">Suivez et gérez les performances du système et l'engagement des utilisateurs.</p>
+          <p class="title-description">
+            Visualisez rapidement l’activité des utilisateurs, les charges, les indicateurs clés
+            et les alertes du système.
+          </p>
         </div>
+
+        
       </div>
 
       <div class="kpi-grid">
         <div class="kpi-card" *ngFor="let kpi of kpiData()">
-          <div class="kpi-content">
-            <div class="kpi-header">
-              <h3 class="kpi-title">{{ kpi.title }}</h3>
-              <span class="kpi-icon">{{ kpi.icon }}</span>
-            </div>
-            <div class="kpi-value">{{ kpi.value }}</div>
+          <div class="kpi-top">
+            <div class="kpi-icon-wrap">{{ kpi.icon }}</div>
           </div>
+          <div class="kpi-title">{{ kpi.title }}</div>
+          <div class="kpi-value">{{ kpi.value }}</div>
         </div>
       </div>
 
       <div class="charts-container">
-        <div class="chart-card evolution-chart">
+        <div class="chart-card">
           <div class="chart-header">
             <h2 class="chart-title">Évolution Utilisateurs</h2>
-            <div class="chart-options">
-              <select class="options-select">
-                <option>Monthly</option>
-                <option>Weekly</option>
-                <option>Daily</option>
-              </select>
-            </div>
+            <select class="options-select">
+              <option>Monthly</option>
+              <option>Weekly</option>
+              <option>Daily</option>
+            </select>
           </div>
 
           <div class="chart-placeholder">
             <svg class="line-chart" viewBox="0 0 400 200" preserveAspectRatio="xMidYMid meet">
-              <polyline points="20,180 80,150 140,100 200,120 260,80 320,90 380,40" fill="none" stroke="#8f8b9d" stroke-width="2" />
-              <circle cx="20" cy="180" r="3" fill="#8f8b9d" />
-              <circle cx="380" cy="40" r="3" fill="#8f8b9d" />
+              <polyline points="20,180 80,150 140,100 200,120 260,80 320,90 380,40"
+                        fill="none"
+                        stroke="#8f8b9d"
+                        stroke-width="3" />
+              <circle cx="20" cy="180" r="4" fill="#8f8b9d" />
+              <circle cx="80" cy="150" r="4" fill="#8f8b9d" />
+              <circle cx="140" cy="100" r="4" fill="#8f8b9d" />
+              <circle cx="200" cy="120" r="4" fill="#8f8b9d" />
+              <circle cx="260" cy="80" r="4" fill="#8f8b9d" />
+              <circle cx="320" cy="90" r="4" fill="#8f8b9d" />
+              <circle cx="380" cy="40" r="4" fill="#8f8b9d" />
             </svg>
           </div>
 
@@ -56,7 +66,7 @@
           </div>
         </div>
 
-        <div class="chart-card validation-chart">
+        <div class="chart-card">
           <div class="chart-header">
             <h2 class="chart-title">Validation vs Rejet</h2>
             <div class="chart-legend-inline">
@@ -75,10 +85,10 @@
             <div class="chart-bars" *ngFor="let data of chartData">
               <div class="bar-group">
                 <div class="bar-container">
-                  <div class="bar valid" [style.height]="getChartHeight(data.valid) + 'px'"></div>
+                  <div class="bar valid" [style.height]="getChartHeight(data.valid)"></div>
                 </div>
                 <div class="bar-container">
-                  <div class="bar reject" [style.height]="getChartRejectHeight(data.reject) + 'px'"></div>
+                  <div class="bar reject" [style.height]="getChartRejectHeight(data.reject)"></div>
                 </div>
               </div>
               <span class="bar-label">{{ data.week }}</span>
@@ -88,13 +98,24 @@
       </div>
 
       <div class="load-section">
-        <h2 class="section-title">Charge par Utilisateur</h2>
-        <p class="section-description">Utilisateurs récupérés depuis la base</p>
+        <div class="section-header">
+          <div>
+            <h2 class="section-title">Charge par Utilisateur</h2>
+            <p class="section-description">Utilisateurs récupérés depuis la base</p>
+          </div>
+          <span class="section-chip">{{ users().length }} utilisateurs</span>
+        </div>
 
         <div class="user-load-list">
           <div class="user-load-item" *ngFor="let user of users()">
             <div class="user-load-header">
-              <span class="user-name">{{ user.prenom }} {{ user.nom }}</span>
+              <div class="user-load-identity">
+                <div class="user-avatar">{{ getUserInitials(user) }}</div>
+                <div>
+                  <span class="user-name">{{ user.prenom }} {{ user.nom }}</span>
+                  <div class="user-role">{{ getRoleNames(user) }}</div>
+                </div>
+              </div>
               <span class="user-percentage">{{ getUserLoad(user) }}%</span>
             </div>
             <div class="progress-bar">
@@ -106,55 +127,51 @@
 
       <div class="alerts-section">
         <div class="alerts-header">
-          <h2 class="section-title">Moniteur Haute Charge & Alertes de Validation</h2>
+          <div>
+            <h2 class="section-title">Moniteur Haute Charge & Alertes de Validation</h2>
+            <p class="section-description">Vue détaillée des utilisateurs et de leur statut</p>
+          </div>
           <a href="#" class="view-all-alerts">Voir toutes les alertes</a>
         </div>
 
         <div class="alerts-table">
-  <div class="table-header">
-    <div class="col-utilisateur">UTILISATEUR</div>
-    <div class="col-email">EMAIL</div>
-    <div class="col-role">RÔLE</div>
-    <div class="col-status">STATUT</div>
-    
-  </div>
-
-  <div class="table-row" *ngFor="let user of users()">
-    <div class="col-utilisateur">
-      <div class="user-info">
-        <div class="user-avatar">
-          {{ getUserInitials(user) }}
-        </div>
-        <div class="user-details">
-          <div class="user-name">
-            {{ user.prenom }} {{ user.nom }}
+          <div class="table-header">
+            <div class="col-utilisateur">UTILISATEUR</div>
+            <div class="col-email">EMAIL</div>
+            <div class="col-role">RÔLE</div>
+            <div class="col-status">STATUT</div>
+            <div class="col-charge">PROJET</div>
           </div>
-          <div class="user-role">
-            {{ getRoleNames(user) }}
+
+          <div class="table-row" *ngFor="let user of users()">
+            <div class="col-utilisateur">
+              <div class="user-info">
+                <div class="user-avatar">{{ getUserInitials(user) }}</div>
+                <div class="user-details">
+                  <div class="user-name">{{ user.prenom }} {{ user.nom }}</div>
+                  <div class="user-role">{{ getRoleNames(user) }}</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="col-email">{{ user.email }}</div>
+
+            <div class="col-role">{{ getRoleNames(user) }}</div>
+
+            <div class="col-status">
+              <span class="status-badge" [ngClass]="getUserStatusClass(user)">
+                {{ getUserStatus(user) }}
+              </span>
+            </div>
+
+            <div class="col-charge">
+              <div class="mini-progress">
+                <div class="mini-progress-fill" [style.width.%]="getUserLoad(user)"></div>
+              </div>
+              <span>{{ getUserLoad(user) }}%</span>
+            </div>
           </div>
         </div>
-      </div>
-    </div>
-
-    <div class="col-email">
-      {{ user.email }}
-    </div>
-
-    <div class="col-role">
-      {{ getRoleNames(user) }}
-    </div>
-
-    <div class="col-status">
-      <span
-        class="status-badge"
-        [ngClass]="getUserStatusClass(user)">
-        {{ getUserStatus(user) }}
-      </span>
-    </div>
-
-    
-  </div>
-</div>
       </div>
     </div>
   }

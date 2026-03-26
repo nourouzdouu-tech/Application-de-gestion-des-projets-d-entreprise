@@ -26,12 +26,13 @@ export class Utilisateurs implements OnInit {
   currentPage = signal(1);
   searchQuery = signal('');
   filterRole = signal('');
+  filterStatus = signal<boolean | undefined>(undefined);
   showProfileModal = signal(false);
 
 profileNom = signal('');
 profilePrenom = signal('');
 profileEmail = signal('');
-filterStatus = signal<string>('');
+
 profilePassword = signal('');
   itemsPerPage = 5;
   loading = signal(false);
@@ -78,13 +79,14 @@ profilePassword = signal('');
     this.router.navigate(['/login']);
   }
 
-  loadUsers() {
+loadUsers() {
   this.loading.set(true);
   this.adminService.getUsers(
     this.currentPage(),
     this.itemsPerPage,
     this.searchQuery(),
-    this.filterRole()
+    this.filterRole(),
+    this.filterStatus()
   ).subscribe({
     next: (page) => {
       this.users.set(page.content);
@@ -100,20 +102,31 @@ onFilterRole(value: string) {
   this.currentPage.set(1);
   this.loadUsers();
 }
+onFilterStatus(value: string) {
+  if (value === 'true') {
+    this.filterStatus.set(true);
+  } else if (value === 'false') {
+    this.filterStatus.set(false);
+  } else {
+    this.filterStatus.set(undefined);
+  }
 
- onSearch(value: string) {
+  this.currentPage.set(1);
+  this.loadUsers();
+}
+
+onSearch(value: string) {
   const search = value.toLowerCase().trim();
 
   this.searchQuery.set(value);
   this.currentPage.set(1);
 
-  // 🔥 détecter statut
   if (search === 'actif') {
-    this.filterStatus.set('ACTIVE');
+    this.filterStatus.set(false); // locked = false
   } else if (search === 'inactif') {
-    this.filterStatus.set('INACTIVE');
+    this.filterStatus.set(true); // locked = true
   } else {
-    this.filterStatus.set('');
+    this.filterStatus.set(undefined);
   }
 
   this.loadUsers();

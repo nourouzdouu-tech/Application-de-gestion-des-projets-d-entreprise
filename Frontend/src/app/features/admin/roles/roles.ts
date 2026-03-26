@@ -75,45 +75,60 @@ export class Roles implements OnInit {
     });
   }
 
-  groupPermissions(permissions: PermissionSummary[]) {
-    const groups: { [key: string]: PermissionSummary[] } = {};
+groupPermissions(permissions: PermissionSummary[]) {
+  const groups: { [key: string]: PermissionSummary[] } = {};
+  
+  permissions.forEach(perm => {
+    let group = 'Liste des permissions';
+    const nomLower = perm.nom.toLowerCase();
     
-    permissions.forEach(perm => {
-      let group = 'Autres';
-      const nomLower = perm.nom.toLowerCase();
-      
-      if (nomLower.includes('projet')) {
-        group = 'Gestion des Projets';
-      } else if (nomLower.includes('rapport') || nomLower.includes('donnees') || nomLower.includes('export') || nomLower.includes('tableau')) {
-        group = 'Reporting & Données';
-      } else if (nomLower.includes('invit') || nomLower.includes('utilisateur') || nomLower.includes('audit')) {
-        group = 'Invitations';
-      }
-      
-      if (!groups[group]) {
-        groups[group] = [];
-      }
-      groups[group].push(perm);
-    });
+    if (nomLower.includes('projet')) {
+      group = 'Gestion des Projets';
+    } else if (
+      nomLower.includes('rapport') ||
+      nomLower.includes('donnees') ||
+      nomLower.includes('export') ||
+      nomLower.includes('tableau')
+    ) {
+      group = 'Reporting & Données';
+    } else if (
+      nomLower.includes('invit') ||
+      nomLower.includes('utilisateur') ||
+      nomLower.includes('audit')
+    ) {
+      group = 'Invitations';
+    }
+    
+    if (!groups[group]) {
+      groups[group] = [];
+    }
+    groups[group].push(perm);
+  });
 
-    const groupOrder = ['Gestion des Projets', 'Reporting & Données', 'Invitations', 'Autres'];
-    const icons: { [key: string]: string } = {
-      'Gestion des Projets': '📋',
-      'Reporting & Données': '📊',
-      'Invitations': '👥',
-      'Autres': '🔒'
-    };
+  const groupOrder = [
+    'Gestion des Projets',
+    'Reporting & Données',
+    'Invitations',
+    'Liste des permissions'
+  ];
 
-    const permGroups = groupOrder
-      .filter(key => groups[key])
-      .map(key => ({
-        title: key,
-        icon: icons[key],
-        permissions: groups[key]
-      }));
+  const icons: { [key: string]: string } = {
+    'Gestion des Projets': '📋',
+    'Reporting & Données': '📊',
+    'Invitations': '👥',
+    'Liste des permissions': '🔒'
+  };
 
-    this.permissionGroups.set(permGroups);
-  }
+  const permGroups = groupOrder
+    .filter(key => groups[key])
+    .map(key => ({
+      title: key,
+      icon: icons[key],
+      permissions: groups[key]
+    }));
+
+  this.permissionGroups.set(permGroups);
+}
 
   loadRoles() {
     this.loading.set(true);
