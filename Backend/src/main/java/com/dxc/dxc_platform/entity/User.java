@@ -54,7 +54,12 @@ public class User {
     )
     private Set<Role> roles = new HashSet<>();
 
-    public User() {}
+    @ManyToOne
+    @JoinColumn(name = "team_id")
+    private Team team;
+
+    public User() {
+    }
 
     public User(String email, String prenom, String nom, Genre genre, String passwordHash) {
         this.email = email;
@@ -63,6 +68,13 @@ public class User {
         this.genre = genre;
         this.passwordHash = passwordHash;
         this.createdAt = LocalDateTime.now();
+    }
+
+    @PrePersist
+    public void prePersist() {
+        if (this.createdAt == null) {
+            this.createdAt = LocalDateTime.now();
+        }
     }
 
     public Long getId() {
@@ -155,5 +167,13 @@ public class User {
 
     public void setRoles(Set<Role> roles) {
         this.roles = roles;
+    }
+
+    public Team getTeam() {
+        return team;
+    }
+
+    public void setTeam(Team team) {
+        this.team = team;
     }
 }

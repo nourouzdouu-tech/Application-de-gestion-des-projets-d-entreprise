@@ -37,7 +37,6 @@ public class SecurityConfig {
 
                 .authorizeHttpRequests(auth -> auth
 
-                        // ── Routes publiques ──────────────────────────────────────────
                         .requestMatchers(
                                 "/api/auth/**",
                                 "/swagger-ui/**",
@@ -45,12 +44,12 @@ public class SecurityConfig {
                                 "/v3/api-docs/**",
                                 "/actuator/health",
 
-                                // ── TEMPORAIRE : admin ouvert pour tester ─────────────────
-                                // Retirez ces 3 lignes en production !
+
                                 "/api/admin/**",
                                 "/api/admin/users/**",
                                 "/api/admin/roles/**",
-                                "/api/admin/permissions/**"
+                                "/api/admin/permissions/**",
+                                "/api/teams/**"
                         ).permitAll()
 
                         .anyRequest().authenticated()
