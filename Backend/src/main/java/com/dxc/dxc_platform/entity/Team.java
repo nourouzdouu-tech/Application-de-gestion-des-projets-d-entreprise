@@ -28,6 +28,9 @@ public class Team {
     private List<User> members = new ArrayList<>();
 
     @Column(nullable = false)
+    private boolean deleted = false;
+
+    @Column(nullable = false)
     private LocalDateTime createdAt;
 
     @Column(nullable = false)
@@ -68,6 +71,10 @@ public class Team {
         return members;
     }
 
+    public boolean isDeleted() {
+        return deleted;
+    }
+
     public LocalDateTime getCreatedAt() {
         return createdAt;
     }
@@ -94,6 +101,10 @@ public class Team {
 
     public void setMembers(List<User> members) {
         this.members = members;
+    }
+
+    public void setDeleted(boolean deleted) {
+        this.deleted = deleted;
     }
 
     public void setCreatedAt(LocalDateTime createdAt) {

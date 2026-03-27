@@ -1,17 +1,20 @@
 package com.dxc.dxc_platform.service;
 
-import com.dxc.dxc_platform.dto.TeamCreateRequest;
-import com.dxc.dxc_platform.dto.TeamResponse;
+import com.dxc.dxc_platform.dto.TeamDto;
 
 import java.util.List;
 
 public interface TeamService {
 
-    TeamResponse createTeam(TeamCreateRequest request);
+    TeamDto createTeam(TeamDto request);
 
-    TeamResponse assignUserToTeam(Long teamId, Long userId);
+    TeamDto updateTeam(Long teamId, TeamDto request);
 
-    TeamResponse getTeamById(Long teamId);
+    TeamDto assignUserToTeam(Long teamId, Long userId);
 
-    List<TeamResponse> getAllTeams();
+    TeamDto getTeamById(Long teamId);
+
+    List<TeamDto> getAllTeams();
+
+    TeamDto setDeletedStatus(Long teamId, boolean deleted);
 }
