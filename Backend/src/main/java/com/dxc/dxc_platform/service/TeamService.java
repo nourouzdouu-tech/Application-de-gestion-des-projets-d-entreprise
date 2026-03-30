@@ -1,7 +1,7 @@
 package com.dxc.dxc_platform.service;
 
 import com.dxc.dxc_platform.dto.TeamDto;
-
+import com.dxc.dxc_platform.dto.UserSearchResult;
 import java.util.List;
 
 public interface TeamService {
@@ -17,4 +17,7 @@ public interface TeamService {
     List<TeamDto> getAllTeams();
 
     TeamDto setDeletedStatus(Long teamId, boolean deleted);
+    TeamDto getMyTeam();
+    List<UserSearchResult> searchAvailableUsers(String query);
+    TeamDto removeUserFromTeam(Long teamId, Long userId);
 }

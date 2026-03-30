@@ -5,8 +5,22 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="d6d90c51-4d5c-4da4-945a-1cea9d95d7af" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/Frontend/src/app/features/admin/dashboard/dashboard.css" beforeDir="false" afterPath="$PROJECT_DIR$/Frontend/src/app/features/admin/dashboard/dashboard.css" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Frontend/src/app/features/admin/dashboard/dashboard.html" beforeDir="false" afterPath="$PROJECT_DIR$/Frontend/src/app/features/admin/dashboard/dashboard.html" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Backend/src/main/java/com/dxc/dxc_platform/dto/UserSearchResult.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Frontend/src/app/features/responsable-contract/projet/projet.css" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Frontend/src/app/features/responsable-contract/projet/projet.html" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Frontend/src/app/features/responsable-contract/projet/projet.spec.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Frontend/src/app/features/responsable-contract/projet/projet.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Backend/src/main/java/com/dxc/dxc_platform/config/SecurityConfig.java" beforeDir="false" afterPath="$PROJECT_DIR$/Backend/src/main/java/com/dxc/dxc_platform/config/SecurityConfig.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Backend/src/main/java/com/dxc/dxc_platform/controller/TeamController.java" beforeDir="false" afterPath="$PROJECT_DIR$/Backend/src/main/java/com/dxc/dxc_platform/controller/TeamController.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Backend/src/main/java/com/dxc/dxc_platform/repository/TeamRepository.java" beforeDir="false" afterPath="$PROJECT_DIR$/Backend/src/main/java/com/dxc/dxc_platform/repository/TeamRepository.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Backend/src/main/java/com/dxc/dxc_platform/repository/UserRepository.java" beforeDir="false" afterPath="$PROJECT_DIR$/Backend/src/main/java/com/dxc/dxc_platform/repository/UserRepository.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Backend/src/main/java/com/dxc/dxc_platform/service/AuthService.java" beforeDir="false" afterPath="$PROJECT_DIR$/Backend/src/main/java/com/dxc/dxc_platform/service/AuthService.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Backend/src/main/java/com/dxc/dxc_platform/service/TeamService.java" beforeDir="false" afterPath="$PROJECT_DIR$/Backend/src/main/java/com/dxc/dxc_platform/service/TeamService.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Backend/src/main/java/com/dxc/dxc_platform/service/impl/TeamServiceImpl.java" beforeDir="false" afterPath="$PROJECT_DIR$/Backend/src/main/java/com/dxc/dxc_platform/service/impl/TeamServiceImpl.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Frontend/src/app/app.config.ts" beforeDir="false" afterPath="$PROJECT_DIR$/Frontend/src/app/app.config.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Frontend/src/app/app.routes.ts" beforeDir="false" afterPath="$PROJECT_DIR$/Frontend/src/app/app.routes.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Frontend/src/app/auth/login/login.ts" beforeDir="false" afterPath="$PROJECT_DIR$/Frontend/src/app/auth/login/login.ts" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -80,6 +94,11 @@
     &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
   }
 }</component>
+  <component name="RecentsManager">
+    <key name="CreateClassDialog.RecentsKey">
+      <recent name="com.dxc.dxc_platform.service.impl" />
+    </key>
+  </component>
   <component name="RunManager">
     <configuration name="DxcPlatformApplication" type="SpringBootApplicationConfigurationType" factoryName="Spring Boot" nameIsGenerated="true">
       <option name="ALTERNATIVE_JRE_PATH" value="17" />
@@ -118,5 +137,16 @@
   </component>
   <component name="TypeScriptGeneratedFilesManager">
     <option name="version" value="3" />
+  </component>
+  <component name="XDebuggerManager">
+    <breakpoint-manager>
+      <breakpoints>
+        <line-breakpoint enabled="true" type="java-line">
+          <url>file://$PROJECT_DIR$/Backend/src/main/java/com/dxc/dxc_platform/controller/TeamController.java</url>
+          <line>84</line>
+          <option name="timeStamp" value="1" />
+        </line-breakpoint>
+      </breakpoints>
+    </breakpoint-manager>
   </component>
 </project>

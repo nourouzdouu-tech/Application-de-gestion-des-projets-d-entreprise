@@ -1,0 +1,551 @@
+<div class="admin-layout">
+  <aside class="sidebar">
+    <div class="sidebar-top">
+      <div class="sidebar-logo">
+        <img src="/assets/DXC_logo.png" alt="DXC Technology" class="dxc-logo-img">
+        <div class="logo-role">CHEF DE PROJET</div>
+      </div>
+
+      <nav class="sidebar-nav">
+        <p class="nav-section-label">Navigation</p>
+
+        <a class="nav-item" href="#">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="3" width="7" height="7" rx="1" />
+            <rect x="14" y="3" width="7" height="7" rx="1" />
+            <rect x="3" y="14" width="7" height="7" rx="1" />
+            <rect x="14" y="14" width="7" height="7" rx="1" />
+          </svg>
+          Tableau de bord
+        </a>
+
+        <a class="nav-item" routerLink="/chef-projet/projets" routerLinkActive="active">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M3 7a2 2 0 0 1 2-2h3l2 2h9a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z" />
+          </svg>
+          Mes Projets
+        </a>
+
+        <a class="nav-item" href="#">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="9 11 12 14 22 4" />
+            <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
+          </svg>
+          Tâches
+        </a>
+
+        <a class="nav-item active" routerLink="/chef-projet/equipes" routerLinkActive="active" (click)="loadMyTeam()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+            <circle cx="9" cy="7" r="4" />
+            <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+            <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+          </svg>
+          Gestion d'Équipe
+        </a>
+
+        <a class="nav-item" href="#">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="4" width="18" height="18" rx="2" />
+            <line x1="16" y1="2" x2="16" y2="6" />
+            <line x1="8" y1="2" x2="8" y2="6" />
+            <line x1="3" y1="10" x2="21" y2="10" />
+          </svg>
+          Calendrier
+        </a>
+
+        <a class="nav-item" href="#">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="12" y1="20" x2="12" y2="10" />
+            <line x1="18" y1="20" x2="18" y2="4" />
+            <line x1="6" y1="20" x2="6" y2="16" />
+          </svg>
+          Reporting
+        </a>
+
+        <a class="nav-item nav-item-with-badge" href="#">
+          <div class="nav-item-left">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+            </svg>
+            <span>Messages</span>
+          </div>
+          <span class="nav-badge">3</span>
+        </a>
+
+        <a class="nav-item" href="#">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+            <path d="M9 12l2 2 4-4" />
+          </svg>
+          Audit
+        </a>
+      </nav>
+    </div>
+
+   <div class="sidebar-profile">
+  <div class="profile-avatar">{{ authService.getInitials() }}</div>
+
+  <div class="profile-info">
+    <span class="profile-name">
+      {{ currentUser()?.prenom }} {{ currentUser()?.nom }}
+    </span>
+    <span class="profile-email">
+      {{ currentUser()?.email }}
+    </span>
+  </div>
+
+  <button
+    class="logout-btn"
+    title="Déconnexion"
+    type="button"
+    (click)="logout()"
+  >
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+      <polyline points="16 17 21 12 16 7" />
+      <line x1="21" y1="12" x2="9" y2="12" />
+    </svg>
+  </button>
+</div>
+  </aside>
+
+  <main class="main-content">
+    
+
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">Gestion des Équipes</h1>
+        <p class="page-subtitle">
+          Suivez les membres, les rôles et la disponibilité de votre équipe projet.
+        </p>
+      </div>
+
+      <button class="btn-create dark-btn" type="button" (click)="openCreateModal()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <line x1="12" y1="5" x2="12" y2="19" />
+          <line x1="5" y1="12" x2="19" y2="12" />
+        </svg>
+        Créer équipe
+      </button>
+    </div>
+
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-icon stat-icon--blue">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+            <circle cx="9" cy="7" r="4" />
+          </svg>
+        </div>
+        <div class="stat-info">
+          <p class="stat-label">MEMBRES ACTIFS</p>
+          <p class="stat-value">{{ filteredMembers.length }}</p>
+        </div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-icon stat-icon--purple">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 20V10" />
+            <path d="M18 20V4" />
+            <path d="M6 20v-4" />
+          </svg>
+        </div>
+        <div class="stat-info">
+          <p class="stat-label">ÉQUIPE PROJET</p>
+          <p class="stat-value">{{ team ? 1 : 0 }}</p>
+        </div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-icon stat-icon--orange">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="8"></circle>
+            <path d="M12 8v4l3 2"></path>
+          </svg>
+        </div>
+        <div class="stat-info">
+          <p class="stat-label">CHEF DE PROJET</p>
+          <p class="stat-value">{{ team?.projectManagerName ? 1 : 0 }}</p>
+        </div>
+      </div>
+    </div>
+    @if (successMessage) {
+  <div class="alert alert-success global-alert">
+    {{ successMessage }}
+  </div>
+}
+
+@if (errorMessage) {
+  <div class="alert alert-error global-alert">
+    {{ errorMessage }}
+  </div>
+}
+
+    <div class="table-card" *ngIf="team as currentTeam; else noTeamBlock">
+      <div class="projects-toolbar">
+        <div class="projects-search">
+          <svg class="search-icon toolbar-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8" />
+            <line x1="21" y1="21" x2="16.65" y2="16.65" />
+          </svg>
+          <input
+            type="text"
+            class="projects-search-input"
+            placeholder="Rechercher un membre..."
+            [(ngModel)]="searchTerm"
+            (input)="filterMembers()"
+          />
+        </div>
+
+        <div class="projects-filters">
+          <button class="btn-action assign-btn" type="button" (click)="openAssignModal()">
+            Assigner membre
+          </button>
+
+          <button class="btn-action edit-btn" type="button" (click)="openEditModal()">
+            Modifier l'équipe
+          </button>
+
+          <button class="btn-action delete-btn" type="button" (click)="deleteTeam()">
+            Supprimer l'équipe
+          </button>
+        </div>
+
+        @if (showAssignModal) {
+          <div class="modal-overlay" (click)="closeAssignModal()">
+            <div class="modal-container" (click)="$event.stopPropagation()" role="dialog" aria-modal="true">
+
+              <div class="modal-header">
+                <div class="modal-title-wrapper">
+                  <div class="icon-circle">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                      <circle cx="9" cy="7" r="4"></circle>
+                      <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                      <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                    </svg>
+                  </div>
+                  <h2 class="modal-title">Assigner un membre</h2>
+                </div>
+
+                <button class="btn-close" (click)="closeAssignModal()" type="button" title="Fermer">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                  </svg>
+                </button>
+              </div>
+
+              <div class="modal-body">
+  @if (successMessage) {
+    <div class="alert alert-success">{{ successMessage }}</div>
+  }
+  @if (errorMessage) {
+    <div class="alert alert-error">{{ errorMessage }}</div>
+  }
+
+  <div class="form-group" style="position: relative;">
+    <label for="userSearch">Rechercher par nom, email ou rôle</label>
+    <input
+      id="userSearch"
+      type="text"
+      class="form-control"
+      placeholder="Ex: safaee Ibrahimi, safaeibrahimi@dxc.com, membre..."
+      [(ngModel)]="assignForm.searchQuery"
+      (input)="onSearchUser()"
+      autocomplete="off"
+    />
+
+    <!-- Afficher les résultats de recherche -->
+    @if (assignForm.searchQuery.length >= 2) {
+      @if (isSearching) {
+        <div class="search-dropdown">
+          <div class="search-dropdown-item loading">
+            <div class="spinner-small"></div>
+            Recherche en cours...
+          </div>
+        </div>
+      }
+      
+     @if (!isSearching && searchResults.length > 0) {
+  <div class="search-dropdown">
+    @for (user of searchResults; track user.id) {
+      <div class="search-dropdown-item" 
+           [class.already-assigned-item]="user.alreadyInTeam"
+           [class.chef-projet-item]="(user.roleName || '').toUpperCase().includes('CHEF_PROJET')"
+           (click)="selectUser(user)">
+        <div class="dropdown-user-avatar" 
+             [class.chef-projet-avatar]="(user.roleName || '').toUpperCase().includes('CHEF_PROJET')"
+             [class.already-assigned-avatar]="user.alreadyInTeam">
+          {{ getMemberInitials(user.fullName) }}
+        </div>
+        <div class="dropdown-user-info">
+          <span class="dropdown-user-name">
+            {{ user.fullName }}
+            <span *ngIf="(user.roleName || '').toUpperCase().includes('CHEF_PROJET')" class="badge-chef-projet">
+              Chef Projet
+            </span>
+            <span *ngIf="(user.roleName || '').toUpperCase().includes('MANAGER') && !(user.roleName || '').toUpperCase().includes('CHEF_PROJET')" class="badge-manager">
+  Manager
+</span>
+            <span *ngIf="user.alreadyInTeam" class="badge-already-assigned">
+              Déjà assigné
+            </span>
+          </span>
+          <span class="dropdown-user-meta">{{ user.email }} · {{ user.roleName || 'Rôle inconnu' }}</span>
+          <span *ngIf="user.teamName" class="team-name-meta">Équipe: {{ user.teamName }}</span>
+        </div>
+        <div *ngIf="user.alreadyInTeam" class="disabled-icon">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/>
+            <line x1="12" y1="8" x2="12" y2="12"/>
+            <line x1="12" y1="16" x2="12.01" y2="16"/>
+          </svg>
+        </div>
+      </div>
+    }
+  </div>
+}
+      @if (!isSearching && assignForm.searchQuery.length >= 2 && searchResults.length === 0 && !assignForm.selectedUser) {
+        <div class="search-dropdown">
+          <div class="search-dropdown-item empty">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="11" cy="11" r="8"/>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+            </svg>
+            Aucun utilisateur disponible trouvé.
+          </div>
+        </div>
+      }
+    }
+
+    @if (userIdError) {
+      <span class="field-error">{{ userIdError }}</span>
+    }
+  </div>
+
+  @if (assignForm.selectedUser) {
+    <div class="selected-user-card">
+      <div class="user-avatar project-avatar-gray">
+        {{ getMemberInitials(assignForm.selectedUser.fullName) }}
+      </div>
+      <div class="selected-user-info">
+        <span class="selected-user-name">{{ assignForm.selectedUser.fullName }}</span>
+        <span class="selected-user-meta">{{ assignForm.selectedUser.email }} · {{ assignForm.selectedUser.roleName }}</span>
+      </div>
+      <button class="btn-deselect" type="button" (click)="assignForm.selectedUser = null; assignForm.searchQuery = ''">✕</button>
+    </div>
+  }
+</div>
+
+              <div class="modal-footer">
+                <button class="btn-cancel" (click)="closeAssignModal()" type="button" [disabled]="isLoading">
+                  Annuler
+                </button>
+
+                <button class="btn-submit" (click)="submitAssignForm()" type="button" [disabled]="isLoading">
+                  @if (isLoading) {
+                    <span class="spinner"></span>
+                  }
+                  Assigner
+                </button>
+              </div>
+            </div>
+          </div>
+        }
+      </div>
+
+      <table class="users-table">
+        <thead>
+          <tr>
+            <th>NOM ÉQUIPE</th>
+            <th>DESCRIPTION</th>
+            <th>CHEF DE PROJET</th>
+            <th>NOMBRE MEMBRES</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>{{ currentTeam.name }}</td>
+            <td>{{ currentTeam.description || 'Aucune description' }}</td>
+            <td>{{ currentTeam.projectManagerName || 'Non renseigné' }}</td>
+            <td>{{ currentTeam.members?.length || 0 }}</td>
+          </tr>
+        </tbody>
+      </table>
+
+     <table class="users-table members-table">
+  <thead>
+    <tr>
+      <th>MEMBRE</th>
+      <th>EMAIL</th>
+      <th>RÔLE</th>
+      <th>STATUT</th>
+      <th>ACTIONS</th>
+    </tr>
+  </thead>
+
+  <tbody>
+    <tr *ngFor="let member of filteredMembers">
+      <td>
+        <div class="user-cell">
+          <div class="user-avatar project-avatar-gray">
+            {{ getMemberInitials(member.fullName) }}
+          </div>
+          <div class="user-name-block">
+            <span class="user-fullname">{{ member.fullName }}</span>
+            <!-- Afficher un badge pour le chef de projet -->
+            <span *ngIf="isProjectManager(member)" class="badge-pm">
+              Chef de projet
+            </span>
+          </div>
+        </div>
+      </td>
+      <td>{{ member.email }}</td>
+      <td>{{ member.roleName }}</td>
+      <td>
+        <span class="role-badge badge-project">
+          {{ member.enabled ? 'Actif' : 'Inactif' }}
+        </span>
+      </td>
+      <td>
+        <!-- Bouton Retirer : visible uniquement pour les membres qui ne sont PAS chef de projet -->
+        <button 
+  *ngIf="!isProjectManager(member)"
+  class="btn-remove-member" 
+  (click)="removeMember(member)"
+  [disabled]="isRemovingMember"
+  title="Retirer de l'équipe">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M18 6L6 18" />
+            <path d="M6 6l12 12" />
+          </svg>
+          Retirer
+        </button>
+        
+        <!-- Indicateur pour le chef de projet (non retirable) -->
+        <span *ngIf="isProjectManager(member)" class="pm-protected">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+            <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+          </svg>
+          Non retirable
+        </span>
+      </td>
+    </tr>
+
+    <tr *ngIf="filteredMembers.length === 0">
+      <td colspan="5" class="empty-state">
+        Aucun membre trouvé.
+      </td>
+    </tr>
+  </tbody>
+</table>
+    </div>
+
+    <ng-template #noTeamBlock>
+      <div class="table-card empty-team-card">
+        <h3>Aucune équipe trouvée</h3>
+        <p>Le chef de projet connecté n'a pas encore d'équipe associée.</p>
+
+        <button class="btn-create dark-btn" type="button" (click)="openCreateModal()">
+          Créer équipe
+        </button>
+      </div>
+    </ng-template>
+
+    @if (showCreateModal) {
+      <div class="modal-overlay" (click)="closeModal()">
+        <div class="modal-container" (click)="$event.stopPropagation()" role="dialog" aria-modal="true">
+
+          <div class="modal-header">
+            <div class="modal-title-wrapper">
+              <div class="icon-circle">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                  <circle cx="9" cy="7" r="4"></circle>
+                  <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                  <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                </svg>
+              </div>
+              <h2 class="modal-title">
+                {{ editMode ? 'Modifier une équipe' : 'Créer une équipe' }}
+              </h2>
+            </div>
+
+            <button class="btn-close" (click)="closeModal()" type="button" title="Fermer">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="2">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+            </button>
+          </div>
+
+          <div class="modal-body">
+            @if (successMessage) {
+              <div class="alert alert-success">
+                {{ successMessage }}
+              </div>
+            }
+
+            @if (errorMessage) {
+              <div class="alert alert-error">
+                {{ errorMessage }}
+              </div>
+            }
+
+            <div class="form-group">
+              <label for="teamName">Nom de l'équipe</label>
+              <input
+                id="teamName"
+                type="text"
+                class="form-control"
+                placeholder="Ex: Équipe Alpha"
+                [(ngModel)]="teamForm.name"
+                (input)="clearFieldError('name')"
+                maxlength="100"
+              />
+              @if (nameError) {
+                <span class="field-error">{{ nameError }}</span>
+              }
+              <span class="char-count">{{ teamForm.name.length }}/100</span>
+            </div>
+
+            <div class="form-group">
+              <label for="teamDescription">Description</label>
+              <textarea
+                id="teamDescription"
+                class="form-control form-textarea"
+                placeholder="Décrivez l'objectif de l'équipe..."
+                [(ngModel)]="teamForm.description"
+                (input)="clearFieldError('description')"
+                maxlength="255"
+                rows="4"
+              ></textarea>
+              @if (descriptionError) {
+                <span class="field-error">{{ descriptionError }}</span>
+              }
+              <span class="char-count">{{ (teamForm.description || '').length }}/255</span>
+            </div>
+          </div>
+
+          <div class="modal-footer">
+            <button class="btn-cancel" (click)="closeModal()" type="button" [disabled]="isLoading">
+              Annuler
+            </button>
+
+            <button class="btn-submit" (click)="submitForm()" type="button" [disabled]="isLoading">
+              @if (isLoading) {
+                <span class="spinner"></span>
+              }
+              {{ editMode ? 'Enregistrer' : 'Créer' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    }
+  </main>
+</div>

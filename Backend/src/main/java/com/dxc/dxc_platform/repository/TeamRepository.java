@@ -15,4 +15,5 @@ public interface TeamRepository extends JpaRepository<Team, Long> {
     Optional<Team> findByNameIgnoreCaseAndDeletedFalse(String name);
 
     List<Team> findAllByDeletedFalse();
+    Optional<Team> findByProjectManagerIdAndDeletedFalse(Long projectManagerId);
 }

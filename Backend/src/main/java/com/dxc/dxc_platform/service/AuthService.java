@@ -9,4 +9,5 @@ public interface AuthService {
     void changePassword(String email, AuthDto.ChangePasswordRequest request);
 
     AuthDto.Response updateProfile(String email, AuthDto.UpdateProfileRequest request);
+
 }

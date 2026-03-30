@@ -16,6 +16,7 @@ import jakarta.transaction.Transactional;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+import com.dxc.dxc_platform.dto.UserSearchResult;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -94,27 +95,6 @@ public class TeamServiceImpl implements TeamService {
     }
 
     @Override
-    public TeamDto assignUserToTeam(Long teamId, Long userId) {
-        Team team = findActiveTeamById(teamId);
-        User currentUser = getAuthenticatedUser();
-
-        validateCurrentUserCanManageTeam(team, currentUser);
-
-        User user = userRepository.findByIdAndDeletedFalse(userId)
-                .orElseThrow(() -> new NotFoundException(
-                        USER_NOT_FOUND,
-                        "Utilisateur introuvable"
-                ));
-
-        validateUserCanBeAssigned(user);
-
-        user.setTeam(team);
-        userRepository.save(user);
-
-        return teamMapper.toDto(team);
-    }
-
-    @Override
     public TeamDto getTeamById(Long teamId) {
         Team team = findActiveTeamById(teamId);
         return teamMapper.toDto(team);
@@ -140,6 +120,145 @@ public class TeamServiceImpl implements TeamService {
         Team savedTeam = teamRepository.save(team);
         return teamMapper.toDto(savedTeam);
     }
+
+    @Override
+    public TeamDto getMyTeam() {
+        User currentUser = getAuthenticatedUser();
+
+        Team team = teamRepository.findByProjectManagerIdAndDeletedFalse(currentUser.getId())
+                .orElseThrow(() -> new NotFoundException(
+                        TEAM_NOT_FOUND,
+                        "Aucune équipe associée au chef de projet connecté"
+                ));
+
+        return teamMapper.toDto(team);
+    }
+
+    @Override
+    public List<UserSearchResult> searchAvailableUsers(String query) {
+        User currentUser = getAuthenticatedUser();
+
+        List<User> users = userRepository.searchAvailableUsers(query, currentUser.getId());
+
+        return users.stream()
+                .map(u -> new UserSearchResult(
+                        u.getId(),
+                        (u.getPrenom() != null ? u.getPrenom() : "") + " " + (u.getNom() != null ? u.getNom() : ""),
+                        u.getEmail(),
+                        u.getRoles().stream().map(Role::getNom).collect(Collectors.joining(", ")),
+                        u.getTeam() != null,  // alreadyInTeam
+                        u.getTeam() != null ? u.getTeam().getName() : null  // teamName
+                ))
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional
+    public TeamDto removeUserFromTeam(Long teamId, Long userId) {
+        Team team = findActiveTeamById(teamId);
+        User currentUser = getAuthenticatedUser();
+
+        validateCurrentUserCanManageTeam(team, currentUser);
+
+        User userToRemove = userRepository.findByIdAndDeletedFalse(userId)
+                .orElseThrow(() -> new NotFoundException(
+                        USER_NOT_FOUND,
+                        "Utilisateur introuvable"
+                ));
+
+        // EMPÊCHER la suppression du chef de projet
+        if (team.getProjectManager() != null && team.getProjectManager().getId().equals(userId)) {
+            throw new ForbiddenException(
+                    FORBIDDEN,  // String "FORBIDDEN"
+                    "Vous ne pouvez pas retirer le chef de projet de sa propre équipe"
+            );
+        }
+
+        if (userToRemove.getTeam() == null || !userToRemove.getTeam().getId().equals(team.getId())) {
+            throw new BusinessException(
+                    USER_NOT_IN_TEAM,
+                    "Cet utilisateur n'appartient pas à cette équipe"
+            );
+        }
+
+        userToRemove.setTeam(null);
+        userRepository.save(userToRemove);
+
+        return teamMapper.toDto(team);
+    }
+
+    @Override
+    public TeamDto assignUserToTeam(Long teamId, Long userId) {
+        Team team = findActiveTeamById(teamId);
+        User currentUser = getAuthenticatedUser();
+
+        validateCurrentUserCanManageTeam(team, currentUser);
+
+        User user = userRepository.findByIdAndDeletedFalse(userId)
+                .orElseThrow(() -> new NotFoundException(
+                        USER_NOT_FOUND,
+                        "Utilisateur introuvable"
+                ));
+
+        // ✅ Vérification 1: Empêcher l'assignation du chef de projet de CETTE équipe
+        if (team.getProjectManager() != null && team.getProjectManager().getId().equals(userId)) {
+            throw new ForbiddenException(
+                    FORBIDDEN,
+                    "Le chef de projet de cette équipe ne peut pas être assigné comme membre"
+            );
+        }
+
+        // ✅ Vérification 2: Empêcher l'assignation d'un utilisateur qui a le rôle CHEF_PROJET
+        boolean isChefProjet = user.getRoles().stream()
+                .map(Role::getNom)
+                .anyMatch(role -> role.equalsIgnoreCase("CHEF_PROJET"));
+
+        if (isChefProjet) {
+            throw new ForbiddenException(
+                    FORBIDDEN,
+                    "⛔ Impossible d'assigner '" + user.getPrenom() + " " + user.getNom() + "' car c'est un CHEF DE PROJET !"
+            );
+        }
+
+        // ✅ Vérification 3: Vérifier si l'utilisateur a déjà une équipe
+        if (user.getTeam() != null) {
+            String teamName = user.getTeam().getName();
+            throw new ConflictException(
+                    USER_ALREADY_IN_TEAM,
+                    "⚠️ " + user.getPrenom() + " " + user.getNom() + " est déjà membre de l'équipe : " + teamName
+            );
+        }
+
+        // ✅ Vérification 4: Vérifier s'il y a déjà un MANAGER dans l'équipe
+        boolean isManager = user.getRoles().stream()
+                .map(Role::getNom)
+                .anyMatch(role -> role.equalsIgnoreCase("MANAGER"));
+
+        if (isManager) {
+            boolean alreadyHasManager = team.getMembers().stream()
+                    .filter(member -> !member.getId().equals(team.getProjectManager().getId())) // Exclure le chef de projet
+                    .anyMatch(member -> {
+                        return member.getRoles().stream()
+                                .map(Role::getNom)
+                                .anyMatch(role -> role.equalsIgnoreCase("MANAGER"));
+                    });
+
+            if (alreadyHasManager) {
+                throw new ConflictException(
+                        TEAM_MEMBER_ALREADY_EXISTS,
+                        "⚠️ Cette équipe a déjà un MANAGER ! Un seul manager est autorisé par équipe."
+                );
+            }
+        }
+
+        validateUserCanBeAssigned(user);
+
+        user.setTeam(team);
+        userRepository.save(user);
+
+        return teamMapper.toDto(team);
+    }
+    // ─── Private Methods ───────────────────────────────────────────────────────
 
     private Team findActiveTeamById(Long teamId) {
         return teamRepository.findByIdAndDeletedFalse(teamId)
@@ -191,7 +310,7 @@ public class TeamServiceImpl implements TeamService {
 
         if (!isProjectManager) {
             throw new ForbiddenException(
-                    FORBIDDEN,
+                    FORBIDDEN,  // String "FORBIDDEN"
                     "Seul un chef de projet peut créer une équipe"
             );
         }
@@ -200,7 +319,7 @@ public class TeamServiceImpl implements TeamService {
     private void validateCurrentUserCanManageTeam(Team team, User currentUser) {
         if (team.getProjectManager() == null || currentUser.getId() == null) {
             throw new ForbiddenException(
-                    FORBIDDEN,
+                    FORBIDDEN,  // String "FORBIDDEN"
                     "Accès refusé"
             );
         }
@@ -209,7 +328,7 @@ public class TeamServiceImpl implements TeamService {
 
         if (!sameProjectManager) {
             throw new ForbiddenException(
-                    FORBIDDEN,
+                    FORBIDDEN,  // String "FORBIDDEN"
                     "Seul le chef de projet de cette équipe peut la gérer"
             );
         }
