@@ -1,0 +1,163 @@
+<div class="calendar-container">
+  <!-- Calendar Header -->
+  <div class="calendar-header">
+    <div class="calendar-nav">
+      <button class="nav-btn" (click)="previousMonth()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="15 18 9 12 15 6"></polyline>
+        </svg>
+      </button>
+      <h2 class="month-title">{{ getMonthName() }}</h2>
+      <button class="nav-btn" (click)="nextMonth()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="9 18 15 12 9 6"></polyline>
+        </svg>
+      </button>
+      <button class="today-btn" (click)="goToToday()">Aujourd'hui</button>
+    </div>
+    <button class="add-event-btn" (click)="openAddEventModal()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <line x1="12" y1="5" x2="12" y2="19" />
+        <line x1="5" y1="12" x2="19" y2="12" />
+      </svg>
+      Ajouter un événement
+    </button>
+  </div>
+
+  <!-- Calendar Grid -->
+  <div class="calendar-grid">
+    <div class="calendar-weekdays">
+      <div class="weekday">LUN</div>
+      <div class="weekday">MAR</div>
+      <div class="weekday">MER</div>
+      <div class="weekday">JEU</div>
+      <div class="weekday">VEN</div>
+      <div class="weekday">SAM</div>
+      <div class="weekday">DIM</div>
+    </div>
+
+    <div class="calendar-days">
+      @for (day of getDaysInMonth(); track day.toISOString()) {
+        <div class="calendar-day" 
+             [class.other-month]="!isCurrentMonth(day)"
+             [class.today]="isToday(day)"
+             [class.selected]="isSelected(day)"
+             (click)="selectDate(day)">
+          <span class="day-number">{{ day.getDate() }}</span>
+          <div class="day-events">
+            @for (event of getEventsForDate(day).slice(0, 2); track event.id) {
+              <div class="event-badge" 
+                   [style.background]="getEventColor(event)"
+                   (click)="$event.stopPropagation(); openEditEventModal(event)">
+                <span class="event-time">{{ event.time || '00:00' }}</span>
+                {{ event.title.length > 18 ? event.title.substring(0, 18) + '...' : event.title }}
+              </div>
+            }
+            @if (getEventsForDate(day).length > 2) {
+              <div class="event-more">
+                +{{ getEventsForDate(day).length - 2 }} more
+              </div>
+            }
+          </div>
+        </div>
+      }
+    </div>
+  </div>
+
+  <!-- Events List Sidebar -->
+  <div class="events-sidebar" *ngIf="selectedDate()">
+    <div class="sidebar-header">
+      <h3>{{ formatFullDate(selectedDate()!) }}</h3>
+      <button class="close-sidebar" (click)="selectedDate.set(null)">×</button>
+    </div>
+    <div class="sidebar-events">
+      @if (getEventsForDate(selectedDate()!).length === 0) {
+        <div class="no-events">
+          <p>Aucun événement pour cette date</p>
+          <button class="add-event-small" (click)="openAddEventModal()">
+            + Ajouter un événement
+          </button>
+        </div>
+      }
+      @for (event of getEventsForDate(selectedDate()!); track event.id) {
+        <div class="sidebar-event">
+          <div class="event-color" [style.background]="getEventColor(event)"></div>
+          <div class="event-content">
+            <h4>
+              <span class="event-time-sidebar">{{ event.time || '00:00' }}</span>
+              {{ event.title }}
+            </h4>
+            <p>{{ event.description }}</p>
+            <span class="event-project" *ngIf="event.projectName">
+              {{ event.projectName }}
+            </span>
+          </div>
+          <div class="event-actions">
+            <button class="edit-event" (click)="openEditEventModal(event)">✏️</button>
+            <button class="delete-event" (click)="deleteEvent(event.id)">🗑️</button>
+          </div>
+        </div>
+      }
+    </div>
+  </div>
+
+  <!-- Modal Ajouter/Modifier Événement -->
+  @if (showEventModal) {
+    <div class="modal-overlay" (click)="closeEventModal()">
+      <div class="modal-container" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <h2>{{ isEditing ? 'Modifier' : 'Ajouter' }} un événement</h2>
+          <button class="btn-close" (click)="closeEventModal()">×</button>
+        </div>
+        <div class="modal-body">
+          <div class="form-group">
+            <label>Titre *</label>
+            <input type="text" class="form-control" 
+                   [(ngModel)]="eventForm.title" 
+                   placeholder="Titre de l'événement">
+          </div>
+          <div class="form-group">
+            <label>Date *</label>
+            <input type="date" class="form-control" 
+                   [(ngModel)]="eventForm.date">
+          </div>
+          <div class="form-group">
+            <label>Heure *</label>
+            <input type="time" class="form-control" 
+                   [(ngModel)]="eventForm.time">
+            <small class="form-hint">Optionnel (par défaut 00:00)</small>
+          </div>
+          <div class="form-group">
+            <label>Description</label>
+            <textarea class="form-control" 
+                      [(ngModel)]="eventForm.description" 
+                      rows="3"
+                      placeholder="Description de l'événement"></textarea>
+          </div>
+          <div class="form-group">
+            <label>Projet</label>
+            <input type="text" class="form-control" 
+                   [(ngModel)]="eventForm.projectName" 
+                   placeholder="Nom du projet (optionnel)">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn-cancel" (click)="closeEventModal()">Annuler</button>
+          <button class="btn-submit" (click)="saveEvent()">
+            {{ isEditing ? 'Modifier' : 'Ajouter' }}
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- Toast -->
+  @if (showToast) {
+    <div class="toast-container">
+      <div class="toast" [class.toast-success]="toastType === 'success'" 
+                         [class.toast-error]="toastType === 'error'">
+        {{ toastMessage }}
+      </div>
+    </div>
+  }
+</div>

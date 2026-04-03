@@ -5,22 +5,35 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="d6d90c51-4d5c-4da4-945a-1cea9d95d7af" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/Backend/src/main/java/com/dxc/dxc_platform/dto/UserSearchResult.java" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Frontend/src/app/features/responsable-contract/projet/projet.css" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Frontend/src/app/features/responsable-contract/projet/projet.html" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Frontend/src/app/features/responsable-contract/projet/projet.spec.ts" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Frontend/src/app/features/responsable-contract/projet/projet.ts" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Backend/src/main/java/com/dxc/dxc_platform/controller/AdminClientController.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Backend/src/main/java/com/dxc/dxc_platform/dto/ClientDto.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Backend/src/main/java/com/dxc/dxc_platform/entity/Client.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Backend/src/main/java/com/dxc/dxc_platform/entity/Representant.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Backend/src/main/java/com/dxc/dxc_platform/mapper/ClientMapper.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Backend/src/main/java/com/dxc/dxc_platform/repository/ClientRepository.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Backend/src/main/java/com/dxc/dxc_platform/service/ClientService.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Backend/src/main/java/com/dxc/dxc_platform/service/impl/ClientServiceImpl.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Backend/src/main/java/com/dxc/dxc_platform/config/SecurityConfig.java" beforeDir="false" afterPath="$PROJECT_DIR$/Backend/src/main/java/com/dxc/dxc_platform/config/SecurityConfig.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Backend/src/main/java/com/dxc/dxc_platform/controller/TeamController.java" beforeDir="false" afterPath="$PROJECT_DIR$/Backend/src/main/java/com/dxc/dxc_platform/controller/TeamController.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Backend/src/main/java/com/dxc/dxc_platform/entity/Team.java" beforeDir="false" afterPath="$PROJECT_DIR$/Backend/src/main/java/com/dxc/dxc_platform/entity/Team.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Backend/src/main/java/com/dxc/dxc_platform/repository/TeamRepository.java" beforeDir="false" afterPath="$PROJECT_DIR$/Backend/src/main/java/com/dxc/dxc_platform/repository/TeamRepository.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Backend/src/main/java/com/dxc/dxc_platform/repository/UserRepository.java" beforeDir="false" afterPath="$PROJECT_DIR$/Backend/src/main/java/com/dxc/dxc_platform/repository/UserRepository.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Backend/src/main/java/com/dxc/dxc_platform/service/AuthService.java" beforeDir="false" afterPath="$PROJECT_DIR$/Backend/src/main/java/com/dxc/dxc_platform/service/AuthService.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Backend/src/main/java/com/dxc/dxc_platform/security/CustomUserDetailsService.java" beforeDir="false" afterPath="$PROJECT_DIR$/Backend/src/main/java/com/dxc/dxc_platform/security/CustomUserDetailsService.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Backend/src/main/java/com/dxc/dxc_platform/security/jwt/JwtAuthenticationFilter.java" beforeDir="false" afterPath="$PROJECT_DIR$/Backend/src/main/java/com/dxc/dxc_platform/security/jwt/JwtAuthenticationFilter.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Backend/src/main/java/com/dxc/dxc_platform/security/jwt/JwtService.java" beforeDir="false" afterPath="$PROJECT_DIR$/Backend/src/main/java/com/dxc/dxc_platform/security/jwt/JwtService.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Backend/src/main/java/com/dxc/dxc_platform/service/TeamService.java" beforeDir="false" afterPath="$PROJECT_DIR$/Backend/src/main/java/com/dxc/dxc_platform/service/TeamService.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Backend/src/main/java/com/dxc/dxc_platform/service/impl/TeamServiceImpl.java" beforeDir="false" afterPath="$PROJECT_DIR$/Backend/src/main/java/com/dxc/dxc_platform/service/impl/TeamServiceImpl.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Frontend/src/app/app.config.ts" beforeDir="false" afterPath="$PROJECT_DIR$/Frontend/src/app/app.config.ts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Frontend/src/app/app.routes.ts" beforeDir="false" afterPath="$PROJECT_DIR$/Frontend/src/app/app.routes.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Frontend/src/app/auth/login/login.ts" beforeDir="false" afterPath="$PROJECT_DIR$/Frontend/src/app/auth/login/login.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Frontend/src/app/core/services/admin.service.ts" beforeDir="false" afterPath="$PROJECT_DIR$/Frontend/src/app/core/services/admin.service.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Frontend/src/app/core/services/team.service.ts" beforeDir="false" afterPath="$PROJECT_DIR$/Frontend/src/app/core/services/team.service.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Frontend/src/app/features/admin/utilisateurs/utilisateurs.html" beforeDir="false" afterPath="$PROJECT_DIR$/Frontend/src/app/features/admin/utilisateurs/utilisateurs.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Frontend/src/app/features/admin/utilisateurs/utilisateurs.ts" beforeDir="false" afterPath="$PROJECT_DIR$/Frontend/src/app/features/admin/utilisateurs/utilisateurs.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Frontend/src/app/features/chef-projet/chef-projet.html" beforeDir="false" afterPath="$PROJECT_DIR$/Frontend/src/app/features/chef-projet/chef-projet.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Frontend/src/app/features/chef-projet/chef-projet.ts" beforeDir="false" afterPath="$PROJECT_DIR$/Frontend/src/app/features/chef-projet/chef-projet.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Frontend/src/app/features/chef-projet/equipes/equipes.css" beforeDir="false" afterPath="$PROJECT_DIR$/Frontend/src/app/features/chef-projet/equipes/equipes.css" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Frontend/src/app/features/chef-projet/equipes/equipes.html" beforeDir="false" afterPath="$PROJECT_DIR$/Frontend/src/app/features/chef-projet/equipes/equipes.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Frontend/src/app/features/chef-projet/equipes/equipes.ts" beforeDir="false" afterPath="$PROJECT_DIR$/Frontend/src/app/features/chef-projet/equipes/equipes.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Frontend/src/app/features/chef-projet/projets/projets.html" beforeDir="false" afterPath="$PROJECT_DIR$/Frontend/src/app/features/chef-projet/projets/projets.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Frontend/src/app/features/chef-projet/projets/projets.ts" beforeDir="false" afterPath="$PROJECT_DIR$/Frontend/src/app/features/chef-projet/projets/projets.ts" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -143,7 +156,7 @@
       <breakpoints>
         <line-breakpoint enabled="true" type="java-line">
           <url>file://$PROJECT_DIR$/Backend/src/main/java/com/dxc/dxc_platform/controller/TeamController.java</url>
-          <line>84</line>
+          <line>93</line>
           <option name="timeStamp" value="1" />
         </line-breakpoint>
       </breakpoints>

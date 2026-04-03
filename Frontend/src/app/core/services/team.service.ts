@@ -78,6 +78,11 @@ export class TeamService {
   getMyTeam(): Observable<TeamDto> {
     return this.http.get<TeamDto>(`${this.API_URL}/my-team`);
   }
+   getMyTeams(): Observable<TeamDto[]> {
+    return this.http.get<TeamDto[]>(`${this.API_URL}/my-teams`);
+  }
+
+
   searchAvailableUsers(query: string): Observable<UserSearchResult[]> {
   const params = new HttpParams().set('query', query);
   return this.http.get<UserSearchResult[]>(

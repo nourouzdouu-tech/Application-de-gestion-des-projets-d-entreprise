@@ -2,6 +2,7 @@ package com.dxc.dxc_platform.controller;
 
 import com.dxc.dxc_platform.dto.AssignUserToTeamRequest;
 import com.dxc.dxc_platform.dto.TeamDto;
+import com.dxc.dxc_platform.dto.UserSearchResult;
 import com.dxc.dxc_platform.service.TeamService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -9,7 +10,6 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
-import com.dxc.dxc_platform.dto.UserSearchResult;
 
 import java.util.List;
 
@@ -24,27 +24,27 @@ public class TeamController {
     }
 
     @PostMapping
-    //@PreAuthorize("hasRole('CHEF_PROJET')")
+    @PreAuthorize("hasRole('CHEF_PROJET')")
     public ResponseEntity<TeamDto> createTeam(@Valid @RequestBody TeamDto request) {
         return ResponseEntity.status(HttpStatus.CREATED).body(teamService.createTeam(request));
     }
 
     @PutMapping("/{teamId}")
-    //@PreAuthorize("hasRole('CHEF_PROJET')")
+    @PreAuthorize("hasRole('CHEF_PROJET')")
     public ResponseEntity<TeamDto> updateTeam(@PathVariable Long teamId,
                                               @Valid @RequestBody TeamDto request) {
         return ResponseEntity.ok(teamService.updateTeam(teamId, request));
     }
 
     @PostMapping("/{teamId}/members")
-    //@PreAuthorize("hasRole('CHEF_PROJET')")
+    @PreAuthorize("hasRole('CHEF_PROJET')")
     public ResponseEntity<TeamDto> assignUserToTeam(@PathVariable Long teamId,
                                                     @Valid @RequestBody AssignUserToTeamRequest request) {
         return ResponseEntity.ok(teamService.assignUserToTeam(teamId, request.getUserId()));
     }
 
     @PatchMapping("/{teamId}/deleted")
-    //@PreAuthorize("hasRole('CHEF_PROJET')")
+    @PreAuthorize("hasRole('CHEF_PROJET')")
     public ResponseEntity<TeamDto> setDeletedStatus(@PathVariable Long teamId,
                                                     @RequestParam boolean deleted) {
         return ResponseEntity.ok(teamService.setDeletedStatus(teamId, deleted));
@@ -61,21 +61,30 @@ public class TeamController {
     public ResponseEntity<List<TeamDto>> getAllTeams() {
         return ResponseEntity.ok(teamService.getAllTeams());
     }
+
+    @GetMapping("/my-teams")
+    @PreAuthorize("hasRole('CHEF_PROJET')")
+    public ResponseEntity<List<TeamDto>> getMyTeams() {
+        return ResponseEntity.ok(teamService.getMyTeams());
+    }
+
+    // Endpoint conservé pour compatibilité
     @GetMapping("/my-team")
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("hasRole('CHEF_PROJET')")
     public ResponseEntity<TeamDto> getMyTeam() {
         return ResponseEntity.ok(teamService.getMyTeam());
     }
+
     @GetMapping("/users/search")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<List<UserSearchResult>> searchAvailableUsers(
             @RequestParam String query) {
         List<UserSearchResult> results = teamService.searchAvailableUsers(query);
-        // Force la sérialisation en tableau même si vide ou un seul élément
         return ResponseEntity.ok()
                 .contentType(MediaType.APPLICATION_JSON)
                 .body(results);
     }
+
     @DeleteMapping("/{teamId}/members/{userId}")
     @PreAuthorize("hasRole('CHEF_PROJET')")
     public ResponseEntity<TeamDto> removeUserFromTeam(@PathVariable Long teamId,

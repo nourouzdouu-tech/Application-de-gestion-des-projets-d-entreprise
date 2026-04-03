@@ -287,7 +287,13 @@ onSearch(value: string) {
     setTimeout(() => this.showToast.set(false), 3000);
   }
 
-  setNav(id: string) { this.activeNavItem.set(id); }
+  // Ajoutez cette méthode dans la classe Utilisateurs
+setNav(item: string) {
+  this.activeNavItem.set(item);
+  if (item === 'clients') {
+    window.location.href = '/admin/clients';
+  }
+}
   getRangeStart() { return (this.currentPage() - 1) * this.itemsPerPage + 1; }
   getRangeEnd() { return Math.min(this.currentPage() * this.itemsPerPage, this.totalElements()); }
 
@@ -355,4 +361,5 @@ updateProfile() {
     }
   });
 }
+
 }

@@ -80,11 +80,58 @@ export interface PageResponse<T> {
   number: number;
 }
 
+// ===== NOUVELLES INTERFACES POUR CLIENTS ET REPRÉSENTANTS =====
+export interface Representant {
+  id?: number;
+  nom: string;
+  email: string;
+  telephone: string;
+}
+
+export interface ClientResponse {
+  id: number;
+  nom: string;
+  representantsCount: number;
+  representants: Representant[];
+}
+
+export interface ClientCreateRequest {
+  nom: string;
+  representants: Representant[];
+}
+
+export interface ClientUpdateRequest {
+  nom: string;
+  representants: Representant[];
+}
+
+// Anciennes interfaces conservées pour compatibilité (à supprimer plus tard si besoin)
+export interface ClientResponseOld {
+  id: number;
+  nom: string;
+  email: string;
+  telephone: string;
+}
+
+export interface ClientCreateRequestOld {
+  nom: string;
+  email: string;
+  telephone: string;
+}
+
+export interface ClientUpdateRequestOld {
+  nom: string;
+  email: string;
+  telephone: string;
+}
+
 @Injectable({ providedIn: 'root' })
 export class AdminService {
   private http = inject(HttpClient);
   private apiUrl = 'http://localhost:8080/api/admin/users';
+  private clientApiUrl = 'http://localhost:8080/api/admin/clients';
 
+  // ===== USER MANAGEMENT =====
   getUsers(page: number, size = 5, q = '', role = '', locked?: boolean): Observable<PageResponse<UserResponse>> {
     let params = new HttpParams()
       .set('page', (page - 1).toString())
@@ -110,12 +157,14 @@ export class AdminService {
   enableUser(id: number): Observable<void> {
     return this.http.patch<void>(`${this.apiUrl}/${id}/enable`, {});
   }
+
   getRoles(): Observable<RoleResponse[]> {
-  return this.http.get<RoleResponse[]>('http://localhost:8080/api/admin/roles');
-}
-updateUser(id: number, req: UserUpdateRequest): Observable<UserResponse> {
-  return this.http.put<UserResponse>(`${this.apiUrl}/${id}`, req);
-}
+    return this.http.get<RoleResponse[]>('http://localhost:8080/api/admin/roles');
+  }
+
+  updateUser(id: number, req: UserUpdateRequest): Observable<UserResponse> {
+    return this.http.put<UserResponse>(`${this.apiUrl}/${id}`, req);
+  }
 
   // ===== DASHBOARD STATS =====
   getDashboardStats(): Observable<DashboardStats> {
@@ -134,7 +183,7 @@ updateUser(id: number, req: UserUpdateRequest): Observable<UserResponse> {
     return this.http.get<number>('http://localhost:8080/api/admin/dashboard/active-users');
   }
 
-    getInactiveUserCount(): Observable<number> {
+  getInactiveUserCount(): Observable<number> {
     return this.http.get<number>('http://localhost:8080/api/admin/dashboard/inactive-users');
   }
 
@@ -161,5 +210,54 @@ updateUser(id: number, req: UserUpdateRequest): Observable<UserResponse> {
 
   createPermission(req: { nom: string; description: string }): Observable<PermissionSummary> {
     return this.http.post<PermissionSummary>('http://localhost:8080/api/admin/permissions', req);
+  }
+
+  // ===== CLIENT MANAGEMENT (NOUVEAU AVEC REPRÉSENTANTS) =====
+  
+  /**
+   * Récupère la liste paginée des clients
+   * @param page Numéro de page (0-indexé)
+   * @param size Nombre d'éléments par page
+   * @param q Terme de recherche (filtre sur le nom du client)
+   */
+  getClients(page: number = 0, size: number = 10, q: string = ''): Observable<PageResponse<ClientResponse>> {
+    let params = new HttpParams()
+      .set('page', page.toString())
+      .set('size', size.toString());
+    if (q) params = params.set('q', q);
+    return this.http.get<PageResponse<ClientResponse>>(this.clientApiUrl, { params });
+  }
+
+  /**
+   * Crée un nouveau client avec ses représentants
+   * @param req ClientCreateRequest contenant le nom et la liste des représentants
+   */
+  createClient(req: ClientCreateRequest): Observable<ClientResponse> {
+    return this.http.post<ClientResponse>(this.clientApiUrl, req);
+  }
+
+  /**
+   * Récupère un client par son ID avec tous ses représentants
+   * @param id ID du client
+   */
+  getClientById(id: number): Observable<ClientResponse> {
+    return this.http.get<ClientResponse>(`${this.clientApiUrl}/${id}`);
+  }
+
+  /**
+   * Met à jour un client et ses représentants
+   * @param id ID du client
+   * @param req ClientUpdateRequest contenant le nom et la liste des représentants
+   */
+  updateClient(id: number, req: ClientUpdateRequest): Observable<ClientResponse> {
+    return this.http.put<ClientResponse>(`${this.clientApiUrl}/${id}`, req);
+  }
+
+  /**
+   * Supprime un client (soft delete)
+   * @param id ID du client
+   */
+  deleteClient(id: number): Observable<void> {
+    return this.http.delete<void>(`${this.clientApiUrl}/${id}`);
   }
 }

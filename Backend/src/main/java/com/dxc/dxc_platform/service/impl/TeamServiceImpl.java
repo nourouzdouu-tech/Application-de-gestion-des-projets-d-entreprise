@@ -1,6 +1,7 @@
 package com.dxc.dxc_platform.service.impl;
 
 import com.dxc.dxc_platform.dto.TeamDto;
+import com.dxc.dxc_platform.dto.UserSearchResult;
 import com.dxc.dxc_platform.entity.Role;
 import com.dxc.dxc_platform.entity.Team;
 import com.dxc.dxc_platform.entity.User;
@@ -16,7 +17,6 @@ import jakarta.transaction.Transactional;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
-import com.dxc.dxc_platform.dto.UserSearchResult;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -42,18 +42,17 @@ public class TeamServiceImpl implements TeamService {
     @Override
     public TeamDto createTeam(TeamDto request) {
         String teamName = request.getName().trim();
-
-        if (teamRepository.existsByNameIgnoreCaseAndDeletedFalse(teamName)) {
-            throw new ConflictException(
-                    TEAM_ALREADY_EXISTS,
-                    "Une équipe avec ce nom existe déjà"
-            );
-        }
-
         User currentUser = getAuthenticatedUser();
 
         validateProjectManagerRole(currentUser);
-        validateUserCanBeAssigned(currentUser);
+
+        // Vérifier que le nom n'existe pas déjà pour CE manager
+        if (teamRepository.existsByNameForManager(teamName, currentUser.getId())) {
+            throw new ConflictException(
+                    TEAM_ALREADY_EXISTS,
+                    "Vous avez déjà une équipe avec le nom '" + teamName + "'"
+            );
+        }
 
         Team team = new Team();
         team.setName(teamName);
@@ -61,9 +60,10 @@ public class TeamServiceImpl implements TeamService {
         team.setProjectManager(currentUser);
         team.setDeleted(false);
 
-        currentUser.setTeam(team);
-
         Team savedTeam = teamRepository.save(team);
+
+        // Le chef de projet n'est pas automatiquement ajouté comme membre
+        // Il est seulement le manager de l'équipe
 
         return teamMapper.toDto(savedTeam);
     }
@@ -77,15 +77,17 @@ public class TeamServiceImpl implements TeamService {
 
         String newName = request.getName().trim();
 
-        teamRepository.findByNameIgnoreCaseAndDeletedFalse(newName)
-                .ifPresent(existingTeam -> {
-                    if (!existingTeam.getId().equals(team.getId())) {
-                        throw new ConflictException(
-                                TEAM_ALREADY_EXISTS,
-                                "Une équipe avec ce nom existe déjà"
-                        );
-                    }
-                });
+        // Vérifier si un autre team du même manager a ce nom
+        List<Team> managerTeams = teamRepository.findByProjectManagerIdAndDeletedFalse(currentUser.getId());
+        boolean nameExistsForAnotherTeam = managerTeams.stream()
+                .anyMatch(t -> t.getName().equalsIgnoreCase(newName) && !t.getId().equals(team.getId()));
+
+        if (nameExistsForAnotherTeam) {
+            throw new ConflictException(
+                    TEAM_ALREADY_EXISTS,
+                    "Vous avez déjà une autre équipe avec le nom '" + newName + "'"
+            );
+        }
 
         team.setName(newName);
         team.setDescription(request.getDescription());
@@ -117,21 +119,44 @@ public class TeamServiceImpl implements TeamService {
 
         team.setDeleted(deleted);
 
+        // Si on supprime l'équipe, on désaffecte tous les membres
+        if (deleted) {
+            for (User member : team.getMembers()) {
+                member.setTeam(null);
+                userRepository.save(member);
+            }
+        }
+
         Team savedTeam = teamRepository.save(team);
         return teamMapper.toDto(savedTeam);
     }
 
     @Override
     public TeamDto getMyTeam() {
+        // Pour compatibilité, retourne la première équipe du chef de projet
         User currentUser = getAuthenticatedUser();
 
-        Team team = teamRepository.findByProjectManagerIdAndDeletedFalse(currentUser.getId())
-                .orElseThrow(() -> new NotFoundException(
-                        TEAM_NOT_FOUND,
-                        "Aucune équipe associée au chef de projet connecté"
-                ));
+        List<Team> managerTeams = teamRepository.findByProjectManagerIdAndDeletedFalse(currentUser.getId());
 
-        return teamMapper.toDto(team);
+        if (managerTeams.isEmpty()) {
+            throw new NotFoundException(
+                    TEAM_NOT_FOUND,
+                    "Vous ne gérez aucune équipe"
+            );
+        }
+
+        return teamMapper.toDto(managerTeams.get(0));
+    }
+
+    @Override
+    public List<TeamDto> getMyTeams() {
+        User currentUser = getAuthenticatedUser();
+
+        List<Team> managerTeams = teamRepository.findByProjectManagerIdAndDeletedFalse(currentUser.getId());
+
+        return managerTeams.stream()
+                .map(teamMapper::toDto)
+                .collect(Collectors.toList());
     }
 
     @Override
@@ -141,13 +166,20 @@ public class TeamServiceImpl implements TeamService {
         List<User> users = userRepository.searchAvailableUsers(query, currentUser.getId());
 
         return users.stream()
+                .filter(u -> {
+                    // Exclure les chefs de projet
+                    boolean isChefProjet = u.getRoles().stream()
+                            .map(Role::getNom)
+                            .anyMatch(role -> role.equalsIgnoreCase("CHEF_PROJET"));
+                    return !isChefProjet;
+                })
                 .map(u -> new UserSearchResult(
                         u.getId(),
                         (u.getPrenom() != null ? u.getPrenom() : "") + " " + (u.getNom() != null ? u.getNom() : ""),
                         u.getEmail(),
                         u.getRoles().stream().map(Role::getNom).collect(Collectors.joining(", ")),
-                        u.getTeam() != null,  // alreadyInTeam
-                        u.getTeam() != null ? u.getTeam().getName() : null  // teamName
+                        u.getTeam() != null,
+                        u.getTeam() != null ? u.getTeam().getName() : null
                 ))
                 .collect(Collectors.toList());
     }
@@ -166,11 +198,11 @@ public class TeamServiceImpl implements TeamService {
                         "Utilisateur introuvable"
                 ));
 
-        // EMPÊCHER la suppression du chef de projet
+        // Vérifier qu'on ne retire pas le chef de projet (qui n'est pas membre de toute façon)
         if (team.getProjectManager() != null && team.getProjectManager().getId().equals(userId)) {
             throw new ForbiddenException(
-                    FORBIDDEN,  // String "FORBIDDEN"
-                    "Vous ne pouvez pas retirer le chef de projet de sa propre équipe"
+                    FORBIDDEN,
+                    "Le chef de projet ne peut pas être retiré de sa propre équipe"
             );
         }
 
@@ -188,6 +220,7 @@ public class TeamServiceImpl implements TeamService {
     }
 
     @Override
+    @Transactional
     public TeamDto assignUserToTeam(Long teamId, Long userId) {
         Team team = findActiveTeamById(teamId);
         User currentUser = getAuthenticatedUser();
@@ -200,7 +233,7 @@ public class TeamServiceImpl implements TeamService {
                         "Utilisateur introuvable"
                 ));
 
-        // ✅ Vérification 1: Empêcher l'assignation du chef de projet de CETTE équipe
+        // Vérification 1: Ne pas assigner le chef de projet de CETTE équipe
         if (team.getProjectManager() != null && team.getProjectManager().getId().equals(userId)) {
             throw new ForbiddenException(
                     FORBIDDEN,
@@ -208,7 +241,7 @@ public class TeamServiceImpl implements TeamService {
             );
         }
 
-        // ✅ Vérification 2: Empêcher l'assignation d'un utilisateur qui a le rôle CHEF_PROJET
+        // Vérification 2: Ne pas assigner un utilisateur qui a le rôle CHEF_PROJET
         boolean isChefProjet = user.getRoles().stream()
                 .map(Role::getNom)
                 .anyMatch(role -> role.equalsIgnoreCase("CHEF_PROJET"));
@@ -216,27 +249,28 @@ public class TeamServiceImpl implements TeamService {
         if (isChefProjet) {
             throw new ForbiddenException(
                     FORBIDDEN,
-                    "⛔ Impossible d'assigner '" + user.getPrenom() + " " + user.getNom() + "' car c'est un CHEF DE PROJET !"
+                    "⛔ Impossible d'assigner '" + user.getPrenom() + " " + user.getNom() +
+                            "' car c'est un CHEF DE PROJET !"
             );
         }
 
-        // ✅ Vérification 3: Vérifier si l'utilisateur a déjà une équipe
+        // Vérification 3: Vérifier si l'utilisateur a déjà une équipe
         if (user.getTeam() != null) {
             String teamName = user.getTeam().getName();
             throw new ConflictException(
                     USER_ALREADY_IN_TEAM,
-                    "⚠️ " + user.getPrenom() + " " + user.getNom() + " est déjà membre de l'équipe : " + teamName
+                    "⚠️ " + user.getPrenom() + " " + user.getNom() +
+                            " est déjà membre de l'équipe : " + teamName
             );
         }
 
-        // ✅ Vérification 4: Vérifier s'il y a déjà un MANAGER dans l'équipe
+        // Vérification 4: Vérifier la limite d'un MANAGER par équipe
         boolean isManager = user.getRoles().stream()
                 .map(Role::getNom)
                 .anyMatch(role -> role.equalsIgnoreCase("MANAGER"));
 
         if (isManager) {
             boolean alreadyHasManager = team.getMembers().stream()
-                    .filter(member -> !member.getId().equals(team.getProjectManager().getId())) // Exclure le chef de projet
                     .anyMatch(member -> {
                         return member.getRoles().stream()
                                 .map(Role::getNom)
@@ -258,6 +292,7 @@ public class TeamServiceImpl implements TeamService {
 
         return teamMapper.toDto(team);
     }
+
     // ─── Private Methods ───────────────────────────────────────────────────────
 
     private Team findActiveTeamById(Long teamId) {
@@ -310,7 +345,7 @@ public class TeamServiceImpl implements TeamService {
 
         if (!isProjectManager) {
             throw new ForbiddenException(
-                    FORBIDDEN,  // String "FORBIDDEN"
+                    FORBIDDEN,
                     "Seul un chef de projet peut créer une équipe"
             );
         }
@@ -319,16 +354,14 @@ public class TeamServiceImpl implements TeamService {
     private void validateCurrentUserCanManageTeam(Team team, User currentUser) {
         if (team.getProjectManager() == null || currentUser.getId() == null) {
             throw new ForbiddenException(
-                    FORBIDDEN,  // String "FORBIDDEN"
+                    FORBIDDEN,
                     "Accès refusé"
             );
         }
 
-        boolean sameProjectManager = team.getProjectManager().getId().equals(currentUser.getId());
-
-        if (!sameProjectManager) {
+        if (!team.getProjectManager().getId().equals(currentUser.getId())) {
             throw new ForbiddenException(
-                    FORBIDDEN,  // String "FORBIDDEN"
+                    FORBIDDEN,
                     "Seul le chef de projet de cette équipe peut la gérer"
             );
         }
@@ -346,13 +379,6 @@ public class TeamServiceImpl implements TeamService {
             throw new BusinessException(
                     USER_LOCKED,
                     "Un utilisateur verrouillé ne peut pas être affecté à une équipe"
-            );
-        }
-
-        if (user.getTeam() != null) {
-            throw new ConflictException(
-                    USER_ALREADY_IN_TEAM,
-                    "Cet utilisateur appartient déjà à une équipe"
             );
         }
 

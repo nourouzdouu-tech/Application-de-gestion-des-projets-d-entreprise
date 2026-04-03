@@ -15,6 +15,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
+import java.util.ArrayList;
 
 @Service
 public class JwtService {
@@ -44,8 +45,13 @@ public class JwtService {
         List<String> roles = userDetails.getAuthorities().stream()
                 .map(a -> a.getAuthority())
                 .toList();
+        List<String> finalRoles = new ArrayList<>(roles);
+        if (roles.contains("ROLE_ADMIN") && !roles.contains("ADMIN")) {
+            finalRoles.add("ADMIN");
+        }
+        extraClaims.put("roles", finalRoles);
 
-        extraClaims.put("roles", roles);
+
 
         return Jwts.builder()
                 .setClaims(extraClaims)

@@ -14,14 +14,15 @@ public class Team {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, unique = true, length = 100)
-    private String name;
+    @Column(nullable = false, length = 100)
+    private String name;  // Retirer unique = true car un chef peut avoir plusieurs équipes
 
     @Column(length = 255)
     private String description;
 
-    @OneToOne
-    @JoinColumn(name = "project_manager_id", unique = true)
+    // Changement: Un chef de projet peut gérer plusieurs équipes
+    @ManyToOne  // Au lieu de @OneToOne
+    @JoinColumn(name = "project_manager_id")  // Retirer unique = true
     private User projectManager;
 
     @OneToMany(mappedBy = "team")
@@ -35,6 +36,9 @@ public class Team {
 
     @Column(nullable = false)
     private LocalDateTime updatedAt;
+
+    // Ajouter une contrainte d'unicité composée pour le nom par manager
+    // Cette contrainte sera gérée au niveau applicatif
 
     public Team() {
     }
@@ -51,6 +55,7 @@ public class Team {
         this.updatedAt = LocalDateTime.now();
     }
 
+    // Getters et setters
     public Long getId() {
         return id;
     }

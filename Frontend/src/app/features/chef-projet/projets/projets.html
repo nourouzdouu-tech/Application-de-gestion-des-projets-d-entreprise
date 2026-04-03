@@ -10,7 +10,7 @@
       <nav class="sidebar-nav">
         <p class="nav-section-label">Navigation</p>
 
-        <a class="nav-item" href="#">
+        <a class="nav-item" routerLink="/chef-projet/dashboard" routerLinkActive="active">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <rect x="3" y="3" width="7" height="7" rx="1" />
             <rect x="14" y="3" width="7" height="7" rx="1" />
@@ -20,32 +20,25 @@
           Tableau de bord
         </a>
 
-        <a class="nav-item active" href="#">
+        <a class="nav-item active" routerLink="/chef-projet/projets" routerLinkActive="active">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M3 7a2 2 0 0 1 2-2h3l2 2h9a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z" />
           </svg>
           Mes Projets
         </a>
 
-        <a class="nav-item" href="#">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <polyline points="9 11 12 14 22 4" />
-            <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
+        <a class="nav-item" routerLink="/chef-projet/equipes" routerLinkActive="active">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+            <circle cx="9" cy="7" r="4" />
+            <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+            <path d="M16 3.13a4 4 0 0 1 0 7.75" />
           </svg>
-          Tâches
+          Gestion d'Équipe
         </a>
 
-       <a class="nav-item" routerLink="/chef-projet/equipes" routerLinkActive="active">
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-    stroke-linecap="round" stroke-linejoin="round">
-    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-    <circle cx="9" cy="7" r="4" />
-    <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-    <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-  </svg>
-  Gestion d'Équipe
-</a>
-        <a class="nav-item" href="#">
+        <a class="nav-item" routerLink="/chef-projet/calendrier" routerLinkActive="active">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <rect x="3" y="4" width="18" height="18" rx="2" />
             <line x1="16" y1="2" x2="16" y2="6" />
@@ -84,13 +77,14 @@
       </nav>
     </div>
 
+    <!-- Profile Section dynamique -->
     <div class="sidebar-profile">
-      <div class="profile-avatar">AO</div>
+      <div class="profile-avatar">{{ authService.getInitials() }}</div>
       <div class="profile-info">
-        <span class="profile-name">M. Alami Omar</span>
-        <span class="profile-email">Chef de projet</span>
+        <span class="profile-name">{{ currentUser()?.prenom }} {{ currentUser()?.nom }}</span>
+        <span class="profile-email">{{ currentUser()?.email }}</span>
       </div>
-      <button class="logout-btn" title="Déconnexion" type="button">
+      <button class="logout-btn" title="Déconnexion" type="button" (click)="logout()">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
           <polyline points="16 17 21 12 16 7" />
@@ -102,8 +96,9 @@
 
   <!-- ===== MAIN CONTENT ===== -->
   <main class="main-content">
+    <!-- Contenu des projets (garde ton contenu existant) -->
     <div class="breadcrumb">
-      <span class="breadcrumb-parent">Tableau de bord</span>
+      <span class="breadcrumb-parent" routerLink="/chef-projet">Tableau de bord</span>
       <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
         <polyline points="9 18 15 12 9 6" />
       </svg>
@@ -133,8 +128,8 @@
         </div>
 
         <div class="header-user">
-          <div class="header-user-name">M. Alami Omar</div>
-          <div class="header-user-email">O.Alami@dxc.com</div>
+          <div class="header-user-name">{{ currentUser()?.prenom }} {{ currentUser()?.nom }}</div>
+          <div class="header-user-email">{{ currentUser()?.email }}</div>
         </div>
       </div>
     </div>
@@ -169,6 +164,7 @@
           </tr>
         </thead>
         <tbody>
+          <!-- Exemple de ligne - à remplacer par vos données dynamiques -->
           <tr>
             <td>
               <div class="project-cell">
@@ -200,102 +196,7 @@
               <button class="icon-btn">⋮</button>
             </td>
           </tr>
-
-          <tr>
-            <td>
-              <div class="project-cell">
-                <div class="project-icon">🛡️</div>
-                <div class="user-name-block">
-                  <span class="user-fullname">Audit Cybersécurité</span>
-                </div>
-              </div>
-            </td>
-            <td class="client-col">Infrastructures CDG</td>
-            <td>
-              <div class="progress-box">
-                <div class="progress-label-row">
-                  <span class="progress-label">ATTENTION</span>
-                  <span class="progress-percent">42%</span>
-                </div>
-                <div class="progress-bar">
-                  <div class="progress-fill w-42"></div>
-                </div>
-              </div>
-            </td>
-            <td class="date-col">
-              <div>15/01/26</div>
-              <div class="date-muted">Fin: 15/07/26</div>
-            </td>
-            <td><span class="risk-badge">Moyen</span></td>
-            <td><span class="status-pill">En attente</span></td>
-            <td class="cell-center">
-              <button class="icon-btn">⋮</button>
-            </td>
-          </tr>
-
-          <tr>
-            <td>
-              <div class="project-cell">
-                <div class="project-icon">💳</div>
-                <div class="user-name-block">
-                  <span class="user-fullname">Déploiement ERP</span>
-                </div>
-              </div>
-            </td>
-            <td class="client-col">Finances Publiques</td>
-            <td>
-              <div class="progress-box">
-                <div class="progress-label-row">
-                  <span class="progress-label">SUCCÈS</span>
-                  <span class="progress-percent">100%</span>
-                </div>
-                <div class="progress-bar">
-                  <div class="progress-fill w-100"></div>
-                </div>
-              </div>
-            </td>
-            <td class="date-col">
-              <div>01/01/26</div>
-              <div class="date-muted">Fin: 01/05/26</div>
-            </td>
-            <td><span class="risk-badge">Faible</span></td>
-            <td><span class="status-pill">Validé</span></td>
-            <td class="cell-center">
-              <button class="icon-btn">⋮</button>
-            </td>
-          </tr>
-
-          <tr>
-            <td>
-              <div class="project-cell">
-                <div class="project-icon">⚠️</div>
-                <div class="user-name-block">
-                  <span class="user-fullname">Refonte Portail Web</span>
-                </div>
-              </div>
-            </td>
-            <td class="client-col">Marketing CDG</td>
-            <td>
-              <div class="progress-box">
-                <div class="progress-label-row">
-                  <span class="progress-label">CRITIQUE</span>
-                  <span class="progress-percent">12%</span>
-                </div>
-                <div class="progress-bar">
-                  <div class="progress-fill w-12"></div>
-                </div>
-              </div>
-            </td>
-            <td class="date-col">
-              <div>10/05/25</div>
-              <div class="date-muted">Fin: 20/02/26</div>
-            </td>
-            <td><span class="risk-badge">Élevé</span></td>
-            <td><span class="status-pill">En cours</span></td>
-            <td class="cell-center">
-              <button class="icon-btn">⋮</button>
-            </td>
-          </tr>
+          <!-- Ajoutez d'autres lignes ici -->
         </tbody>
       </table>
 

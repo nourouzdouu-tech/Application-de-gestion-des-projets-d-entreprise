@@ -32,29 +32,50 @@ public class CustomUserDetailsService implements UserDetailsService {
                 .orElseThrow(() -> new UsernameNotFoundException(
                         "Utilisateur introuvable: " + email));
 
+        // Ajoutez des logs pour vérifier l'état de l'utilisateur
+        System.out.println("=== Loading user: " + email);
+        System.out.println("=== User locked: " + user.isLocked());
+        System.out.println("=== User deleted: " + user.isDeleted());
+
         List<GrantedAuthority> authorities = new ArrayList<>();
+        boolean hasAdminRole = false;
 
         for (Role role : user.getRoles()) {
-            authorities.add(new SimpleGrantedAuthority(
-                    RoleNormalizer.toSpringRole(role.getNom())));
+            String roleName = RoleNormalizer.toSpringRole(role.getNom());
+            System.out.println("=== Adding role authority: " + roleName);
+            authorities.add(new SimpleGrantedAuthority(roleName));
+
+            // Vérifier si c'est le rôle ADMIN
+            if ("ROLE_ADMIN".equals(roleName)) {
+                hasAdminRole = true;
+            }
 
             for (Permission permission : role.getPermissions()) {
+                System.out.println("=== Adding permission authority: " + permission.getNom());
                 authorities.add(new SimpleGrantedAuthority(permission.getNom()));
             }
         }
 
-        // ⚠️ accountLocked et disabled toujours FALSE ici
-        // La vérification du verrouillage est gérée manuellement dans AuthServiceImpl
-        // Si on passe locked=true ici, Spring Security intercepte AVANT registerFailedAttempt
-        // et la 3ème tentative ne compte jamais
+        // Ajouter explicitement l'autorité "ADMIN" si l'utilisateur a ROLE_ADMIN
+        if (hasAdminRole) {
+            authorities.add(new SimpleGrantedAuthority("ADMIN"));
+            System.out.println("=== Added ADMIN authority explicitly");
+        }
+
+        System.out.println("=== Final authorities: " + authorities);
+
+        // Vérifier si l'utilisateur est bloqué
+        boolean isLocked = user.isLocked();
+        boolean isDeleted = user.isDeleted();
+
         return org.springframework.security.core.userdetails.User.builder()
                 .username(user.getEmail())
                 .password(user.getPasswordHash())
                 .authorities(authorities)
                 .accountExpired(false)
-                .accountLocked(false)    // ← toujours false ici
+                .accountLocked(isLocked)      // ← Utilisez la valeur réelle de la base de données
                 .credentialsExpired(false)
-                .disabled(false)         // ← toujours false ici
+                .disabled(isDeleted)          // ← Utilisez la valeur réelle de la base de données
                 .build();
     }
 }
