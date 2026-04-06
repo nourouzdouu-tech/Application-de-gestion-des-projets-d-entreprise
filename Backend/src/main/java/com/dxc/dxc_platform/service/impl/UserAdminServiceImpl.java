@@ -14,7 +14,9 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
+import com.dxc.dxc_platform.dto.ManagerSelectDto;
+import java.util.List;
+import java.util.stream.Collectors;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
@@ -164,5 +166,18 @@ public class UserAdminServiceImpl implements UserAdminService {
 
     private String generateTempPassword() {
         return "Temp@" + UUID.randomUUID().toString().substring(0, 8);
+    }
+    @Override
+    @Transactional(readOnly = true)
+    public List<ManagerSelectDto> getManagersForSelect() {
+        return userRepository.findAllActiveManagers()
+                .stream()
+                .map(user -> new ManagerSelectDto(
+                        user.getId(),
+                        ((user.getPrenom() != null ? user.getPrenom() : "") + " " +
+                                (user.getNom() != null ? user.getNom() : "")).trim(),
+                        user.getEmail()
+                ))
+                .collect(Collectors.toList());
     }
 }

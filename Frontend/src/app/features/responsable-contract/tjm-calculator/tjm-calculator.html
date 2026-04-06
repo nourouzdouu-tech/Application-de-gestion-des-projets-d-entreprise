@@ -1,0 +1,188 @@
+<div class="tjm-page">
+
+  <!-- Page Title -->
+  <div class="page-title-block">
+    <h1 class="page-title">Calculateur de TJM Projet</h1>
+    <p class="page-subtitle">Optimisez vos propositions commerciales avec des estimations précises basées sur les coûts opérationnels.</p>
+  </div>
+
+  <!-- Profile Selection -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-label">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+          stroke="currentColor" stroke-width="2">
+          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+          <circle cx="9" cy="7" r="4"/>
+        </svg>
+        Sélection du Profil Consultant
+      </div>
+      <span class="profiles-count">{{ profiles.length }} PROFILS DISPONIBLES</span>
+    </div>
+
+    <div class="profiles-grid">
+      <div
+        *ngFor="let profile of profiles"
+        class="profile-card"
+        [class.selected]="selectedProfile.id === profile.id"
+        (click)="selectProfile(profile)"
+      >
+        <div class="profile-check" *ngIf="selectedProfile.id === profile.id">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" stroke-width="3">
+            <polyline points="20 6 9 17 4 12"/>
+          </svg>
+        </div>
+
+        <div class="profile-icon">
+          <ng-container [ngSwitch]="profile.icon">
+            <svg *ngSwitchCase="'medal'" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="14" r="6"/><path d="M8.5 2H5l3 6"/><path d="M15.5 2H19l-3 6"/>
+            </svg>
+            <svg *ngSwitchCase="'graduation'" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/>
+            </svg>
+            <svg *ngSwitchCase="'cpu'" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/>
+              <line x1="9" y1="1" x2="9" y2="4"/><line x1="15" y1="1" x2="15" y2="4"/>
+              <line x1="9" y1="20" x2="9" y2="23"/><line x1="15" y1="20" x2="15" y2="23"/>
+              <line x1="20" y1="9" x2="23" y2="9"/><line x1="20" y1="15" x2="23" y2="15"/>
+              <line x1="1" y1="9" x2="4" y2="9"/><line x1="1" y1="15" x2="4" y2="15"/>
+            </svg>
+            <svg *ngSwitchDefault xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/>
+            </svg>
+          </ng-container>
+        </div>
+
+        <div class="profile-info">
+          <h3 class="profile-title">{{ profile.title }}</h3>
+          <p class="profile-sub">{{ profile.subtitle }}</p>
+        </div>
+
+        <div class="profile-rate">
+          <span class="rate-value">{{ formatNumber(profile.baseRate) }}</span>
+          <span class="rate-unit"> MAD</span>
+          <span class="rate-label">/ jour (Base)</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Config + Results -->
+  <div class="bottom-row">
+
+    <!-- Configuration -->
+    <div class="config-card">
+      <div class="config-header">
+        <div class="config-title">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" stroke-width="2">
+            <line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/>
+            <line x1="8" y1="18" x2="21" y2="18"/>
+            <line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/>
+            <line x1="3" y1="18" x2="3.01" y2="18"/>
+          </svg>
+          Configuration de la mission
+        </div>
+        <div class="toggle-group">
+          <span class="toggle-label" [class.inactive]="isForfait">Régie</span>
+          <label class="toggle-switch">
+            <input type="checkbox" [(ngModel)]="isForfait" />
+            <span class="toggle-slider"></span>
+          </label>
+          <span class="toggle-label" [class.inactive]="!isForfait">Forfait</span>
+        </div>
+      </div>
+
+      <div class="form-grid">
+        <div class="form-field">
+          <label class="field-label">NOMBRE DE JOURS OUVRÉS</label>
+          <div class="input-wrapper">
+            <input type="number" [(ngModel)]="nombreJours" (ngModelChange)="calculateCost()" class="field-input" />
+            <span class="input-suffix">jours/an</span>
+          </div>
+        </div>
+
+        <div class="form-field">
+          <label class="field-label">TJM APPLIQUÉ (€)</label>
+          <div class="input-wrapper">
+            <input type="number" [(ngModel)]="tjmApplique" (ngModelChange)="calculateCost()" class="field-input" />
+            <span class="input-suffix">MAD / jour</span>
+          </div>
+        </div>
+
+        <div class="form-field">
+          <label class="field-label">TYPE DE PROFIL</label>
+          <div class="input-wrapper">
+            <input type="text" [value]="profileLabel" readonly class="field-input readonly" />
+          </div>
+        </div>
+
+        <div class="form-field">
+          <label class="field-label">FRAIS DE GESTION &amp; MARGES (%)</label>
+          <div class="input-wrapper">
+            <input type="number" [(ngModel)]="fraisGestion" (ngModelChange)="calculateCost()" class="field-input" />
+            <span class="input-suffix">%</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <button class="btn-reset" (click)="resetForm()">Réinitialiser</button>
+        <button class="btn-calculate" (click)="calculateCost()">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" stroke-width="2">
+            <path d="M21 2H3v16h5v4l4-4 4 4v-4h5V2z"/>
+            <line x1="9" y1="9" x2="15" y2="9"/><line x1="9" y1="13" x2="15" y2="13"/>
+          </svg>
+          Calculer le Coût Total
+        </button>
+      </div>
+    </div>
+
+    <!-- Results -->
+    <div class="results-card">
+      <div class="results-label">RÉSULTATS DE LA SIMULATION</div>
+      <div class="results-sublabel">Coût Total Estimé</div>
+      <div class="results-total">{{ formatNumber(coutTotal) }}<br/>MAD</div>
+
+      <div class="results-divider"></div>
+
+      <div class="results-line">
+        <span class="results-line-label">Rémunération Consultant</span>
+        <span class="results-line-value">{{ formatNumber(remunerationConsultant) }} MAD</span>
+      </div>
+      <div class="results-progress-bar">
+        <div class="results-progress-fill" style="width: 85%"></div>
+      </div>
+
+      <div class="results-divider"></div>
+
+      <div class="results-line">
+        <span class="results-line-label">Marge Opérationnelle ({{ fraisGestion }}%)</span>
+        <span class="results-line-value">{{ formatNumber(margeOperationnelle) }} MAD</span>
+      </div>
+      <div class="results-progress-bar">
+        <div class="results-progress-fill secondary" style="width: 15%"></div>
+      </div>
+
+      <div class="results-actions">
+        <button class="btn-save" (click)="saveSimulation()">
+          <span *ngIf="!simulationSaved">SAUVEGARDER SIMULATION</span>
+          <span *ngIf="simulationSaved">✓ SAUVEGARDÉ !</span>
+        </button>
+        <button class="btn-export" (click)="exportPdf()">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" stroke-width="2">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="7 10 12 15 17 10"/>
+            <line x1="12" y1="15" x2="12" y2="3"/>
+          </svg>
+          Exporter en PDF
+        </button>
+      </div>
+    </div>
+
+  </div>
+</div>

@@ -1,0 +1,213 @@
+<div class="taches-page">
+
+  <!-- Breadcrumb -->
+  <div class="breadcrumb">
+    <span class="breadcrumb-link">Tableau de bord</span>
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <polyline points="9 18 15 12 9 6" />
+    </svg>
+    <span class="breadcrumb-current">Tâches</span>
+  </div>
+
+  <!-- Header -->
+  <div class="hero-header">
+    <div class="hero-text">
+      <h1 class="page-title">Gestion des Tâches</h1>
+      <p class="page-subtitle">
+        Suivez les tâches, les priorités et l’avancement de votre équipe projet.
+      </p>
+    </div>
+
+    <button class="btn-create-task" (click)="nouvelleTache()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4">
+        <line x1="12" y1="5" x2="12" y2="19" />
+        <line x1="5" y1="12" x2="19" y2="12" />
+      </svg>
+      Nouvelle Tâche
+    </button>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats-grid">
+    <div class="stat-box">
+      <div class="stat-icon icon-orange">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="3" y="4" width="18" height="18" rx="2"/>
+          <line x1="16" y1="2" x2="16" y2="6"/>
+          <line x1="8" y1="2" x2="8" y2="6"/>
+          <line x1="3" y1="10" x2="21" y2="10"/>
+        </svg>
+      </div>
+      <div class="stat-content">
+        <span class="stat-label">EN ATTENTE</span>
+        <strong class="stat-number">{{ enAttente }}</strong>
+      </div>
+    </div>
+
+    <div class="stat-box">
+      <div class="stat-icon icon-purple">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"/>
+          <polyline points="12 6 12 12 16 14"/>
+        </svg>
+      </div>
+      <div class="stat-content">
+        <span class="stat-label">À VALIDER</span>
+        <strong class="stat-number">{{ aValider }}</strong>
+      </div>
+    </div>
+
+    <div class="stat-box">
+      <div class="stat-icon icon-green">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+          <polyline points="22 4 12 14.01 9 11.01"/>
+        </svg>
+      </div>
+      <div class="stat-content">
+        <span class="stat-label">COMPLÉTÉES</span>
+        <strong class="stat-number">{{ completees }}</strong>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filters Card -->
+  <div class="filters-card">
+    <div class="search-box">
+      <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="11" cy="11" r="8" />
+        <line x1="21" y1="21" x2="16.65" y2="16.65" />
+      </svg>
+      <input
+        type="text"
+        placeholder="Rechercher une tâche ou un projet..."
+        [ngModel]="searchQuery()"
+        (ngModelChange)="searchQuery.set($event)"
+      />
+    </div>
+
+    <div class="filters-actions">
+      <div class="filter-select">
+        <span>Priorité :</span>
+        <select [ngModel]="filterPriorite()" (ngModelChange)="filterPriorite.set($event)">
+          <option *ngFor="let p of priorites" [value]="p">{{ p }}</option>
+        </select>
+      </div>
+
+      <div class="filter-select">
+        <span>Membre :</span>
+        <select [ngModel]="filterMembre()" (ngModelChange)="filterMembre.set($event)">
+          <option value="Tous">Tous</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- Table Card -->
+  <div class="table-card">
+    <div class="table-header">
+      <div>
+        <h2>Liste des tâches</h2>
+        <p>{{ tachesFiltrees().length }} tâche(s)</p>
+      </div>
+    </div>
+
+    <div class="table-wrapper">
+      <table class="taches-table">
+        <thead>
+          <tr>
+            <th>NOM DE LA TÂCHE</th>
+            <th>ÉQUIPE</th>
+            <th>PRIORITÉ</th>
+            <th>ÉCHÉANCE</th>
+            <th>STATUT</th>
+            <th>ACTIONS</th>
+          </tr>
+        </thead>
+
+        <tbody>
+          <tr *ngFor="let tache of tachesFiltrees()">
+            <td class="td-nom">
+              <div class="task-info">
+                <div class="task-icon">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M9 11l3 3L22 4"/>
+                    <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+                  </svg>
+                </div>
+
+                <div class="task-text">
+                  <div class="tache-nom">{{ tache.nom }}</div>
+                  <div class="tache-projet">{{ tache.projet }}</div>
+                </div>
+              </div>
+            </td>
+
+            <td class="td-equipe">
+              <div class="equipe-avatars">
+                <div
+                  *ngFor="let m of visibleMembres(tache.equipe)"
+                  class="avatar"
+                  [style.background]="m.couleur"
+                  [title]="m.initiales"
+                >
+                  {{ m.initiales }}
+                </div>
+
+                <div class="avatar avatar-extra" *ngIf="extraMembreCount(tache.equipe) > 0">
+                  +{{ extraMembreCount(tache.equipe) }}
+                </div>
+              </div>
+            </td>
+
+            <td class="td-priorite">
+              <span class="badge-priorite" [ngClass]="getPrioriteClass(tache.priorite)">
+                {{ tache.priorite }}
+              </span>
+            </td>
+
+            <td class="td-echeance">
+              <div class="echeance-wrapper">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="3" y="4" width="18" height="18" rx="2"/>
+                  <line x1="16" y1="2" x2="16" y2="6"/>
+                  <line x1="8" y1="2" x2="8" y2="6"/>
+                  <line x1="3" y1="10" x2="21" y2="10"/>
+                </svg>
+                {{ formatDate(tache.echeance) }}
+              </div>
+            </td>
+
+            <td class="td-statut">
+              <span class="badge-statut" [ngClass]="getStatutClass(tache.statut)">
+                <span class="statut-dot"></span>
+                {{ tache.statut }}
+              </span>
+            </td>
+
+            <td class="td-actions">
+              <button class="btn-action btn-valider" (click)="valider(tache.id)">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="20 6 9 17 4 12"/>
+                </svg>
+                Valider
+              </button>
+
+              <button class="btn-action btn-rejeter" (click)="rejeter(tache.id)">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <line x1="18" y1="6" x2="6" y2="18"/>
+                  <line x1="6" y1="6" x2="18" y2="18"/>
+                </svg>
+                Rejeter
+              </button>
+            </td>
+          </tr>
+
+          <tr *ngIf="tachesFiltrees().length === 0">
+            <td colspan="6" class="empty-state">Aucune tâche trouvée.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>

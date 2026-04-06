@@ -1,0 +1,354 @@
+import { Component, OnInit, OnDestroy, signal, ChangeDetectorRef, NgZone } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
+import { Router, RouterModule } from '@angular/router';
+import { Subject } from 'rxjs';
+import { takeUntil } from 'rxjs/operators';
+import { ProjectService, ProjectDto } from '../../../core/services/project.service';
+import { AuthService } from '../../../core/services/auth.service';
+import { ClientService, ClientSelectResponse } from '../../../core/services/client.service';
+import { ManagerService, ManagerSelectDto } from '../../../core/services/manager.service';
+
+type RepresentantDto = {
+  id?: number;
+  nom: string;
+  email: string;
+  telephone: string;
+};
+
+@Component({
+  selector: 'app-responsable-contrat-projets',
+  standalone: true,
+  imports: [CommonModule, FormsModule, RouterModule],
+  templateUrl: './projets.html',
+  styleUrl: './projets.css',
+})
+export class Projets implements OnInit, OnDestroy {
+  projects: ProjectDto[] = [];
+  clients: ClientSelectResponse[] = [];
+  managers: ManagerSelectDto[] = [];
+
+  selectedRepresentants: RepresentantDto[] = [];
+  selectedRepresentantId: number | null = null;
+
+  loading = false;
+  error: string | null = null;
+  formError: string | null = null;
+  isSubmitting = false;
+
+  searchTerm = '';
+  selectedStatus = '';
+
+  showForm = false;
+  isEditMode = false;
+  editingProjectId: number | null = null;
+
+  // ─── Delete confirmation ───────────────────────────────────────────────────
+  showDeleteConfirm = false;
+  projectToDelete: ProjectDto | null = null;
+
+  projectForm: ProjectDto = this.getEmptyForm();
+  currentUser = signal<any>(null);
+
+  private destroy$ = new Subject<void>();
+
+  constructor(
+    private projectService: ProjectService,
+    public authService: AuthService,
+    private clientService: ClientService,
+    private cdr: ChangeDetectorRef,
+    private ngZone: NgZone,
+    private managerService: ManagerService,
+    private router: Router
+  ) {}
+
+  ngOnInit(): void {
+    this.currentUser.set(this.authService.getUser());
+    this.fetchProjects();
+    this.loadClients();
+    this.loadManagers();
+  }
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
+
+  // ─── Data loading ──────────────────────────────────────────────────────────
+
+  loadManagers(): void {
+    this.managerService.getManagersForSelect()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (data: ManagerSelectDto[]) => { this.managers = data; },
+        error: (err: any) => { console.error('Erreur managers:', err); }
+      });
+  }
+
+  loadClients(): void {
+    this.clientService.getClientsForSelect()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (clients: ClientSelectResponse[]) => { this.clients = clients; },
+        error: (err: any) => { console.error('Erreur chargement clients:', err); }
+      });
+  }
+
+  fetchProjects(): void {
+    this.loading = true;
+    this.error = null;
+
+    const query = this.searchTerm.trim() || undefined;
+    const status = this.selectedStatus || undefined;
+
+    this.projectService.getAllProjects(query, status)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (projects: ProjectDto[]) => {
+          this.projects = projects;
+          this.loading = false;
+          this.cdr.detectChanges();
+        },
+        error: (err: any) => {
+          console.error('Erreur chargement projets:', err);
+          this.error = 'Erreur lors du chargement des projets.';
+          this.loading = false;
+          this.cdr.detectChanges();
+        }
+      });
+  }
+
+  // ─── Form ──────────────────────────────────────────────────────────────────
+
+  onClientChange(): void {
+    const selectedClient = this.clients.find(c => c.nom === this.projectForm.client);
+    this.selectedRepresentants = selectedClient?.representants ?? [];
+    this.selectedRepresentantId = null;
+  }
+
+  getEmptyForm(): ProjectDto {
+    return {
+      name: '',
+      description: '',
+      client: '',
+      progressPercentage: 0,
+      riskLevel: 'FAIBLE',
+      startDate: '',
+      endDate: '',
+      managerId: undefined
+    };
+  }
+
+  openCreateForm(): void {
+    this.showForm = true;
+    this.isEditMode = false;
+    this.editingProjectId = null;
+    this.formError = null;
+    this.selectedRepresentants = [];
+    this.selectedRepresentantId = null;
+    this.projectForm = this.getEmptyForm();
+  }
+
+  openEditForm(project: ProjectDto): void {
+    this.showForm = true;
+    this.isEditMode = true;
+    this.editingProjectId = project.id ?? null;
+    this.formError = null;
+
+    this.projectForm = {
+      id: project.id,
+      name: project.name ?? '',
+      description: project.description ?? '',
+      client: project.client ?? '',
+      progressPercentage: project.progressPercentage ?? 0,
+      riskLevel: project.riskLevel ?? 'FAIBLE',
+      startDate: project.startDate ?? '',
+      endDate: project.endDate ?? '',
+      managerId: project.managerId
+    };
+
+    const selectedClient = this.clients.find(c => c.nom === this.projectForm.client);
+    this.selectedRepresentants = selectedClient?.representants ?? [];
+    this.selectedRepresentantId = null;
+  }
+
+  closeForm(): void {
+    this.showForm = false;
+    this.isEditMode = false;
+    this.editingProjectId = null;
+    this.formError = null;
+    this.projectForm = this.getEmptyForm();
+    this.selectedRepresentants = [];
+    this.selectedRepresentantId = null;
+    this.isSubmitting = false;
+  }
+
+  submitForm(): void {
+    if (this.isSubmitting) return;
+
+    this.formError = null;
+
+    const payload: ProjectDto = {
+      ...this.projectForm,
+      name: (this.projectForm.name ?? '').toString().trim(),
+      description: (this.projectForm.description ?? '').toString().trim(),
+      client: (this.projectForm.client ?? '').toString().trim(),
+      progressPercentage: Number(this.projectForm.progressPercentage ?? 0),
+      riskLevel: this.projectForm.riskLevel,
+      startDate: this.projectForm.startDate,
+      endDate: this.projectForm.endDate,
+      managerId: this.projectForm.managerId ? Number(this.projectForm.managerId) : undefined
+    };
+
+    if (!payload.name)       { this.formError = 'Le nom du projet est obligatoire.'; return; }
+    if (!payload.client)     { this.formError = 'Le client est obligatoire.'; return; }
+    if (!payload.managerId)  { this.formError = 'Le manager est obligatoire.'; return; }
+    if (!payload.startDate || !payload.endDate) { this.formError = 'Les dates sont obligatoires.'; return; }
+    if (payload.progressPercentage < 0 || payload.progressPercentage > 100) {
+      this.formError = 'La progression doit être comprise entre 0 et 100.'; return;
+    }
+    if (payload.startDate > payload.endDate) {
+      this.formError = 'La date de début doit être antérieure à la date de fin.'; return;
+    }
+
+    this.isSubmitting = true;
+
+    const request$ = this.isEditMode && this.editingProjectId
+      ? this.projectService.updateProject(this.editingProjectId, payload)
+      : this.projectService.createProject(payload);
+
+    request$.pipe(takeUntil(this.destroy$)).subscribe({
+      next: () => {
+        this.ngZone.run(() => {
+          this.closeForm();
+          this.fetchProjects();
+        });
+      },
+      error: (err: any) => {
+        this.ngZone.run(() => {
+          console.error('SAVE ERROR:', err);
+          this.isSubmitting = false;
+          this.formError = err?.error?.message || err?.message || 'Erreur lors de l\'enregistrement.';
+        });
+      }
+    });
+  }
+
+  // ─── Delete ────────────────────────────────────────────────────────────────
+
+  confirmDelete(project: ProjectDto): void {
+    this.projectToDelete = project;
+    this.showDeleteConfirm = true;
+  }
+
+  cancelDelete(): void {
+    this.projectToDelete = null;
+    this.showDeleteConfirm = false;
+  }
+
+  deleteProject(): void {
+    if (!this.projectToDelete?.id) return;
+
+    this.projectService.setDeletedStatus(this.projectToDelete.id, true)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: () => {
+          this.projects = this.projects.filter(p => p.id !== this.projectToDelete!.id);
+          this.showDeleteConfirm = false;
+          this.projectToDelete = null;
+        },
+        error: (err: any) => {
+          console.error('Erreur suppression projet:', err);
+          this.error = err?.error?.message || 'Erreur lors de la suppression du projet.';
+          this.showDeleteConfirm = false;
+          this.projectToDelete = null;
+        }
+      });
+  }
+
+  // ─── Filters ───────────────────────────────────────────────────────────────
+
+  onSearch(): void { this.fetchProjects(); }
+
+  clearSearch(): void {
+    this.searchTerm = '';
+    this.selectedStatus = '';
+    this.fetchProjects();
+  }
+
+  setStatusFilter(status: string): void {
+    this.selectedStatus = status;
+    this.fetchProjects();
+  }
+
+  // ─── Helpers ───────────────────────────────────────────────────────────────
+
+  getInitials(): string {
+    const user = this.currentUser();
+    if (user?.prenom && user?.nom) {
+      return (user.prenom.charAt(0) + user.nom.charAt(0)).toUpperCase();
+    }
+    return 'U';
+  }
+
+  logout(): void {
+    this.authService.removeUser();
+    this.router.navigate(['/login']);
+  }
+
+  getStatusLabel(status?: string): string {
+    switch (status) {
+      case 'PRE_VALIDE': return 'En cours de validation';
+      case 'EN_COURS':   return 'En cours';
+      case 'VALIDE':     return 'Validé';
+      case 'REJETE':     return 'Rejeté';
+      case 'CLOTURE':    return 'Clôturé';
+      default:           return status ?? '-';
+    }
+  }
+
+  getStatusClass(status?: string): string {
+    switch (status) {
+      case 'VALIDE':     return 'status-success';
+      case 'EN_COURS':   return 'status-warning';
+      case 'REJETE':     return 'status-danger';
+      case 'CLOTURE':    return 'status-neutral';
+      case 'PRE_VALIDE':
+      default:           return 'status-info';
+    }
+  }
+
+  getRiskLabel(risk?: string): string {
+    switch (risk) {
+      case 'FAIBLE': return 'Faible';
+      case 'MOYEN':  return 'Moyen';
+      case 'ELEVE':  return 'Élevé';
+      default:       return risk ?? '-';
+    }
+  }
+
+  getRiskClass(risk?: string): string {
+    switch (risk) {
+      case 'FAIBLE': return 'risk-low';
+      case 'MOYEN':  return 'risk-medium';
+      case 'ELEVE':  return 'risk-high';
+      default:       return 'risk-default';
+    }
+  }
+
+  getProgressLabel(progress: number): string {
+    if (progress === 100) return 'SUCCÈS';
+    if (progress >= 75)   return 'TERMINÉ';
+    if (progress >= 40)   return 'ATTENTION';
+    if (progress > 0)     return 'CRITIQUE';
+    return 'N/A';
+  }
+
+  getProgressBarClass(progress: number): string {
+    if (progress === 100) return 'progress-success';
+    if (progress >= 75)   return 'progress-good';
+    if (progress >= 40)   return 'progress-medium';
+    if (progress > 0)     return 'progress-critical';
+    return 'progress-empty';
+  }
+}

@@ -1,4 +1,4 @@
-import { Component, inject, signal, computed, OnInit, Output, EventEmitter } from '@angular/core';
+import { Component, inject, signal, OnInit, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -77,46 +77,68 @@ export class Roles implements OnInit {
 
 groupPermissions(permissions: PermissionSummary[]) {
   const groups: { [key: string]: PermissionSummary[] } = {};
-  
+
   permissions.forEach(perm => {
-    let group = 'Liste des permissions';
-    const nomLower = perm.nom.toLowerCase();
-    
-    if (nomLower.includes('projet')) {
-      group = 'Gestion des Projets';
-    } else if (
-      nomLower.includes('rapport') ||
-      nomLower.includes('donnees') ||
-      nomLower.includes('export') ||
-      nomLower.includes('tableau')
+    const code = perm.nom.toUpperCase().trim();
+    let group = 'Autres permissions';
+
+    if (code.startsWith('USER_')) {
+      group = 'Gestion des utilisateurs';
+    } 
+    else if (code.startsWith('ROLE_')) {
+      group = 'Gestion des rôles';
+    } 
+    else if (code.startsWith('CLIENT_')) {
+      group = 'Gestion des clients';
+    } 
+    else if (code.startsWith('PERMISSION_')) {
+      group = 'Gestion des permissions';
+    } 
+    else if (code.startsWith('PROJECT_')) {
+      group = 'Gestion des projets';
+    } 
+    else if (code.startsWith('TASK_')) {
+      group = 'Gestion des tâches';
+    } 
+    else if (code.startsWith('CONTRACT_')) {
+      group = 'Gestion des contrats';
+    } 
+    else if (
+      code.startsWith('AUDIT_') ||
+      code.startsWith('SECURITY_')
     ) {
-      group = 'Reporting & Données';
-    } else if (
-      nomLower.includes('invit') ||
-      nomLower.includes('utilisateur') ||
-      nomLower.includes('audit')
-    ) {
-      group = 'Invitations';
+      group = 'Sécurité & Audit';
     }
-    
+
     if (!groups[group]) {
       groups[group] = [];
     }
+
     groups[group].push(perm);
   });
 
   const groupOrder = [
-    'Gestion des Projets',
-    'Reporting & Données',
-    'Invitations',
-    'Liste des permissions'
+    'Gestion des utilisateurs',
+    'Gestion des rôles',
+    'Gestion des clients',
+    'Gestion des permissions',
+    'Gestion des projets',
+    'Gestion des tâches',
+    'Gestion des contrats',
+    'Sécurité & Audit',
+    'Autres permissions'
   ];
 
   const icons: { [key: string]: string } = {
-    'Gestion des Projets': '📋',
-    'Reporting & Données': '📊',
-    'Invitations': '👥',
-    'Liste des permissions': '🔒'
+    'Gestion des utilisateurs': '👤',
+    'Gestion des rôles': '🛡️',
+    'Gestion des clients': '🏢',
+    'Gestion des permissions': '🔐',
+    'Gestion des projets': '📁',
+    'Gestion des tâches': '✅',
+    'Gestion des contrats': '📄',
+    'Sécurité & Audit': '🧾',
+    'Autres permissions': '📦'
   };
 
   const permGroups = groupOrder
@@ -129,15 +151,57 @@ groupPermissions(permissions: PermissionSummary[]) {
 
   this.permissionGroups.set(permGroups);
 }
+getPermissionLabel(code: string): string {
+  const parts = code.split('_');
+
+  if (parts.length < 2) return code;
+
+  const entity = parts[0];
+  const action = parts.slice(1).join('_');
+
+  const actionMap: { [key: string]: string } = {
+    CREATE: 'Créer',
+    READ: 'Lire',
+    UPDATE: 'Modifier',
+    DELETE: 'Supprimer',
+    DISABLE: 'Désactiver',
+    ENABLE: 'Activer',
+    RESET_PASSWORD: 'Réinitialiser le mot de passe'
+  };
+
+  const entityMap: { [key: string]: string } = {
+    USER: 'utilisateur',
+    ROLE: 'rôle',
+    CLIENT: 'client',
+    PROJECT: 'projet',
+    TASK: 'tâche',
+    PERMISSION: 'permission'
+  };
+
+  const actionLabel = actionMap[action] || action;
+  const entityLabel = entityMap[entity] || entity.toLowerCase();
+
+  return `${actionLabel} ${entityLabel}`;
+}
 
   loadRoles() {
+    const currentSelectedId = this.selectedRole()?.id ?? null;
+
     this.loading.set(true);
     this.adminService.getRoles().subscribe({
       next: (roles) => {
         this.roles.set(roles);
         this.loading.set(false);
+
         if (roles.length > 0) {
-          this.selectRole(roles[0]);
+          const matchedRole = currentSelectedId
+            ? roles.find(r => r.id === currentSelectedId)
+            : null;
+
+          this.selectRole(matchedRole ?? roles[0]);
+        } else {
+          this.selectedRole.set(null);
+          this.selectedPermissions.set(new Set());
         }
       },
       error: (err) => {
@@ -164,11 +228,13 @@ groupPermissions(permissions: PermissionSummary[]) {
 
   togglePermission(permissionId: number) {
     const perms = new Set(this.selectedPermissions());
+
     if (perms.has(permissionId)) {
       perms.delete(permissionId);
     } else {
       perms.add(permissionId);
     }
+
     this.selectedPermissions.set(perms);
   }
 
@@ -177,12 +243,10 @@ groupPermissions(permissions: PermissionSummary[]) {
       this.showError('Aucun rôle sélectionné');
       return;
     }
-    
+
     const role = this.selectedRole()!;
     const permissionIds = Array.from(this.selectedPermissions());
-    
-    console.log('Envoi au backend - RoleId:', role.id, 'Permissions:', permissionIds);
-    
+
     this.adminService.updateRole(role.id, {
       nom: role.nom,
       description: role.description,
@@ -222,6 +286,7 @@ groupPermissions(permissions: PermissionSummary[]) {
       this.showError('Veuillez remplir tous les champs');
       return;
     }
+
     this.adminService.createRole({
       nom: this.newNom(),
       description: this.newDescription()
@@ -254,11 +319,12 @@ groupPermissions(permissions: PermissionSummary[]) {
     this.editDescription.set('');
   }
 
-    submitEditModal() {
+  submitEditModal() {
     if (!this.editNom() || !this.editDescription()) {
       this.showError('Veuillez remplir tous les champs');
       return;
     }
+
     this.adminService.updateRole(this.editId()!, {
       nom: this.editNom(),
       description: this.editDescription(),
@@ -339,6 +405,7 @@ groupPermissions(permissions: PermissionSummary[]) {
 
   toggleRoleStatus(role: RoleResponse) {
     const newStatus = !role.active;
+
     this.adminService.updateRole(role.id, {
       nom: role.nom,
       description: role.description,

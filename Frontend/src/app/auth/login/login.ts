@@ -72,7 +72,7 @@ export class Login {
           roles.includes('RESPONSABLE_CONTRAT') ||
           roles.includes('ROLE_RESPONSABLE_CONTRAT')
         ) {
-          this.router.navigateByUrl('/responsable-contrat/projet');
+          this.router.navigateByUrl('/responsable-contrat/projets');
         } else if (roles.includes('ADMIN') || roles.includes('ROLE_ADMIN')) {
           this.router.navigateByUrl('/admin');
         } else {

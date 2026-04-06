@@ -53,11 +53,20 @@ public interface UserRepository extends JpaRepository<User, Long> {
     @Query("SELECT u FROM User u " +
             "WHERE u.deleted = false " +
             "AND u.locked = false " +
-            // ❌ SUPPRIMEZ OU COMMENTEZ CETTE LIGNE :
-            // "AND u.team IS NULL " +
             "AND u.id != :excludeUserId " +
             "AND (LOWER(CONCAT(u.prenom, ' ', u.nom)) LIKE LOWER(CONCAT('%', :query, '%')) " +
             "OR LOWER(u.email) LIKE LOWER(CONCAT('%', :query, '%')) " +
             "OR EXISTS (SELECT r FROM u.roles r WHERE LOWER(r.nom) LIKE LOWER(CONCAT('%', :query, '%'))))")
     List<User> searchAvailableUsers(@Param("query") String query, @Param("excludeUserId") Long excludeUserId);
+
+    @Query("""
+        SELECT DISTINCT u
+        FROM User u
+        JOIN u.roles r
+        WHERE u.deleted = false
+          AND u.locked = false
+          AND LOWER(r.nom) = 'manager'
+        ORDER BY u.prenom ASC, u.nom ASC
+    """)
+    List<User> findAllActiveManagers();
 }
