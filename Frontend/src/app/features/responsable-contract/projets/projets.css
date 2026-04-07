@@ -742,3 +742,25 @@
   .btn-secondary,
   .btn-danger { width: 100%; min-width: unset; justify-content: center; }
 }
+
+.icon-view {
+  color: #2563eb;
+  background: #eff6ff;
+  border-color: #bfdbfe;
+}
+
+.icon-view:hover {
+  background: #dbeafe;
+  transform: translateY(-1px);
+}
+
+.comment-box {
+  margin-top: 8px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  color: #334155;
+  line-height: 1.6;
+  white-space: pre-wrap;
+}

@@ -3,6 +3,7 @@ package com.dxc.dxc_platform.entity;
 import com.dxc.dxc_platform.enums.ProjectStatus;
 import com.dxc.dxc_platform.enums.RiskLevel;
 import jakarta.persistence.*;
+
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
@@ -47,6 +48,12 @@ public class Project {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "team_id")
     private Team team;
+
+    @Column(length = 1000)
+    private String managerComment;
+
+    @Column
+    private LocalDateTime reviewedAt;
 
     @Column(nullable = false)
     private boolean deleted = false;
@@ -158,6 +165,22 @@ public class Project {
 
     public void setTeam(Team team) {
         this.team = team;
+    }
+
+    public String getManagerComment() {
+        return managerComment;
+    }
+
+    public void setManagerComment(String managerComment) {
+        this.managerComment = managerComment;
+    }
+
+    public LocalDateTime getReviewedAt() {
+        return reviewedAt;
+    }
+
+    public void setReviewedAt(LocalDateTime reviewedAt) {
+        this.reviewedAt = reviewedAt;
     }
 
     public boolean isDeleted() {

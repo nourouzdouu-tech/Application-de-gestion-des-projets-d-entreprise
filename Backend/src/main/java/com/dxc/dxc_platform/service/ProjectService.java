@@ -2,7 +2,9 @@ package com.dxc.dxc_platform.service;
 
 import com.dxc.dxc_platform.dto.ProjectDto;
 import com.dxc.dxc_platform.enums.ProjectStatus;
-
+import com.dxc.dxc_platform.dto.ManagerProjectItemDto;
+import com.dxc.dxc_platform.dto.ManagerProjectReviewDto;
+import com.dxc.dxc_platform.dto.UserDto;
 import java.util.List;
 
 public interface ProjectService {
@@ -18,4 +20,10 @@ public interface ProjectService {
     List<ProjectDto> getMyProjects(String query, ProjectStatus status);
 
     ProjectDto setDeletedStatus(Long projectId, boolean deleted);
+
+    List<ManagerProjectItemDto> getManagerProjects();
+
+    List<UserDto.Summary> getChefsProjetForSelect();
+
+    ProjectDto reviewProjectByManager(ManagerProjectReviewDto request);
 }

@@ -43,9 +43,11 @@ export class Projets implements OnInit, OnDestroy {
   isEditMode = false;
   editingProjectId: number | null = null;
 
-  // ─── Delete confirmation ───────────────────────────────────────────────────
   showDeleteConfirm = false;
   projectToDelete: ProjectDto | null = null;
+
+  showDetailsModal = false;
+  selectedProjectDetails: ProjectDto | null = null;
 
   projectForm: ProjectDto = this.getEmptyForm();
   currentUser = signal<any>(null);
@@ -74,14 +76,16 @@ export class Projets implements OnInit, OnDestroy {
     this.destroy$.complete();
   }
 
-  // ─── Data loading ──────────────────────────────────────────────────────────
-
   loadManagers(): void {
     this.managerService.getManagersForSelect()
       .pipe(takeUntil(this.destroy$))
       .subscribe({
-        next: (data: ManagerSelectDto[]) => { this.managers = data; },
-        error: (err: any) => { console.error('Erreur managers:', err); }
+        next: (data: ManagerSelectDto[]) => {
+          this.managers = data;
+        },
+        error: (err: any) => {
+          console.error('Erreur managers:', err);
+        }
       });
   }
 
@@ -89,8 +93,12 @@ export class Projets implements OnInit, OnDestroy {
     this.clientService.getClientsForSelect()
       .pipe(takeUntil(this.destroy$))
       .subscribe({
-        next: (clients: ClientSelectResponse[]) => { this.clients = clients; },
-        error: (err: any) => { console.error('Erreur chargement clients:', err); }
+        next: (clients: ClientSelectResponse[]) => {
+          this.clients = clients;
+        },
+        error: (err: any) => {
+          console.error('Erreur chargement clients:', err);
+        }
       });
   }
 
@@ -117,8 +125,6 @@ export class Projets implements OnInit, OnDestroy {
         }
       });
   }
-
-  // ─── Form ──────────────────────────────────────────────────────────────────
 
   onClientChange(): void {
     const selectedClient = this.clients.find(c => c.nom === this.projectForm.client);
@@ -200,15 +206,29 @@ export class Projets implements OnInit, OnDestroy {
       managerId: this.projectForm.managerId ? Number(this.projectForm.managerId) : undefined
     };
 
-    if (!payload.name)       { this.formError = 'Le nom du projet est obligatoire.'; return; }
-    if (!payload.client)     { this.formError = 'Le client est obligatoire.'; return; }
-    if (!payload.managerId)  { this.formError = 'Le manager est obligatoire.'; return; }
-    if (!payload.startDate || !payload.endDate) { this.formError = 'Les dates sont obligatoires.'; return; }
+    if (!payload.name) {
+      this.formError = 'Le nom du projet est obligatoire.';
+      return;
+    }
+    if (!payload.client) {
+      this.formError = 'Le client est obligatoire.';
+      return;
+    }
+    if (!payload.managerId) {
+      this.formError = 'Le manager est obligatoire.';
+      return;
+    }
+    if (!payload.startDate || !payload.endDate) {
+      this.formError = 'Les dates sont obligatoires.';
+      return;
+    }
     if (payload.progressPercentage < 0 || payload.progressPercentage > 100) {
-      this.formError = 'La progression doit être comprise entre 0 et 100.'; return;
+      this.formError = 'La progression doit être comprise entre 0 et 100.';
+      return;
     }
     if (payload.startDate > payload.endDate) {
-      this.formError = 'La date de début doit être antérieure à la date de fin.'; return;
+      this.formError = 'La date de début doit être antérieure à la date de fin.';
+      return;
     }
 
     this.isSubmitting = true;
@@ -233,8 +253,6 @@ export class Projets implements OnInit, OnDestroy {
       }
     });
   }
-
-  // ─── Delete ────────────────────────────────────────────────────────────────
 
   confirmDelete(project: ProjectDto): void {
     this.projectToDelete = project;
@@ -266,9 +284,9 @@ export class Projets implements OnInit, OnDestroy {
       });
   }
 
-  // ─── Filters ───────────────────────────────────────────────────────────────
-
-  onSearch(): void { this.fetchProjects(); }
+  onSearch(): void {
+    this.fetchProjects();
+  }
 
   clearSearch(): void {
     this.searchTerm = '';
@@ -281,7 +299,15 @@ export class Projets implements OnInit, OnDestroy {
     this.fetchProjects();
   }
 
-  // ─── Helpers ───────────────────────────────────────────────────────────────
+  openDetails(project: ProjectDto): void {
+    this.selectedProjectDetails = project;
+    this.showDetailsModal = true;
+  }
+
+  closeDetails(): void {
+    this.selectedProjectDetails = null;
+    this.showDetailsModal = false;
+  }
 
   getInitials(): string {
     const user = this.currentUser();
@@ -298,57 +324,81 @@ export class Projets implements OnInit, OnDestroy {
 
   getStatusLabel(status?: string): string {
     switch (status) {
-      case 'PRE_VALIDE': return 'En cours de validation';
-      case 'EN_COURS':   return 'En cours';
-      case 'VALIDE':     return 'Validé';
-      case 'REJETE':     return 'Rejeté';
-      case 'CLOTURE':    return 'Clôturé';
-      default:           return status ?? '-';
+      case 'EN_VALIDATION':
+        return 'En cours de validation';
+      case 'PRE_VALIDE':
+        return 'Pré-validé';
+      case 'EN_COURS':
+        return 'En cours';
+      case 'VALIDE':
+        return 'Validé';
+      case 'REJETE':
+        return 'Rejeté';
+      case 'CLOTURE':
+        return 'Clôturé';
+      default:
+        return status ?? '-';
     }
   }
 
   getStatusClass(status?: string): string {
     switch (status) {
-      case 'VALIDE':     return 'status-success';
-      case 'EN_COURS':   return 'status-warning';
-      case 'REJETE':     return 'status-danger';
-      case 'CLOTURE':    return 'status-neutral';
+      case 'EN_VALIDATION':
+        return 'status-info';
       case 'PRE_VALIDE':
-      default:           return 'status-info';
+        return 'status-warning';
+      case 'VALIDE':
+        return 'status-success';
+      case 'EN_COURS':
+        return 'status-warning';
+      case 'REJETE':
+        return 'status-danger';
+      case 'CLOTURE':
+        return 'status-neutral';
+      default:
+        return 'status-info';
     }
   }
 
   getRiskLabel(risk?: string): string {
     switch (risk) {
-      case 'FAIBLE': return 'Faible';
-      case 'MOYEN':  return 'Moyen';
-      case 'ELEVE':  return 'Élevé';
-      default:       return risk ?? '-';
+      case 'FAIBLE':
+        return 'Faible';
+      case 'MOYEN':
+        return 'Moyen';
+      case 'ELEVE':
+        return 'Élevé';
+      default:
+        return risk ?? '-';
     }
   }
 
   getRiskClass(risk?: string): string {
     switch (risk) {
-      case 'FAIBLE': return 'risk-low';
-      case 'MOYEN':  return 'risk-medium';
-      case 'ELEVE':  return 'risk-high';
-      default:       return 'risk-default';
+      case 'FAIBLE':
+        return 'risk-low';
+      case 'MOYEN':
+        return 'risk-medium';
+      case 'ELEVE':
+        return 'risk-high';
+      default:
+        return 'risk-default';
     }
   }
 
   getProgressLabel(progress: number): string {
     if (progress === 100) return 'SUCCÈS';
-    if (progress >= 75)   return 'TERMINÉ';
-    if (progress >= 40)   return 'ATTENTION';
-    if (progress > 0)     return 'CRITIQUE';
+    if (progress >= 75) return 'TERMINÉ';
+    if (progress >= 40) return 'ATTENTION';
+    if (progress > 0) return 'CRITIQUE';
     return 'N/A';
   }
 
   getProgressBarClass(progress: number): string {
     if (progress === 100) return 'progress-success';
-    if (progress >= 75)   return 'progress-good';
-    if (progress >= 40)   return 'progress-medium';
-    if (progress > 0)     return 'progress-critical';
+    if (progress >= 75) return 'progress-good';
+    if (progress >= 40) return 'progress-medium';
+    if (progress > 0) return 'progress-critical';
     return 'progress-empty';
   }
 }

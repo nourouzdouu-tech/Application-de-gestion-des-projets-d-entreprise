@@ -42,20 +42,21 @@ public class ProjectDto {
     @NotNull(message = "La date de fin est obligatoire")
     private LocalDate endDate;
 
-    // 🔥 AJOUT MANAGER
     private Long managerId;
     private String managerName;
 
     private Long teamId;
     private String teamName;
+
+    private String managerComment;
+    private LocalDateTime reviewedAt;
+
     private Boolean deleted;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
     public ProjectDto() {
     }
-
-    // ===== GETTERS / SETTERS =====
 
     public Long getId() {
         return id;
@@ -129,7 +130,6 @@ public class ProjectDto {
         this.endDate = endDate;
     }
 
-    // 🔥 MANAGER
     public Long getManagerId() {
         return managerId;
     }
@@ -160,6 +160,22 @@ public class ProjectDto {
 
     public void setTeamName(String teamName) {
         this.teamName = teamName;
+    }
+
+    public String getManagerComment() {
+        return managerComment;
+    }
+
+    public void setManagerComment(String managerComment) {
+        this.managerComment = managerComment;
+    }
+
+    public LocalDateTime getReviewedAt() {
+        return reviewedAt;
+    }
+
+    public void setReviewedAt(LocalDateTime reviewedAt) {
+        this.reviewedAt = reviewedAt;
     }
 
     public Boolean getDeleted() {

@@ -1,12 +1,17 @@
 package com.dxc.dxc_platform.service.impl;
 
+import com.dxc.dxc_platform.dto.ManagerProjectItemDto;
+import com.dxc.dxc_platform.dto.ManagerProjectReviewDto;
 import com.dxc.dxc_platform.dto.ProjectDto;
+import com.dxc.dxc_platform.dto.UserDto;
 import com.dxc.dxc_platform.entity.Project;
 import com.dxc.dxc_platform.entity.Role;
 import com.dxc.dxc_platform.entity.Team;
 import com.dxc.dxc_platform.entity.User;
 import com.dxc.dxc_platform.enums.ProjectStatus;
+import com.dxc.dxc_platform.mapper.ManagerProjectMapper;
 import com.dxc.dxc_platform.mapper.ProjectMapper;
+import com.dxc.dxc_platform.mapper.UserMapper;
 import com.dxc.dxc_platform.repository.ProjectRepository;
 import com.dxc.dxc_platform.repository.TeamRepository;
 import com.dxc.dxc_platform.repository.UserRepository;
@@ -31,27 +36,40 @@ public class ProjectServiceImpl implements ProjectService {
     private final TeamRepository teamRepository;
     private final UserRepository userRepository;
     private final ProjectMapper projectMapper;
+    private final ManagerProjectMapper managerProjectMapper;
+    private final UserMapper userMapper;
 
     public ProjectServiceImpl(ProjectRepository projectRepository,
                               TeamRepository teamRepository,
                               UserRepository userRepository,
-                              ProjectMapper projectMapper) {
+                              ProjectMapper projectMapper,
+                              ManagerProjectMapper managerProjectMapper,
+                              UserMapper userMapper) {
         this.projectRepository = projectRepository;
         this.teamRepository = teamRepository;
         this.userRepository = userRepository;
         this.projectMapper = projectMapper;
+        this.managerProjectMapper = managerProjectMapper;
+        this.userMapper = userMapper;
     }
 
     @Override
     public ProjectDto createProject(ProjectDto request) {
+        // Nettoyage du nom du projet pour éviter les espaces inutiles
         String projectName = request.getName().trim();
 
+        // Vérification de l'unicité du nom du projet parmi les projets non supprimés
         if (projectRepository.existsByNameIgnoreCaseAndDeletedFalse(projectName)) {
             throw new ConflictException("PROJECT_ALREADY_EXISTS", "Un projet avec ce nom existe déjà");
         }
 
+        // Récupération de l'utilisateur connecté
         User currentUser = getAuthenticatedUser();
+
+        // Seul un responsable de contrat ou un chef de projet peut créer/modifier un projet
         validateProjectCrudAccess(currentUser);
+
+        // Vérification métier sur les dates
         validateProjectDates(request);
 
         Project project = new Project();
@@ -59,18 +77,25 @@ public class ProjectServiceImpl implements ProjectService {
         project.setDescription(request.getDescription());
         project.setClient(request.getClient().trim());
         project.setProgressPercentage(request.getProgressPercentage());
-        project.setStatus(ProjectStatus.PRE_VALIDE);
+
+        // Correction importante :
+        // un projet créé par le responsable de contrat doit être en attente de revue manager
+        project.setStatus(ProjectStatus.EN_VALIDATION);
+
         project.setRiskLevel(request.getRiskLevel());
         project.setStartDate(request.getStartDate());
         project.setEndDate(request.getEndDate());
         project.setDeleted(false);
 
-        // AJOUT MANAGER
+        // Si un manager a été sélectionné au moment de la création,
+        // on le rattache au projet
         if (request.getManagerId() != null) {
             User manager = findValidManagerById(request.getManagerId());
             project.setManager(manager);
         }
 
+        // Si le créateur est un chef de projet, on rattache automatiquement son équipe
+        // Ce bloc fait partie de ta logique existante
         if (isChefProjet(currentUser)) {
             List<Team> teams = teamRepository.findByProjectManagerIdAndDeletedFalse(currentUser.getId());
 
@@ -84,6 +109,8 @@ public class ProjectServiceImpl implements ProjectService {
             Team team = teams.get(0);
             project.setTeam(team);
         } else if (isResponsableContrat(currentUser)) {
+            // Si c'est le responsable de contrat qui crée, on peut laisser team à null
+            // jusqu'à l'assignation du chef de projet par le manager
             project.setTeam(null);
         }
 
@@ -96,11 +123,15 @@ public class ProjectServiceImpl implements ProjectService {
         Project project = findActiveProjectById(projectId);
         User currentUser = getAuthenticatedUser();
 
+        // Vérifie que l'utilisateur connecté a le droit de modifier ce projet
         validateCurrentUserCanManageProject(project, currentUser);
+
+        // Vérification métier sur les dates
         validateProjectDates(request);
 
         String newName = request.getName().trim();
 
+        // Si le nom change, on vérifie qu'il n'existe pas déjà
         if (!project.getName().equalsIgnoreCase(newName)
                 && projectRepository.existsByNameIgnoreCaseAndDeletedFalse(newName)) {
             throw new ConflictException("PROJECT_ALREADY_EXISTS", "Un projet avec ce nom existe déjà");
@@ -114,7 +145,7 @@ public class ProjectServiceImpl implements ProjectService {
         project.setStartDate(request.getStartDate());
         project.setEndDate(request.getEndDate());
 
-        // AJOUT / MODIFICATION MANAGER
+        // Mise à jour éventuelle du manager
         if (request.getManagerId() != null) {
             User manager = findValidManagerById(request.getManagerId());
             project.setManager(manager);
@@ -122,6 +153,7 @@ public class ProjectServiceImpl implements ProjectService {
             project.setManager(null);
         }
 
+        // Si le responsable de contrat choisit explicitement une équipe
         if (isResponsableContrat(currentUser) && request.getTeamId() != null) {
             Team team = teamRepository.findByIdAndDeletedFalse(request.getTeamId())
                     .orElseThrow(() -> new NotFoundException("TEAM_NOT_FOUND", "Équipe introuvable"));
@@ -142,11 +174,13 @@ public class ProjectServiceImpl implements ProjectService {
     public List<ProjectDto> getAllProjects(String query, ProjectStatus status) {
         User currentUser = getAuthenticatedUser();
 
+        // Dans ton code actuel, cette liste est réservée au responsable de contrat
         if (!isResponsableContrat(currentUser)) {
             throw new ForbiddenException("FORBIDDEN", "Accès réservé au responsable de contrat");
         }
 
         List<Project> projects = loadProjects(query, status, false);
+
         return projects.stream()
                 .map(projectMapper::toDto)
                 .collect(Collectors.toList());
@@ -156,11 +190,13 @@ public class ProjectServiceImpl implements ProjectService {
     public List<ProjectDto> getMyProjects(String query, ProjectStatus status) {
         User currentUser = getAuthenticatedUser();
 
+        // Dans ton code actuel, cette liste est réservée au chef de projet
         if (!isChefProjet(currentUser)) {
             throw new ForbiddenException("FORBIDDEN", "Accès réservé au chef de projet");
         }
 
         List<Project> projects = loadProjects(query, status, true);
+
         return projects.stream()
                 .map(projectMapper::toDto)
                 .collect(Collectors.toList());
@@ -168,12 +204,16 @@ public class ProjectServiceImpl implements ProjectService {
 
     @Override
     public ProjectDto setDeletedStatus(Long projectId, boolean deleted) {
+        // Si on supprime, il faut trouver un projet actif
+        // Si on restaure, on cherche le projet même s'il est supprimé
         Project project = deleted
                 ? findActiveProjectById(projectId)
                 : projectRepository.findById(projectId)
                 .orElseThrow(() -> new NotFoundException("PROJECT_NOT_FOUND", "Projet introuvable"));
 
         User currentUser = getAuthenticatedUser();
+
+        // Vérifie que l'utilisateur connecté peut agir sur ce projet
         validateCurrentUserCanManageProject(project, currentUser);
 
         project.setDeleted(deleted);
@@ -182,10 +222,88 @@ public class ProjectServiceImpl implements ProjectService {
         return projectMapper.toDto(savedProject);
     }
 
+    @Override
+    public List<ManagerProjectItemDto> getManagerProjects() {
+        User currentUser = getAuthenticatedUser();
+
+        // Seul un manager peut accéder à cette liste
+        if (!isManager(currentUser)) {
+            throw new ForbiddenException("FORBIDDEN", "Accès réservé au manager");
+        }
+
+        // Le manager voit uniquement ses projets en cours de validation
+        return projectRepository.findAllByDeletedFalseAndStatusAndManagerId(
+                        ProjectStatus.EN_VALIDATION,
+                        currentUser.getId()
+                ).stream()
+                .map(managerProjectMapper::toDto)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<UserDto.Summary> getChefsProjetForSelect() {
+        User currentUser = getAuthenticatedUser();
+
+        // Seul un manager peut charger la liste des chefs de projet
+        if (!isManager(currentUser)) {
+            throw new ForbiddenException("FORBIDDEN", "Accès réservé au manager");
+        }
+
+        return userRepository.findAllActiveChefsProjet()
+                .stream()
+                .map(userMapper::toSummary)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public ProjectDto reviewProjectByManager(ManagerProjectReviewDto request) {
+        User currentUser = getAuthenticatedUser();
+
+        if (!isManager(currentUser)) {
+            throw new ForbiddenException("FORBIDDEN", "Accès réservé au manager");
+        }
+
+        Project project = findActiveProjectById(request.getProjectId());
+
+        if (project.getManager() == null || !project.getManager().getId().equals(currentUser.getId())) {
+            throw new ForbiddenException("FORBIDDEN", "Ce projet n'est pas affecté au manager connecté");
+        }
+
+        if (project.getStatus() != ProjectStatus.EN_VALIDATION) {
+            throw new BusinessException(
+                    "INVALID_PROJECT_STATUS",
+                    "Seuls les projets en cours de validation peuvent être traités"
+            );
+        }
+
+        if (request.getCommentaire() == null || request.getCommentaire().isBlank()) {
+            throw new BusinessException("COMMENT_REQUIRED", "Le commentaire est obligatoire");
+        }
+
+        User chefProjet = findValidChefProjetById(request.getChefProjetId());
+        assignChefProjetToProject(project, chefProjet);
+
+        project.setManagerComment(request.getCommentaire().trim());
+        project.setReviewedAt(java.time.LocalDateTime.now());
+
+        if (request.getDecision() == ManagerProjectReviewDto.Decision.VALIDER) {
+            project.setStatus(ProjectStatus.PRE_VALIDE);
+        } else {
+            project.setStatus(ProjectStatus.REJETE);
+        }
+
+        Project saved = projectRepository.save(project);
+        return projectMapper.toDto(saved);
+    }
     private List<Project> loadProjects(String query, ProjectStatus status, boolean onlyMine) {
         User currentUser = getAuthenticatedUser();
 
         List<Project> base;
+
+        // onlyMine = true :
+        // on charge uniquement les projets du chef de projet connecté
+        // onlyMine = false :
+        // on charge tous les projets visibles par le responsable de contrat
         if (onlyMine) {
             base = status == null
                     ? projectRepository.findAllByTeamProjectManagerIdAndDeletedFalse(currentUser.getId())
@@ -196,12 +314,14 @@ public class ProjectServiceImpl implements ProjectService {
                     : projectRepository.findAllByDeletedFalseAndStatus(status);
         }
 
+        // Si aucune recherche n'est fournie, on retourne directement la base
         if (query == null || query.isBlank()) {
             return base;
         }
 
         String normalized = query.trim().toLowerCase();
 
+        // Filtrage mémoire sur nom ou client
         return base.stream()
                 .filter(project ->
                         project.getName().toLowerCase().contains(normalized)
@@ -253,15 +373,24 @@ public class ProjectServiceImpl implements ProjectService {
                 .anyMatch(role -> role.equalsIgnoreCase("RESPONSABLE_CONTRAT"));
     }
 
+    private boolean isManager(User user) {
+        return user.getRoles().stream()
+                .map(Role::getNom)
+                .anyMatch(role -> role.equalsIgnoreCase("MANAGER"));
+    }
+
     private void validateCurrentUserCanManageProject(Project project, User currentUser) {
+        // Le responsable de contrat a tous les droits sur les projets
         if (isResponsableContrat(currentUser)) {
             return;
         }
 
+        // Si ce n'est ni un responsable de contrat ni un chef de projet, accès refusé
         if (!isChefProjet(currentUser)) {
             throw new ForbiddenException("FORBIDDEN", "Accès refusé");
         }
 
+        // Vérification que le projet appartient à l'équipe du chef de projet connecté
         if (project.getTeam() == null
                 || project.getTeam().getProjectManager() == null
                 || currentUser.getId() == null) {
@@ -300,5 +429,40 @@ public class ProjectServiceImpl implements ProjectService {
         }
 
         return manager;
+    }
+
+    private User findValidChefProjetById(Long chefProjetId) {
+        User chefProjet = userRepository.findByIdAndDeletedFalse(chefProjetId)
+                .orElseThrow(() -> new NotFoundException("CHEF_PROJET_NOT_FOUND", "Chef de projet introuvable"));
+
+        boolean isChefProjet = chefProjet.getRoles().stream()
+                .map(Role::getNom)
+                .anyMatch(role -> role.equalsIgnoreCase("CHEF_PROJET"));
+
+        if (!isChefProjet) {
+            throw new BusinessException(
+                    "INVALID_CHEF_PROJET",
+                    "L'utilisateur sélectionné n'est pas un chef de projet"
+            );
+        }
+
+        return chefProjet;
+    }
+
+    private void assignChefProjetToProject(Project project, User chefProjet) {
+        // Dans ton modèle actuel, le projet n'a pas un champ direct chefProjet.
+        // Le lien passe par Team.projectManager.
+        // On cherche donc une équipe dont le projectManager est le chef de projet sélectionné.
+        List<Team> teams = teamRepository.findByProjectManagerIdAndDeletedFalse(chefProjet.getId());
+
+        if (teams.isEmpty()) {
+            throw new BusinessException(
+                    "TEAM_NOT_FOUND_FOR_CHEF_PROJET",
+                    "Aucune équipe trouvée pour le chef de projet sélectionné"
+            );
+        }
+
+        // Pour l'instant on prend la première équipe trouvée
+        project.setTeam(teams.get(0));
     }
 }

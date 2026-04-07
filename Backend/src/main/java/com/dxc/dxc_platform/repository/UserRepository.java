@@ -69,4 +69,15 @@ public interface UserRepository extends JpaRepository<User, Long> {
         ORDER BY u.prenom ASC, u.nom ASC
     """)
     List<User> findAllActiveManagers();
+   //Pour recuperer les CP
+    @Query("""
+    SELECT DISTINCT u
+    FROM User u
+    JOIN u.roles r
+    WHERE u.deleted = false
+      AND u.locked = false
+      AND LOWER(r.nom) = 'chef_projet'
+    ORDER BY u.prenom ASC, u.nom ASC
+""")
+    List<User> findAllActiveChefsProjet();
 }

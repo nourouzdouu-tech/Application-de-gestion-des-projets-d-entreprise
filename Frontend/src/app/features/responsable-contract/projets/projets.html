@@ -42,9 +42,19 @@
     </div>
 
     <div class="tabs-filter">
-      <button class="tab-btn" [class.active]="selectedStatus === ''" (click)="setStatusFilter('')">Tous</button>
-      <button class="tab-btn" [class.active]="selectedStatus === 'PRE_VALIDE'" (click)="setStatusFilter('PRE_VALIDE')">En cours de validation</button>
-      <button class="tab-btn" [class.active]="selectedStatus === 'VALIDE'" (click)="setStatusFilter('VALIDE')">Validés</button>
+      <button class="tab-btn" [class.active]="selectedStatus === ''" (click)="setStatusFilter('')">
+        Tous
+      </button>
+
+      <button class="tab-btn" [class.active]="selectedStatus === 'EN_VALIDATION'" (click)="setStatusFilter('EN_VALIDATION')">
+        En cours de validation
+      </button>
+
+      <button class="tab-btn" [class.active]="selectedStatus === 'PRE_VALIDE'" (click)="setStatusFilter('PRE_VALIDE')">
+        Pré-validés
+      </button>
+
+     
     </div>
   </div>
 
@@ -164,6 +174,17 @@
                 <line x1="14" y1="11" x2="14" y2="17" />
               </svg>
             </button>
+
+            <button
+              class="icon-action-btn icon-view"
+              type="button"
+              title="Voir détails"
+              (click)="openDetails(project)">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                <circle cx="12" cy="12" r="3" />
+              </svg>
+            </button>
           </td>
         </tr>
       </tbody>
@@ -171,7 +192,7 @@
   </div>
 </div>
 
-<!-- ═══ Modal : Créer / Modifier un projet ═══ -->
+<!-- Modal : Créer / Modifier un projet -->
 <div class="modal-backdrop" *ngIf="showForm">
   <div class="modal-card">
     <div class="modal-header">
@@ -209,10 +230,14 @@
 
         <div class="form-group">
           <label>Représentant</label>
-          <select name="projectRepresentant" [(ngModel)]="selectedRepresentantId"
+          <select
+            name="projectRepresentant"
+            [(ngModel)]="selectedRepresentantId"
             [disabled]="!projectForm.client || selectedRepresentants.length === 0">
             <option [ngValue]="null">Choisir un représentant</option>
-            <option *ngFor="let r of selectedRepresentants" [ngValue]="r.id">{{ r.nom }} - {{ r.email }}</option>
+            <option *ngFor="let r of selectedRepresentants" [ngValue]="r.id">
+              {{ r.nom }} - {{ r.email }}
+            </option>
           </select>
         </div>
 
@@ -261,7 +286,41 @@
   </div>
 </div>
 
-<!-- ═══ Modal : Confirmation suppression ═══ -->
+<!-- Modal : Détails projet -->
+<div class="modal-backdrop" *ngIf="showDetailsModal">
+  <div class="modal-card modal-confirm">
+    <div class="modal-header">
+      <div class="modal-title-wrap">
+        <div>
+          <h2>Détails du projet</h2>
+          <p class="modal-subtitle">Commentaire du manager</p>
+        </div>
+      </div>
+      <button class="modal-close-btn" type="button" (click)="closeDetails()" aria-label="Fermer">×</button>
+    </div>
+
+    <div class="modal-body" *ngIf="selectedProjectDetails">
+      <p><strong>Projet :</strong> {{ selectedProjectDetails.name }}</p>
+      <p><strong>Statut :</strong> {{ getStatusLabel(selectedProjectDetails.status) }}</p>
+
+      <p><strong>Commentaire manager :</strong></p>
+      <div class="comment-box">
+        {{ selectedProjectDetails.managerComment || 'Aucun commentaire disponible.' }}
+      </div>
+
+      <p *ngIf="selectedProjectDetails.reviewedAt">
+        <strong>Date de traitement :</strong>
+        {{ selectedProjectDetails.reviewedAt | date:'dd/MM/yyyy HH:mm' }}
+      </p>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn-secondary" type="button" (click)="closeDetails()">Fermer</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal : Confirmation suppression -->
 <div class="modal-backdrop" *ngIf="showDeleteConfirm">
   <div class="modal-card modal-confirm">
     <div class="modal-header">

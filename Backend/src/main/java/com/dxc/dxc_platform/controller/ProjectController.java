@@ -12,7 +12,9 @@ import org.springframework.web.bind.annotation.*;
 import com.dxc.dxc_platform.dto.ManagerSelectDto;
 import com.dxc.dxc_platform.service.UserAdminService;
 import org.springframework.security.access.prepost.PreAuthorize;
-
+import com.dxc.dxc_platform.dto.ManagerProjectItemDto;
+import com.dxc.dxc_platform.dto.ManagerProjectReviewDto;
+import com.dxc.dxc_platform.dto.UserDto;
 import java.util.List;
 
 @RestController
@@ -71,5 +73,24 @@ public class ProjectController {
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<List<ManagerSelectDto>> getManagersForSelect() {
         return ResponseEntity.ok(userAdminService.getManagersForSelect());
+    }
+
+    @GetMapping("/manager")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<List<ManagerProjectItemDto>> getManagerProjects() {
+        return ResponseEntity.ok(projectService.getManagerProjects());
+    }
+
+    @GetMapping("/manager/chefs-projet/select")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<List<UserDto.Summary>> getChefsProjetForSelect() {
+        return ResponseEntity.ok(projectService.getChefsProjetForSelect());
+    }
+
+    @PostMapping("/manager/review")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ProjectDto> reviewProjectByManager(
+            @Valid @RequestBody ManagerProjectReviewDto request) {
+        return ResponseEntity.ok(projectService.reviewProjectByManager(request));
     }
 }

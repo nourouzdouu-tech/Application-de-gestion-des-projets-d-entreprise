@@ -1,21 +1,20 @@
 package com.dxc.dxc_platform.mapper;
 
-import com.dxc.dxc_platform.dto.ProjectDto;
+import com.dxc.dxc_platform.dto.ManagerProjectItemDto;
 import com.dxc.dxc_platform.entity.Project;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 
 @Mapper(componentModel = "spring")
-public interface ProjectMapper {
+public interface ManagerProjectMapper {
 
-    @Mapping(source = "team.id", target = "teamId")
-    @Mapping(source = "team.name", target = "teamName")
-    @Mapping(source = "manager.id", target = "managerId")
+    @Mapping(source = "id", target = "id")
+    @Mapping(source = "name", target = "projectName")
+    @Mapping(source = "status", target = "status")
+    @Mapping(source = "client", target = "client")
+    @Mapping(source = "createdAt", target = "createdAt")
     @Mapping(expression = "java(getManagerFullName(project))", target = "managerName")
-    @Mapping(source = "managerComment", target = "managerComment")
-    @Mapping(source = "reviewedAt", target = "reviewedAt")
-    @Mapping(source = "deleted", target = "deleted")
-    ProjectDto toDto(Project project);
+    ManagerProjectItemDto toDto(Project project);
 
     default String getManagerFullName(Project project) {
         if (project.getManager() == null) {

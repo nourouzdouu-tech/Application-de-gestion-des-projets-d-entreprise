@@ -2,7 +2,14 @@ import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams, HttpResponse } from '@angular/common/http';
 import { Observable } from 'rxjs';
 
-export type ProjectStatus = 'PRE_VALIDE' | 'EN_COURS' | 'VALIDE' | 'REJETE' | 'CLOTURE';
+export type ProjectStatus =
+  | 'PRE_VALIDE'
+  | 'EN_COURS'
+  | 'EN_VALIDATION'
+  | 'VALIDE'
+  | 'REJETE'
+  | 'CLOTURE';
+
 export type RiskLevel = 'FAIBLE' | 'MOYEN' | 'ELEVE';
 
 export interface ProjectDto {
@@ -20,8 +27,11 @@ export interface ProjectDto {
   deleted?: boolean;
   createdAt?: string;
   updatedAt?: string;
-    managerId?: number;
+  managerId?: number;
   managerName?: string;
+
+  managerComment?: string;
+  reviewedAt?: string;
 }
 
 @Injectable({
