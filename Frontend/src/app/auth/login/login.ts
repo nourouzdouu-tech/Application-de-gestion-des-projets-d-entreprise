@@ -75,7 +75,9 @@ export class Login {
           this.router.navigateByUrl('/responsable-contrat/projets');
         } else if (roles.includes('ADMIN') || roles.includes('ROLE_ADMIN')) {
           this.router.navigateByUrl('/admin');
-        } else {
+        }else if (roles.includes('MANAGER') || roles.includes('ROLE_MANAGER')) {
+  this.router.navigateByUrl('/manager/projets');
+} else {
           this.router.navigateByUrl('/login');
         }
       },

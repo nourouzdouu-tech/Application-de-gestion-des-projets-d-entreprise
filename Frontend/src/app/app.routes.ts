@@ -10,6 +10,9 @@ import { ResponsableContract } from './features/responsable-contract/responsable
 import { Projets as ResponsableProjets } from './features/responsable-contract/projets/projets';
 import { TjmCalculatorComponent } from './features/responsable-contract/tjm-calculator/tjm-calculator';
 import { TachesComponent } from './features/chef-projet/taches/taches';
+import { ManagerLayoutComponent } from './features/manager/manager';
+import { ReviewProjetsComponent } from './features/manager/projets/projets';
+
 export const routes: Routes = [
   {
     path: 'login',
@@ -47,9 +50,18 @@ export const routes: Routes = [
     path: 'responsable-contrat',
     component: ResponsableContract,
     children: [
-      { path: 'projets',     component: ResponsableProjets },
+      { path: 'projets', component: ResponsableProjets },
       { path: 'facturation', component: TjmCalculatorComponent },
-      { path: '',            redirectTo: 'projets', pathMatch: 'full' }
+      { path: '', redirectTo: 'projets', pathMatch: 'full' }
+    ]
+  },
+
+  {
+    path: 'manager',
+    component: ManagerLayoutComponent,
+    children: [
+      { path: 'projets', component: ReviewProjetsComponent },
+      { path: '', redirectTo: 'projets', pathMatch: 'full' }
     ]
   },
 
