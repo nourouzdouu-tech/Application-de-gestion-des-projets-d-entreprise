@@ -32,6 +32,8 @@ export interface ProjectDto {
 
   managerComment?: string;
   reviewedAt?: string;
+   chefProjetId?: number;
+  chefProjetName?: string;
 }
 
 @Injectable({
@@ -90,4 +92,8 @@ export class ProjectService {
     const params = new HttpParams().set('deleted', deleted.toString());
     return this.http.patch<ProjectDto>(`${this.API_URL}/${projectId}/deleted`, null, { params });
   }
+  assignTeamToProject(projectId: number, teamId: number): Observable<ProjectDto> {
+  return this.http.patch<ProjectDto>(`${this.API_URL}/${projectId}/assign-team?teamId=${teamId}`, {});
+}
+  
 }

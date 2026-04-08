@@ -280,7 +280,7 @@
     <div class="modal-footer">
       <button class="btn-secondary" type="button" (click)="closeForm()" [disabled]="isSubmitting">Annuler</button>
       <button class="btn-primary" type="button" (click)="submitForm()" [disabled]="isSubmitting">
-        {{ isSubmitting ? 'Envoi...' : (isEditMode ? 'Enregistrer' : 'Créer') }}
+        {{ isSubmitting ? 'Envoi...' : (isEditMode ? 'Modifier' : 'Créer') }}
       </button>
     </div>
   </div>

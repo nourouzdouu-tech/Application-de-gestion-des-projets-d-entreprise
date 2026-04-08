@@ -93,4 +93,9 @@ public class ProjectController {
             @Valid @RequestBody ManagerProjectReviewDto request) {
         return ResponseEntity.ok(projectService.reviewProjectByManager(request));
     }
+    @PatchMapping("/{projectId}/assign-team")
+    @PreAuthorize("hasRole('CHEF_PROJET')")
+    public ResponseEntity<ProjectDto> assignTeamToProject(@PathVariable Long projectId, @RequestParam Long teamId) {
+        return ResponseEntity.ok(projectService.assignTeamToProject(projectId, teamId));
+    }
 }

@@ -15,6 +15,9 @@ public interface ProjectMapper {
     @Mapping(source = "managerComment", target = "managerComment")
     @Mapping(source = "reviewedAt", target = "reviewedAt")
     @Mapping(source = "deleted", target = "deleted")
+    @Mapping(source = "chefProjet.id", target = "chefProjetId")
+    @Mapping(expression = "java(getChefProjetFullName(project))", target = "chefProjetName")
+
     ProjectDto toDto(Project project);
 
     default String getManagerFullName(Project project) {
@@ -26,5 +29,9 @@ public interface ProjectMapper {
         String nom = project.getManager().getNom() != null ? project.getManager().getNom() : "";
 
         return (prenom + " " + nom).trim();
+    }
+    default String getChefProjetFullName(Project project) {
+        if (project.getChefProjet() == null) return null;
+        return (project.getChefProjet().getPrenom() + " " + project.getChefProjet().getNom()).trim();
     }
 }

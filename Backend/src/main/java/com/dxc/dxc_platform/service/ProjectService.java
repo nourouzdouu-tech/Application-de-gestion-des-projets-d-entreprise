@@ -26,4 +26,5 @@ public interface ProjectService {
     List<UserDto.Summary> getChefsProjetForSelect();
 
     ProjectDto reviewProjectByManager(ManagerProjectReviewDto request);
+    ProjectDto assignTeamToProject(Long projectId, Long teamId);
 }

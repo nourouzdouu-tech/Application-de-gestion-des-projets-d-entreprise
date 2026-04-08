@@ -64,6 +64,12 @@ public class Project {
     @Column(nullable = false)
     private LocalDateTime updatedAt;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "chef_projet_id")
+    private User chefProjet;
+
+// Getter/Setter
+
     public Project() {
     }
 
@@ -205,5 +211,13 @@ public class Project {
 
     public void setUpdatedAt(LocalDateTime updatedAt) {
         this.updatedAt = updatedAt;
+    }
+
+    public User getChefProjet() {
+        return chefProjet;
+    }
+
+    public void setChefProjet(User chefProjet) {
+        this.chefProjet = chefProjet;
     }
 }

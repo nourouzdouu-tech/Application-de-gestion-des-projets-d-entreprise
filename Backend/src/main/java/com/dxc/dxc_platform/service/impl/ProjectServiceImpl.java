@@ -149,16 +149,9 @@ public class ProjectServiceImpl implements ProjectService {
         if (request.getManagerId() != null) {
             User manager = findValidManagerById(request.getManagerId());
             project.setManager(manager);
-        } else {
-            project.setManager(null);
         }
 
-        // Si le responsable de contrat choisit explicitement une équipe
-        if (isResponsableContrat(currentUser) && request.getTeamId() != null) {
-            Team team = teamRepository.findByIdAndDeletedFalse(request.getTeamId())
-                    .orElseThrow(() -> new NotFoundException("TEAM_NOT_FOUND", "Équipe introuvable"));
-            project.setTeam(team);
-        }
+
 
         Project updatedProject = projectRepository.save(project);
         return projectMapper.toDto(updatedProject);
@@ -189,19 +182,39 @@ public class ProjectServiceImpl implements ProjectService {
     @Override
     public List<ProjectDto> getMyProjects(String query, ProjectStatus status) {
         User currentUser = getAuthenticatedUser();
-
-        // Dans ton code actuel, cette liste est réservée au chef de projet
         if (!isChefProjet(currentUser)) {
             throw new ForbiddenException("FORBIDDEN", "Accès réservé au chef de projet");
         }
 
-        List<Project> projects = loadProjects(query, status, true);
+        List<Project> projects;
+        if (status == null || status == ProjectStatus.EN_COURS) {
+            projects = projectRepository.findAllByChefProjetIdAndDeletedFalseAndStatus(
+                    currentUser.getId(), ProjectStatus.PRE_VALIDE);
+        } else {
+            projects = projectRepository.findAllByChefProjetIdAndDeletedFalseAndStatus(
+                    currentUser.getId(), status);
+        }
 
+        // Filtre textuel
+        if (query != null && !query.isBlank()) {
+            String normalized = query.trim().toLowerCase();
+            projects = projects.stream()
+                    .filter(p -> p.getName().toLowerCase().contains(normalized) ||
+                            p.getClient().toLowerCase().contains(normalized))
+                    .collect(Collectors.toList());
+        }
+
+        // Transformation PRE_VALIDE -> EN_COURS
         return projects.stream()
-                .map(projectMapper::toDto)
+                .map(project -> {
+                    ProjectDto dto = projectMapper.toDto(project);
+                    if (dto.getStatus() == ProjectStatus.PRE_VALIDE) {
+                        dto.setStatus(ProjectStatus.EN_COURS);
+                    }
+                    return dto;
+                })
                 .collect(Collectors.toList());
     }
-
     @Override
     public ProjectDto setDeletedStatus(Long projectId, boolean deleted) {
         // Si on supprime, il faut trouver un projet actif
@@ -225,17 +238,13 @@ public class ProjectServiceImpl implements ProjectService {
     @Override
     public List<ManagerProjectItemDto> getManagerProjects() {
         User currentUser = getAuthenticatedUser();
-
-        // Seul un manager peut accéder à cette liste
         if (!isManager(currentUser)) {
             throw new ForbiddenException("FORBIDDEN", "Accès réservé au manager");
         }
 
-        // Le manager voit uniquement ses projets en cours de validation
-        return projectRepository.findAllByDeletedFalseAndStatusAndManagerId(
-                        ProjectStatus.EN_VALIDATION,
-                        currentUser.getId()
-                ).stream()
+        // Retourne TOUS les projets du manager (quel que soit leur statut)
+        return projectRepository.findAllByDeletedFalseAndManagerId(currentUser.getId())
+                .stream()
                 .map(managerProjectMapper::toDto)
                 .collect(Collectors.toList());
     }
@@ -295,6 +304,37 @@ public class ProjectServiceImpl implements ProjectService {
         Project saved = projectRepository.save(project);
         return projectMapper.toDto(saved);
     }
+
+    @Override
+    @Transactional
+    public ProjectDto assignTeamToProject(Long projectId, Long teamId) {
+        Project project = findActiveProjectById(projectId);
+        User currentUser = getAuthenticatedUser();
+        // Vérifier si cette équipe est déjà affectée à un autre projet (non supprimé)
+        boolean alreadyAssigned = projectRepository.existsByTeamIdAndDeletedFalseAndIdNot(teamId, projectId);
+        if (alreadyAssigned) {
+            throw new BusinessException(
+                    "TEAM_ALREADY_ASSIGNED",
+                    "Cette équipe est déjà affectée à un autre projet."
+            );
+        }
+
+        // Vérifier que l'utilisateur connecté est bien le chef de projet assigné
+        if (!isChefProjet(currentUser)) {
+            throw new ForbiddenException("FORBIDDEN", "Seul un chef de projet peut assigner une équipe");
+        }
+        if (project.getChefProjet() == null || !project.getChefProjet().getId().equals(currentUser.getId())) {
+            throw new ForbiddenException("FORBIDDEN", "Vous n'êtes pas le chef de projet assigné à ce projet");
+        }
+
+        Team team = teamRepository.findByIdAndDeletedFalse(teamId)
+                .orElseThrow(() -> new NotFoundException("TEAM_NOT_FOUND", "Équipe introuvable"));
+
+        project.setTeam(team);
+        Project saved = projectRepository.save(project);
+        return projectMapper.toDto(saved);
+    }
+
     private List<Project> loadProjects(String query, ProjectStatus status, boolean onlyMine) {
         User currentUser = getAuthenticatedUser();
 
@@ -380,33 +420,16 @@ public class ProjectServiceImpl implements ProjectService {
     }
 
     private void validateCurrentUserCanManageProject(Project project, User currentUser) {
-        // Le responsable de contrat a tous les droits sur les projets
         if (isResponsableContrat(currentUser)) {
             return;
         }
-
-        // Si ce n'est ni un responsable de contrat ni un chef de projet, accès refusé
         if (!isChefProjet(currentUser)) {
             throw new ForbiddenException("FORBIDDEN", "Accès refusé");
         }
-
-        // Vérification que le projet appartient à l'équipe du chef de projet connecté
-        if (project.getTeam() == null
-                || project.getTeam().getProjectManager() == null
-                || currentUser.getId() == null) {
-            throw new ForbiddenException("FORBIDDEN", "Accès refusé");
-        }
-
-        boolean sameProjectManager = project.getTeam().getProjectManager().getId().equals(currentUser.getId());
-
-        if (!sameProjectManager) {
-            throw new ForbiddenException(
-                    "FORBIDDEN",
-                    "Seul le chef de projet propriétaire peut gérer ce projet"
-            );
+        if (project.getChefProjet() == null || !project.getChefProjet().getId().equals(currentUser.getId())) {
+            throw new ForbiddenException("FORBIDDEN", "Vous n'êtes pas le chef de projet assigné");
         }
     }
-
     private void validateProjectDates(ProjectDto request) {
         if (request.getStartDate().isAfter(request.getEndDate())) {
             throw new BusinessException(
@@ -450,19 +473,8 @@ public class ProjectServiceImpl implements ProjectService {
     }
 
     private void assignChefProjetToProject(Project project, User chefProjet) {
-        // Dans ton modèle actuel, le projet n'a pas un champ direct chefProjet.
-        // Le lien passe par Team.projectManager.
-        // On cherche donc une équipe dont le projectManager est le chef de projet sélectionné.
-        List<Team> teams = teamRepository.findByProjectManagerIdAndDeletedFalse(chefProjet.getId());
-
-        if (teams.isEmpty()) {
-            throw new BusinessException(
-                    "TEAM_NOT_FOUND_FOR_CHEF_PROJET",
-                    "Aucune équipe trouvée pour le chef de projet sélectionné"
-            );
-        }
-
-        // Pour l'instant on prend la première équipe trouvée
-        project.setTeam(teams.get(0));
+        // On assigne directement le chef de projet, sans équipe.
+        project.setChefProjet(chefProjet);
+        // On peut aussi laisser team = null, il sera assigné plus tard par le chef de projet.
     }
 }

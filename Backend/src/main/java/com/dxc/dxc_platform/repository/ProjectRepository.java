@@ -26,4 +26,9 @@ public interface ProjectRepository extends JpaRepository<Project, Long> {
 
     List<Project> findAllByTeamProjectManagerIdAndDeletedFalseAndStatus(Long projectManagerId, ProjectStatus status);
     List<Project> findAllByDeletedFalseAndStatusAndManagerId(ProjectStatus status, Long managerId);
+    List<Project> findAllByChefProjetIdAndDeletedFalse(Long chefProjetId);
+    List<Project> findAllByChefProjetIdAndDeletedFalseAndStatus(Long chefProjetId, ProjectStatus status);
+    boolean existsByTeamIdAndDeletedFalseAndIdNot(Long teamId, Long projectId);
+    // Dans ProjectRepository.java
+    List<Project> findAllByDeletedFalseAndManagerId(Long managerId);
 }

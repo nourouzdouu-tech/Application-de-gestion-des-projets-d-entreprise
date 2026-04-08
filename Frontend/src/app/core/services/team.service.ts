@@ -93,4 +93,5 @@ export class TeamService {
 removeUserFromTeam(teamId: number, userId: number): Observable<TeamDto> {
   return this.http.delete<TeamDto>(`${this.API_URL}/${teamId}/members/${userId}`);
 }
+
 }

@@ -14,6 +14,9 @@ import java.time.LocalDateTime;
 public class ProjectDto {
 
     private Long id;
+    private Long chefProjetId;
+    private String chefProjetName;
+
 
     @NotBlank(message = "Le nom du projet est obligatoire")
     @Size(max = 150, message = "Le nom du projet ne doit pas dépasser 150 caractères")
@@ -146,21 +149,10 @@ public class ProjectDto {
         this.managerName = managerName;
     }
 
-    public Long getTeamId() {
-        return teamId;
-    }
-
-    public void setTeamId(Long teamId) {
-        this.teamId = teamId;
-    }
-
-    public String getTeamName() {
-        return teamName;
-    }
-
-    public void setTeamName(String teamName) {
-        this.teamName = teamName;
-    }
+    public Long getTeamId() { return teamId; }
+    public void setTeamId(Long teamId) { this.teamId = teamId; }
+    public String getTeamName() { return teamName; }
+    public void setTeamName(String teamName) { this.teamName = teamName; }
 
     public String getManagerComment() {
         return managerComment;
@@ -201,4 +193,11 @@ public class ProjectDto {
     public void setUpdatedAt(LocalDateTime updatedAt) {
         this.updatedAt = updatedAt;
     }
+    public Long getChefProjetId() { return chefProjetId; }
+    public void setChefProjetId(Long chefProjetId) { this.chefProjetId = chefProjetId; }
+
+    public String getChefProjetName() { return chefProjetName; }
+    public void setChefProjetName(String chefProjetName) { this.chefProjetName = chefProjetName; }
+
+
 }
