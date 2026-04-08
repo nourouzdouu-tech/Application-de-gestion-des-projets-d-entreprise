@@ -1,23 +1,22 @@
 import { Component, inject, signal, computed, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
 import { AdminService, UserResponse, RoleResponse } from '../../../core/services/admin.service';
 import { AuthService } from '../../../core/services/auth.service';
-import { Dashboard } from '../dashboard/dashboard';
-import { Roles } from '../roles/roles';
+import { ProfileDto, ProfileService } from '../../../core/services/profile.service';
 
 @Component({
   selector: 'app-utilisateurs',
   standalone: true,
-  imports: [CommonModule, FormsModule, Dashboard, Roles],
+  imports: [CommonModule, FormsModule],
   templateUrl: './utilisateurs.html',
   styleUrls: ['./utilisateurs.css']
 })
 export class Utilisateurs implements OnInit {
   private adminService = inject(AdminService);
-  private router = inject(Router);
+  private profileService = inject(ProfileService);
   authService = inject(AuthService);
+
   currentUser = signal(this.authService.getUser());
 
   users = signal<UserResponse[]>([]);
@@ -29,14 +28,13 @@ export class Utilisateurs implements OnInit {
   filterStatus = signal<boolean | undefined>(undefined);
   showProfileModal = signal(false);
 
-profileNom = signal('');
-profilePrenom = signal('');
-profileEmail = signal('');
+  profileNom = signal('');
+  profilePrenom = signal('');
+  profileEmail = signal('');
+  profilePassword = signal('');
 
-profilePassword = signal('');
   itemsPerPage = 5;
   loading = signal(false);
-  activeNavItem = signal('utilisateurs');
 
   activeCount = computed(() => this.users().filter(u => !u.locked).length);
   lockedCount = computed(() => this.users().filter(u => u.locked).length);
@@ -45,6 +43,8 @@ profilePassword = signal('');
   );
 
   roles = signal<RoleResponse[]>([]);
+  profiles = signal<ProfileDto[]>([]);
+
   showModal = signal(false);
   newNom = signal('');
   newPrenom = signal('');
@@ -52,6 +52,7 @@ profilePassword = signal('');
   newPassword = signal('');
   newRole = signal('');
   newGenre = signal('FEMME');
+  newProfileId = signal<number | null>(null);
 
   showEditModal = signal(false);
   editId = signal<number | null>(null);
@@ -60,6 +61,7 @@ profilePassword = signal('');
   editEmail = signal('');
   editRole = signal('');
   editGenre = signal('FEMME');
+  editProfileId = signal<number | null>(null);
 
   showConfirmModal = signal(false);
   confirmMessage = signal('');
@@ -72,65 +74,77 @@ profilePassword = signal('');
   ngOnInit() {
     this.loadUsers();
     this.loadRoles();
+    this.loadProfiles();
   }
 
-  logout() {
-    this.authService.removeUser();
-    this.router.navigate(['/login']);
+  loadUsers() {
+    this.loading.set(true);
+    this.adminService.getUsers(
+      this.currentPage(),
+      this.itemsPerPage,
+      this.searchQuery(),
+      this.filterRole(),
+      this.filterStatus()
+    ).subscribe({
+      next: (page) => {
+        this.users.set(page.content);
+        this.totalElements.set(page.totalElements);
+        this.totalPages.set(page.totalPages);
+        this.loading.set(false);
+      },
+      error: () => this.loading.set(false)
+    });
   }
 
-loadUsers() {
-  this.loading.set(true);
-  this.adminService.getUsers(
-    this.currentPage(),
-    this.itemsPerPage,
-    this.searchQuery(),
-    this.filterRole(),
-    this.filterStatus()
-  ).subscribe({
-    next: (page) => {
-      this.users.set(page.content);
-      this.totalElements.set(page.totalElements);
-      this.totalPages.set(page.totalPages);
-      this.loading.set(false);
-    },
-    error: () => this.loading.set(false)
-  });
-}
-onFilterRole(value: string) {
-  this.filterRole.set(value);
-  this.currentPage.set(1);
-  this.loadUsers();
-}
-onFilterStatus(value: string) {
-  if (value === 'true') {
-    this.filterStatus.set(true);
-  } else if (value === 'false') {
-    this.filterStatus.set(false);
-  } else {
-    this.filterStatus.set(undefined);
+  loadRoles() {
+    this.adminService.getRoles().subscribe({
+      next: (roles) => this.roles.set(roles.filter(r => r.active)),
+      error: (err) => console.error('Erreur chargement rôles', err)
+    });
   }
 
-  this.currentPage.set(1);
-  this.loadUsers();
-}
-
-onSearch(value: string) {
-  const search = value.toLowerCase().trim();
-
-  this.searchQuery.set(value);
-  this.currentPage.set(1);
-
-  if (search === 'actif') {
-    this.filterStatus.set(false); // locked = false
-  } else if (search === 'inactif') {
-    this.filterStatus.set(true); // locked = true
-  } else {
-    this.filterStatus.set(undefined);
+  loadProfiles() {
+    this.profileService.getAllProfiles().subscribe({
+      next: (profiles) => this.profiles.set(profiles),
+      error: (err) => console.error('Erreur chargement profils', err)
+    });
   }
 
-  this.loadUsers();
-}
+  onFilterRole(value: string) {
+    this.filterRole.set(value);
+    this.currentPage.set(1);
+    this.loadUsers();
+  }
+
+  onFilterStatus(value: string) {
+    if (value === 'true') {
+      this.filterStatus.set(true);
+    } else if (value === 'false') {
+      this.filterStatus.set(false);
+    } else {
+      this.filterStatus.set(undefined);
+    }
+
+    this.currentPage.set(1);
+    this.loadUsers();
+  }
+
+  onSearch(value: string) {
+    const search = value.toLowerCase().trim();
+
+    this.searchQuery.set(value);
+    this.currentPage.set(1);
+
+    if (search === 'actif') {
+      this.filterStatus.set(false);
+    } else if (search === 'inactif') {
+      this.filterStatus.set(true);
+    } else {
+      this.filterStatus.set(undefined);
+    }
+
+    this.loadUsers();
+  }
 
   setPage(page: number) {
     if (page >= 1 && page <= this.totalPages()) {
@@ -140,24 +154,24 @@ onSearch(value: string) {
   }
 
   toggleUserStatus(user: UserResponse) {
-  if (user.locked) {
-    this.adminService.enableUser(user.id).subscribe({
-      next: () => {
-        this.showSuccess('Utilisateur activé avec succès !');
-        this.loadUsers();
-      },
-      error: () => this.showError('Erreur lors de l\'activation')
-    });
-  } else {
-    this.adminService.disableUser(user.id).subscribe({
-      next: () => {
-        this.showSuccess('Utilisateur désactivé avec succès !');
-        this.loadUsers();
-      },
-      error: () => this.showError('Erreur lors de la désactivation')
-    });
+    if (user.locked) {
+      this.adminService.enableUser(user.id).subscribe({
+        next: () => {
+          this.showSuccess('Utilisateur activé avec succès !');
+          this.loadUsers();
+        },
+        error: () => this.showError('Erreur lors de l\'activation')
+      });
+    } else {
+      this.adminService.disableUser(user.id).subscribe({
+        next: () => {
+          this.showSuccess('Utilisateur désactivé avec succès !');
+          this.loadUsers();
+        },
+        error: () => this.showError('Erreur lors de la désactivation')
+      });
+    }
   }
-}
 
   deleteUser(id: number) {
     this.confirmMessage.set('Voulez-vous vraiment supprimer cet utilisateur ? Cette action est irréversible.');
@@ -182,14 +196,9 @@ onSearch(value: string) {
     this.showConfirmModal.set(false);
   }
 
-  loadRoles() {
-    this.adminService.getRoles().subscribe({
-      next: (roles) => this.roles.set(roles.filter(r => r.active)),
-      error: (err) => console.error('Erreur chargement rôles', err)
-    });
+  openModal() {
+    this.showModal.set(true);
   }
-
-  openModal() { this.showModal.set(true); }
 
   closeModal() {
     this.showModal.set(false);
@@ -199,21 +208,24 @@ onSearch(value: string) {
     this.newPassword.set('');
     this.newRole.set('');
     this.newGenre.set('FEMME');
+    this.newProfileId.set(null);
   }
 
   submitModal() {
     if (!this.newNom() || !this.newPrenom() || !this.newEmail() ||
-        !this.newPassword() || !this.newRole() || !this.newGenre()) {
+        !this.newPassword() || !this.newRole() || !this.newGenre() || !this.newProfileId()) {
       this.showError('Veuillez remplir tous les champs');
       return;
     }
+
     this.adminService.createUser({
       nom: this.newNom(),
       prenom: this.newPrenom(),
       email: this.newEmail(),
       password: this.newPassword(),
       roleCode: this.newRole(),
-      genre: this.newGenre()
+      genre: this.newGenre(),
+      profileId: this.newProfileId()!
     }).subscribe({
       next: () => {
         this.closeModal();
@@ -221,9 +233,13 @@ onSearch(value: string) {
         this.showSuccess('Utilisateur créé avec succès !');
       },
       error: (err) => {
-        if (err.status === 409) this.showError('Cet email est déjà utilisé');
-        else if (err.status === 404) this.showError('Rôle introuvable');
-        else this.showError('Erreur lors de la création');
+        if (err.status === 409) {
+          this.showError('Cet email est déjà utilisé');
+        } else if (err.status === 404) {
+          this.showError('Rôle ou profil introuvable');
+        } else {
+          this.showError('Erreur lors de la création');
+        }
       }
     });
   }
@@ -235,6 +251,7 @@ onSearch(value: string) {
     this.editEmail.set(user.email);
     this.editGenre.set(user.genre === 'M' ? 'HOMME' : 'FEMME');
     this.editRole.set(user.roles[0]?.nom ?? '');
+    this.editProfileId.set(user.profileId ?? null);
     this.showEditModal.set(true);
   }
 
@@ -246,20 +263,23 @@ onSearch(value: string) {
     this.editEmail.set('');
     this.editRole.set('');
     this.editGenre.set('FEMME');
+    this.editProfileId.set(null);
   }
 
   submitEditModal() {
     if (!this.editNom() || !this.editPrenom() || !this.editEmail() ||
-        !this.editRole() || !this.editGenre()) {
+        !this.editRole() || !this.editGenre() || !this.editProfileId()) {
       this.showError('Veuillez remplir tous les champs');
       return;
     }
+
     this.adminService.updateUser(this.editId()!, {
       nom: this.editNom(),
       prenom: this.editPrenom(),
       email: this.editEmail(),
       genre: this.editGenre(),
-      roleCode: this.editRole()
+      roleCode: this.editRole(),
+      profileId: this.editProfileId()!
     }).subscribe({
       next: () => {
         this.closeEditModal();
@@ -267,8 +287,11 @@ onSearch(value: string) {
         this.showSuccess('Utilisateur modifié avec succès !');
       },
       error: (err) => {
-        if (err.status === 409) this.showError('Cet email est déjà utilisé');
-        else this.showError('Erreur lors de la modification');
+        if (err.status === 409) {
+          this.showError('Cet email est déjà utilisé');
+        } else {
+          this.showError('Erreur lors de la modification');
+        }
       }
     });
   }
@@ -287,22 +310,25 @@ onSearch(value: string) {
     setTimeout(() => this.showToast.set(false), 3000);
   }
 
-  // Ajoutez cette méthode dans la classe Utilisateurs
-setNav(item: string) {
-  this.activeNavItem.set(item);
-  if (item === 'clients') {
-    window.location.href = '/admin/clients';
+  getRangeStart() {
+    return (this.currentPage() - 1) * this.itemsPerPage + 1;
   }
-}
-  getRangeStart() { return (this.currentPage() - 1) * this.itemsPerPage + 1; }
-  getRangeEnd() { return Math.min(this.currentPage() * this.itemsPerPage, this.totalElements()); }
+
+  getRangeEnd() {
+    return Math.min(this.currentPage() * this.itemsPerPage, this.totalElements());
+  }
 
   getRoleBadgeClass(role: string): string {
     switch (role.toUpperCase()) {
-      case 'ADMINISTRATEUR': return 'badge-admin';
-      case 'CHEF_PROJET':    return 'badge-chef';
-      case 'MANAGER':        return 'badge-manager';
-      default:               return 'badge-membre';
+      case 'ADMINISTRATEUR':
+      case 'ADMIN':
+        return 'badge-admin';
+      case 'CHEF_PROJET':
+        return 'badge-chef';
+      case 'MANAGER':
+        return 'badge-manager';
+      default:
+        return 'badge-membre';
     }
   }
 
@@ -314,52 +340,44 @@ setNav(item: string) {
     const colors = ['#E8F4FD', '#FFF0E8', '#F0F0FF', '#E8FFF0', '#FFF0F0', '#F5F0FF'];
     return colors[index % colors.length];
   }
+
   openProfile() {
-  const user = this.currentUser();
+    const user = this.currentUser();
+    this.profileNom.set(user?.nom || '');
+    this.profilePrenom.set(user?.prenom || '');
+    this.profileEmail.set(user?.email || '');
+    this.profilePassword.set('');
+    this.showProfileModal.set(true);
+  }
 
-  this.profileNom.set(user?.nom || '');
-  this.profilePrenom.set(user?.prenom || '');
-  this.profileEmail.set(user?.email || '');
-  this.profilePassword.set('');
+  closeProfile() {
+    this.showProfileModal.set(false);
+  }
 
-  this.showProfileModal.set(true);
-}
+  updateProfile() {
+    const data = {
+      nom: this.profileNom(),
+      prenom: this.profilePrenom(),
+      email: this.profileEmail()
+    };
 
-closeProfile() {
-  this.showProfileModal.set(false);
-}
-updateProfile() {
-  const data = {
-    nom: this.profileNom(),
-    prenom: this.profilePrenom(),
-    email: this.profileEmail()
-  };
+    this.authService.updateProfile(data).subscribe({
+      next: (res) => {
+        this.authService.saveUser(res);
+        this.currentUser.set({
+          email: res.email,
+          prenom: res.prenom,
+          nom: res.nom,
+          roles: res.roles
+        });
 
-  this.authService.updateProfile(data).subscribe({
-
-    // ✅ ICI TU METS next(res)
-    next: (res) => {
-
-      // 🔥 sauvegarder dans localStorage
-      this.authService.saveUser(res);
-
-      // 🔥 mettre à jour le signal Angular
-      this.currentUser.set({
-        email: res.email,
-        prenom: res.prenom,
-        nom: res.nom,
-        roles: res.roles
-      });
-
-      this.showSuccess('Profil modifié avec succès !');
-      this.closeProfile();
-    },
-
-    error: (err) => {
-      console.log("ERREUR BACKEND 👉", err);
-      this.showError(err.error?.message || 'Erreur lors de la modification');
-    }
-  });
-}
-
+        this.showSuccess('Profil modifié avec succès !');
+        this.closeProfile();
+      },
+      error: (err) => {
+        console.log('ERREUR BACKEND 👉', err);
+        this.showError(err.error?.message || 'Erreur lors de la modification');
+      }
+    });
+  }
 }

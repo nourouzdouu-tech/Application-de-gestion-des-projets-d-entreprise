@@ -1,9 +1,12 @@
 package com.dxc.dxc_platform.service.impl;
 
+import com.dxc.dxc_platform.dto.ManagerSelectDto;
 import com.dxc.dxc_platform.dto.UserDto;
+import com.dxc.dxc_platform.entity.Profile;
 import com.dxc.dxc_platform.entity.Role;
 import com.dxc.dxc_platform.entity.User;
 import com.dxc.dxc_platform.mapper.UserMapper;
+import com.dxc.dxc_platform.repository.ProfileRepository;
 import com.dxc.dxc_platform.repository.RoleRepository;
 import com.dxc.dxc_platform.repository.UserRepository;
 import com.dxc.dxc_platform.service.UserAdminService;
@@ -14,12 +17,12 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import com.dxc.dxc_platform.dto.ManagerSelectDto;
-import java.util.List;
-import java.util.stream.Collectors;
+
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 @Transactional
@@ -27,15 +30,18 @@ public class UserAdminServiceImpl implements UserAdminService {
 
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
+    private final ProfileRepository profileRepository;
     private final PasswordEncoder passwordEncoder;
     private final UserMapper userMapper;
 
     public UserAdminServiceImpl(UserRepository userRepository,
                                 RoleRepository roleRepository,
+                                ProfileRepository profileRepository,
                                 PasswordEncoder passwordEncoder,
                                 UserMapper userMapper) {
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
+        this.profileRepository = profileRepository;
         this.passwordEncoder = passwordEncoder;
         this.userMapper = userMapper;
     }
@@ -49,6 +55,9 @@ public class UserAdminServiceImpl implements UserAdminService {
         Role role = roleRepository.findByNom(req.roleCode())
                 .orElseThrow(() -> new NotFoundException("ROLE_NOT_FOUND", "Rôle introuvable: " + req.roleCode()));
 
+        Profile profile = profileRepository.findByIdAndDeletedFalse(req.profileId())
+                .orElseThrow(() -> new NotFoundException("PROFILE_NOT_FOUND", "Profil introuvable: " + req.profileId()));
+
         User user = new User(
                 req.email(),
                 req.prenom(),
@@ -61,9 +70,12 @@ public class UserAdminServiceImpl implements UserAdminService {
         user.setLocked(false);
         user.setMustChangePassword(false);
         user.setDeleted(false);
+
         Set<Role> roles = new HashSet<>();
         roles.add(role);
         user.setRoles(roles);
+
+        user.setProfile(profile);
 
         user = userRepository.save(user);
         return userMapper.toResponse(user);
@@ -107,15 +119,21 @@ public class UserAdminServiceImpl implements UserAdminService {
         Role roleObj = roleRepository.findByNom(req.roleCode())
                 .orElseThrow(() -> new NotFoundException("ROLE_NOT_FOUND", "Rôle introuvable: " + req.roleCode()));
 
+        Profile profile = profileRepository.findByIdAndDeletedFalse(req.profileId())
+                .orElseThrow(() -> new NotFoundException("PROFILE_NOT_FOUND", "Profil introuvable: " + req.profileId()));
+
         user.setPrenom(req.prenom());
         user.setNom(req.nom());
         user.setEmail(req.email());
         user.setGenre(req.genre());
+
         Set<Role> roles = new HashSet<>();
         roles.add(roleObj);
         user.setRoles(roles);
-        userRepository.save(user);
 
+        user.setProfile(profile);
+
+        userRepository.save(user);
         return userMapper.toResponse(user);
     }
 
@@ -167,6 +185,7 @@ public class UserAdminServiceImpl implements UserAdminService {
     private String generateTempPassword() {
         return "Temp@" + UUID.randomUUID().toString().substring(0, 8);
     }
+
     @Override
     @Transactional(readOnly = true)
     public List<ManagerSelectDto> getManagersForSelect() {

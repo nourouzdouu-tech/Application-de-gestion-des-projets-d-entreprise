@@ -33,13 +33,15 @@ public final class ErrorCodes {
     public static final String USER_ALREADY_ASSIGNED_TO_TASK = "USER_ALREADY_ASSIGNED_TO_TASK";
 
     // =========================
-    // ROLE / PERMISSION
+    // ROLE / PERMISSION / PROFILE
     // =========================
     public static final String ROLE_NOT_FOUND = "ROLE_NOT_FOUND";
     public static final String PERMISSION_NOT_FOUND = "PERMISSION_NOT_FOUND";
     public static final String ROLE_REQUIRED = "ROLE_REQUIRED";
     public static final String PERMISSION_REQUIRED = "PERMISSION_REQUIRED";
     public static final String INSUFFICIENT_PERMISSIONS = "INSUFFICIENT_PERMISSIONS";
+    public static final String PROFILE_NOT_FOUND = "PROFILE_NOT_FOUND";
+    public static final String PROFILE_ALREADY_EXISTS = "PROFILE_ALREADY_EXISTS";
 
     // =========================
     // TEAM

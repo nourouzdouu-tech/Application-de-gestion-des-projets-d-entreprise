@@ -15,7 +15,8 @@ public class UserDto {
             @Email @NotBlank String email,
             @NotNull Genre genre,
             @NotBlank String roleCode,
-            @NotBlank String password
+            @NotBlank String password,
+            @NotNull Long profileId
     ) {}
 
     public record UpdateRequest(
@@ -23,7 +24,8 @@ public class UserDto {
             @NotBlank String nom,
             @Email @NotBlank String email,
             @NotNull Genre genre,
-            @NotBlank String roleCode
+            @NotBlank String roleCode,
+            @NotNull Long profileId
     ) {}
 
     public record ResetPasswordRequest(
@@ -45,7 +47,9 @@ public class UserDto {
             int failedAttempts,
             boolean locked,
             boolean mustChangePassword,
-            Set<RoleDto.Summary> roles
+            Set<RoleDto.Summary> roles,
+            Long profileId,
+            String profileLibelle
     ) {}
 
     public record Summary(

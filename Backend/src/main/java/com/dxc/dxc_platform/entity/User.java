@@ -58,6 +58,10 @@ public class User {
     @JoinColumn(name = "team_id")
     private Team team;
 
+    @ManyToOne
+    @JoinColumn(name = "profile_id")
+    private Profile profile;
+
     public User() {
     }
 
@@ -176,4 +180,12 @@ public class User {
     public void setTeam(Team team) {
         this.team = team;
     }
-}
+
+    public Profile getProfile() {
+        return profile;
+    }
+
+    public void setProfile(Profile profile) {
+        this.profile = profile;
+    }
+    }

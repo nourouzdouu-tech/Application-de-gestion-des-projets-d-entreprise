@@ -6,7 +6,8 @@ import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 
 @Mapper(componentModel = "spring")
-public interface ManagerProjectMapper {
+public interface
+ManagerProjectMapper {
 
     @Mapping(source = "id", target = "id")
     @Mapping(source = "name", target = "projectName")

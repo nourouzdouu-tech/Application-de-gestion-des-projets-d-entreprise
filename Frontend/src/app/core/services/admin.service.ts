@@ -6,10 +6,12 @@ export interface RoleSummary {
   id: number;
   nom: string;
 }
+
 export interface PermissionSummary {
   id: number;
   nom: string;
 }
+
 export interface RoleResponse {
   id: number;
   nom: string;
@@ -18,12 +20,14 @@ export interface RoleResponse {
   permissions: PermissionSummary[];
   usersCount?: number;
 }
+
 export interface UserUpdateRequest {
   prenom: string;
   nom: string;
   email: string;
   genre: string;
   roleCode: string;
+  profileId: number;
 }
 
 export interface UserResponse {
@@ -36,7 +40,20 @@ export interface UserResponse {
   locked: boolean;
   mustChangePassword: boolean;
   roles: RoleSummary[];
+  profileId?: number;
+  profileLibelle?: string;
 }
+
+export interface UserCreateRequest {
+  prenom: string;
+  nom: string;
+  email: string;
+  genre: string;
+  roleCode: string;
+  password: string;
+  profileId: number;
+}
+
 export interface RoleCreateRequest {
   nom: string;
   description: string;
@@ -49,14 +66,7 @@ export interface RoleUpdateRequest {
   active: boolean;
   permissionIds?: number[];
 }
-export interface UserCreateRequest {
-  prenom: string;
-  nom: string;
-  email: string;
-  genre: string;
-  roleCode: string;
-  password: string;
-}
+
 export interface DashboardStats {
   totalUsers: number;
   activeUsers: number;
@@ -80,7 +90,6 @@ export interface PageResponse<T> {
   number: number;
 }
 
-// ===== NOUVELLES INTERFACES POUR CLIENTS ET REPRÉSENTANTS =====
 export interface Representant {
   id?: number;
   nom: string;
@@ -105,7 +114,6 @@ export interface ClientUpdateRequest {
   representants: Representant[];
 }
 
-// Anciennes interfaces conservées pour compatibilité (à supprimer plus tard si besoin)
 export interface ClientResponseOld {
   id: number;
   nom: string;
@@ -131,19 +139,24 @@ export class AdminService {
   private apiUrl = 'http://localhost:8080/api/admin/users';
   private clientApiUrl = 'http://localhost:8080/api/admin/clients';
 
-  // ===== USER MANAGEMENT =====
   getUsers(page: number, size = 5, q = '', role = '', locked?: boolean): Observable<PageResponse<UserResponse>> {
     let params = new HttpParams()
       .set('page', (page - 1).toString())
       .set('size', size.toString());
+
     if (q) params = params.set('q', q);
     if (role) params = params.set('role', role);
     if (locked !== undefined) params = params.set('locked', locked.toString());
+
     return this.http.get<PageResponse<UserResponse>>(this.apiUrl, { params });
   }
 
   createUser(req: UserCreateRequest): Observable<UserResponse> {
     return this.http.post<UserResponse>(this.apiUrl, req);
+  }
+
+  updateUser(id: number, req: UserUpdateRequest): Observable<UserResponse> {
+    return this.http.put<UserResponse>(`${this.apiUrl}/${id}`, req);
   }
 
   deleteUser(id: number): Observable<void> {
@@ -162,11 +175,6 @@ export class AdminService {
     return this.http.get<RoleResponse[]>('http://localhost:8080/api/admin/roles');
   }
 
-  updateUser(id: number, req: UserUpdateRequest): Observable<UserResponse> {
-    return this.http.put<UserResponse>(`${this.apiUrl}/${id}`, req);
-  }
-
-  // ===== DASHBOARD STATS =====
   getDashboardStats(): Observable<DashboardStats> {
     return this.http.get<DashboardStats>('http://localhost:8080/api/admin/dashboard/stats');
   }
@@ -187,7 +195,6 @@ export class AdminService {
     return this.http.get<number>('http://localhost:8080/api/admin/dashboard/inactive-users');
   }
 
-  // ===== ROLE MANAGEMENT =====
   createRole(req: RoleCreateRequest): Observable<RoleResponse> {
     return this.http.post<RoleResponse>('http://localhost:8080/api/admin/roles', req);
   }
@@ -212,51 +219,28 @@ export class AdminService {
     return this.http.post<PermissionSummary>('http://localhost:8080/api/admin/permissions', req);
   }
 
-  // ===== CLIENT MANAGEMENT (NOUVEAU AVEC REPRÉSENTANTS) =====
-  
-  /**
-   * Récupère la liste paginée des clients
-   * @param page Numéro de page (0-indexé)
-   * @param size Nombre d'éléments par page
-   * @param q Terme de recherche (filtre sur le nom du client)
-   */
   getClients(page: number = 0, size: number = 10, q: string = ''): Observable<PageResponse<ClientResponse>> {
     let params = new HttpParams()
       .set('page', page.toString())
       .set('size', size.toString());
+
     if (q) params = params.set('q', q);
+
     return this.http.get<PageResponse<ClientResponse>>(this.clientApiUrl, { params });
   }
 
-  /**
-   * Crée un nouveau client avec ses représentants
-   * @param req ClientCreateRequest contenant le nom et la liste des représentants
-   */
   createClient(req: ClientCreateRequest): Observable<ClientResponse> {
     return this.http.post<ClientResponse>(this.clientApiUrl, req);
   }
 
-  /**
-   * Récupère un client par son ID avec tous ses représentants
-   * @param id ID du client
-   */
   getClientById(id: number): Observable<ClientResponse> {
     return this.http.get<ClientResponse>(`${this.clientApiUrl}/${id}`);
   }
 
-  /**
-   * Met à jour un client et ses représentants
-   * @param id ID du client
-   * @param req ClientUpdateRequest contenant le nom et la liste des représentants
-   */
   updateClient(id: number, req: ClientUpdateRequest): Observable<ClientResponse> {
     return this.http.put<ClientResponse>(`${this.clientApiUrl}/${id}`, req);
   }
 
-  /**
-   * Supprime un client (soft delete)
-   * @param id ID du client
-   */
   deleteClient(id: number): Observable<void> {
     return this.http.delete<void>(`${this.clientApiUrl}/${id}`);
   }
