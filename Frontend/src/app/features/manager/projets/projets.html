@@ -52,8 +52,8 @@
 
       <input
         type="text"
-        [(ngModel)]="searchTerm"
-        (ngModelChange)="onSearchChange()"
+        [ngModel]="searchTerm()"
+        (ngModelChange)="searchTerm.set($event); onSearchChange()"
         placeholder="Rechercher un projet..."
       />
     </div>
@@ -74,75 +74,99 @@
           <tr>
             <th>NOM DU PROJET</th>
             <th>STATUT</th>
-            <th>REPRÉSENTANT</th>
+            <th>CLIENT</th>
             <th>DATE DE CRÉATION</th>
             <th class="th-action">ACTION</th>
           </tr>
         </thead>
 
         <tbody>
-  <tr *ngIf="loading()">
-    <td colspan="5" class="empty-state">
-      Chargement des projets...
-    </td>
-  </tr>
+          <tr *ngIf="loading()">
+            <td colspan="5" class="empty-state">
+              Chargement des projets...
+            </td>
+          </tr>
 
-  <tr *ngIf="!loading() && errorMessage()">
-    <td colspan="5" class="empty-state">
-      {{ errorMessage() }}
-    </td>
-  </tr>
+          <tr *ngIf="!loading() && errorMessage()">
+            <td colspan="5" class="empty-state">
+              {{ errorMessage() }}
+            </td>
+          </tr>
 
-  <tr *ngIf="!loading() && !errorMessage() && paginatedProjects().length === 0">
-    <td colspan="5" class="empty-state">
-      Aucun projet trouvé.
-    </td>
-  </tr>
+          <tr *ngIf="!loading() && !errorMessage() && paginatedProjects().length === 0">
+            <td colspan="5" class="empty-state">
+              Aucun projet trouvé.
+            </td>
+          </tr>
 
-  <tr *ngFor="let project of paginatedProjects(); trackBy: trackByProjectId">
-    <td>
-      <div class="project-cell">
-        <div class="project-avatar">
-          {{ project.code }}
-        </div>
+          <tr *ngFor="let project of paginatedProjects(); trackBy: trackByProjectId">
+            <td>
+              <div class="project-cell">
+                <div class="project-avatar">
+                  {{ project.code }}
+                </div>
 
-        <div class="project-info">
-          <div class="project-name">{{ project.name }}</div>
-        </div>
-      </div>
-    </td>
+                <div class="project-info">
+                  <div class="project-name">{{ project.name }}</div>
+                </div>
+              </div>
+            </td>
 
-    <td>
-      <span
-        class="status-pill"
-        [class.pending]="project.status === 'À valider'"
-        [class.review]="project.status === 'En cours de validation'"
-        [class.assigned]="project.status === 'Assigné'"
-      >
-        <span class="status-dot"></span>
-        {{ project.status }}
-      </span>
-    </td>
+            <td>
+              <span
+                class="status-pill"
+                [class.pending]="project.status === 'À valider'"
+                [class.review]="project.status === 'En cours de validation'"
+                [class.assigned]="project.status === 'Assigné'"
+              >
+                <span class="status-dot"></span>
+                {{ project.status }}
+              </span>
+            </td>
 
-    <td class="representative-cell">
-      {{ project.representative }}
-    </td>
+            <td class="representative-cell">
+              {{ project.client }}
+            </td>
 
-    <td class="date-cell">
-      {{ project.createdAt | date : 'dd MMM, yyyy' }}
-    </td>
+            <td class="date-cell">
+              {{ project.createdAt | date : 'dd MMM, yyyy' }}
+            </td>
 
-    <td class="action-cell">
-      <button
-        type="button"
-        class="assign-btn"
-        (click)="openAssignModal(project)"
-      >
-        Assigner Chef de Projet
-      </button>
-    </td>
-  </tr>
-</tbody>
+            <td class="action-cell">
+              <div class="actions">
+                <!-- Icône assigner -->
+                <button
+                  type="button"
+                  class="icon-action assign-chef"
+                  (click)="openAssignModal(project)"
+                  title="Assigner Chef de Projet"
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                    <circle cx="9" cy="7" r="4" />
+                    <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                    <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                  </svg>
+                </button>
+
+                <!-- Icône détails -->
+                <button
+                  type="button"
+                  class="icon-action view-details"
+                  (click)="openDetailsModal(project)"
+                  title="Voir les détails du projet"
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="11" cy="11" r="8" />
+                    <path d="M21 21l-4.35-4.35" />
+                    <line x1="11" y1="8" x2="11" y2="11" />
+                    <circle cx="11" cy="14" r="0.8" fill="currentColor" stroke="none" />
+                  </svg>
+                </button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
       </table>
     </div>
 
@@ -264,22 +288,110 @@
 
     <div class="modal-footer">
       <button
-  type="button"
-  class="btn-reject"
-  [disabled]="submitting()"
-  (click)="rejectProject()"
->
-  Rejeter le projet
-</button>
+        type="button"
+        class="btn-reject"
+        [disabled]="submitting()"
+        (click)="rejectProject()"
+      >
+        Rejeter le projet
+      </button>
 
-<button
-  type="button"
-  class="btn-validate"
-  [disabled]="!assignForm.chefProjetId || submitting()"
-  (click)="validateAssignment()"
+      <button
+        type="button"
+        class="btn-validate"
+        [disabled]="!assignForm.chefProjetId || submitting()"
+        (click)="validateAssignment()"
+      >
+        Valider l'assignation
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Détails -->
+<div
+  class="modal-overlay"
+  *ngIf="isDetailsModalOpen()"
+  (click)="closeDetailsModal()"
 >
-  Valider l'assignation
-</button>
+  <div class="assignment-modal details-modal" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <div class="modal-header-left">
+        <div class="modal-icon-box details-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8"></circle>
+            <path d="M21 21l-4.35-4.35"></path>
+            <line x1="11" y1="8" x2="11" y2="11"></line>
+            <circle cx="11" cy="14" r="0.8" fill="currentColor" stroke="none"></circle>
+          </svg>
+        </div>
+
+        <div>
+          <h3 class="modal-title">Détails du projet</h3>
+          <p class="modal-subtitle">
+            Consultez les informations du projet sélectionné.
+          </p>
+        </div>
+      </div>
+
+      <button
+        type="button"
+        class="modal-close-btn"
+        (click)="closeDetailsModal()"
+      >
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+    </div>
+
+    <div class="modal-body" *ngIf="selectedProjectDetails() as project">
+      <div class="details-grid">
+        <div class="detail-card">
+          <span class="detail-label">Nom du projet</span>
+          <span class="detail-value">{{ project.name }}</span>
+        </div>
+
+        <div class="detail-card">
+          <span class="detail-label">Client</span>
+          <span class="detail-value">{{ project.client }}</span>
+        </div>
+
+        <div class="detail-card">
+          <span class="detail-label">Statut</span>
+          <span class="detail-value">{{ project.status }}</span>
+        </div>
+
+        <div class="detail-card">
+          <span class="detail-label">Date de création</span>
+          <span class="detail-value">{{ project.createdAt | date : 'dd/MM/yyyy' }}</span>
+        </div>
+
+        <div class="detail-card">
+          <span class="detail-label">Chef de projet choisi</span>
+          <span class="detail-value">
+            {{ project.chefProjetName || 'Aucun chef de projet assigné' }}
+          </span>
+        </div>
+
+        <div class="detail-card">
+          <span class="detail-label">Manager</span>
+          <span class="detail-value">
+            {{ project.managerName || 'Non défini' }}
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button
+        type="button"
+        class="btn-validate"
+        (click)="closeDetailsModal()"
+      >
+        Fermer
+      </button>
     </div>
   </div>
 </div>

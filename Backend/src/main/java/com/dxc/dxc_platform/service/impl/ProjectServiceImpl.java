@@ -238,13 +238,15 @@ public class ProjectServiceImpl implements ProjectService {
     @Override
     public List<ManagerProjectItemDto> getManagerProjects() {
         User currentUser = getAuthenticatedUser();
+
         if (!isManager(currentUser)) {
             throw new ForbiddenException("FORBIDDEN", "Accès réservé au manager");
         }
 
-        // Retourne TOUS les projets du manager (quel que soit leur statut)
-        return projectRepository.findAllByDeletedFalseAndManagerId(currentUser.getId())
-                .stream()
+        return projectRepository.findAllByDeletedFalseAndManagerIdAndStatusIn(
+                        currentUser.getId(),
+                        List.of(ProjectStatus.EN_VALIDATION, ProjectStatus.PRE_VALIDE, ProjectStatus.REJETE)
+                ).stream()
                 .map(managerProjectMapper::toDto)
                 .collect(Collectors.toList());
     }

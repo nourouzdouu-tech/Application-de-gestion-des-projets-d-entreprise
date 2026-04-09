@@ -3,7 +3,7 @@ package com.dxc.dxc_platform.dto;
 import com.dxc.dxc_platform.enums.ProjectStatus;
 
 import java.time.LocalDateTime;
-//c pour afficher les projets
+
 public class ManagerProjectItemDto {
 
     private Long id;
@@ -11,7 +11,13 @@ public class ManagerProjectItemDto {
     private ProjectStatus status;
     private String client;
     private String managerName;
+
+    private Long chefProjetId;
+    private String chefProjetName;
+
+    private String managerComment;
     private LocalDateTime createdAt;
+    private LocalDateTime reviewedAt;
 
     public ManagerProjectItemDto() {
     }
@@ -56,11 +62,43 @@ public class ManagerProjectItemDto {
         this.managerName = managerName;
     }
 
+    public Long getChefProjetId() {
+        return chefProjetId;
+    }
+
+    public void setChefProjetId(Long chefProjetId) {
+        this.chefProjetId = chefProjetId;
+    }
+
+    public String getChefProjetName() {
+        return chefProjetName;
+    }
+
+    public void setChefProjetName(String chefProjetName) {
+        this.chefProjetName = chefProjetName;
+    }
+
+    public String getManagerComment() {
+        return managerComment;
+    }
+
+    public void setManagerComment(String managerComment) {
+        this.managerComment = managerComment;
+    }
+
     public LocalDateTime getCreatedAt() {
         return createdAt;
     }
 
     public void setCreatedAt(LocalDateTime createdAt) {
         this.createdAt = createdAt;
+    }
+
+    public LocalDateTime getReviewedAt() {
+        return reviewedAt;
+    }
+
+    public void setReviewedAt(LocalDateTime reviewedAt) {
+        this.reviewedAt = reviewedAt;
     }
 }

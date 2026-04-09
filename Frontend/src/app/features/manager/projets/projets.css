@@ -316,23 +316,51 @@
   text-align: right;
 }
 
-.assign-btn {
-  border: none;
-  background: #0f1b46;
-  color: #ffffff;
-  min-height: 44px;
-  padding: 0 18px;
-  border-radius: 14px;
-  font-size: 14px;
-  font-weight: 700;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  white-space: nowrap;
+.actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
 }
 
-.assign-btn:hover {
-  background: #16245a;
-  box-shadow: 0 8px 18px rgba(15, 27, 70, 0.2);
+.icon-action {
+  width: 42px;
+  height: 42px;
+  border: none;
+  border-radius: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.icon-action svg {
+  width: 18px;
+  height: 18px;
+}
+
+.icon-action.assign-chef {
+  background: #ede9fe;
+  color: #6d28d9;
+}
+
+.icon-action.assign-chef:hover {
+  background: #ddd6fe;
+  transform: translateY(-1px);
+  box-shadow: 0 8px 18px rgba(109, 40, 217, 0.18);
+}
+
+.icon-action.view-details {
+  background: #e0f2fe;
+  color: #0284c7;
+}
+
+.icon-action.view-details:hover {
+  background: #bae6fd;
+  transform: translateY(-1px);
+  box-shadow: 0 8px 18px rgba(2, 132, 199, 0.18);
 }
 
 /* Footer */
@@ -644,6 +672,47 @@
   box-shadow: none;
 }
 
+/* Modal détails */
+.details-modal {
+  max-width: 760px;
+}
+
+.details-icon {
+  background: linear-gradient(180deg, #e0f2fe 0%, #dbeafe 100%);
+  color: #0284c7;
+}
+
+.details-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.detail-card {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 18px;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.detail-label {
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #64748b;
+}
+
+.detail-value {
+  font-size: 15px;
+  font-weight: 700;
+  color: #0f172a;
+  line-height: 1.45;
+}
+
 @media (max-width: 1200px) {
   .stats-grid {
     grid-template-columns: repeat(2, minmax(220px, 1fr));
@@ -699,5 +768,13 @@
   .btn-validate {
     width: 100%;
     min-width: 100%;
+  }
+
+  .details-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .actions {
+    justify-content: flex-end;
   }
 }

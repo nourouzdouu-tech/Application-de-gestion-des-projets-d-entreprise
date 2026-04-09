@@ -12,11 +12,12 @@ interface ReviewProject {
   id: number;
   code: string;
   name: string;
-  representative: string;
+  client: string;
   createdAt: string;
   status: string;
-  client: string;
   managerName: string | null;
+  chefProjetName: string | null;
+  chefProjetId: number | null;
 }
 
 interface ChefProjetOption {
@@ -49,6 +50,10 @@ export class ReviewProjetsComponent implements OnInit {
   readonly isAssignModalOpen = signal(false);
   readonly selectedProject = signal<ReviewProject | null>(null);
 
+  // Nouveau : modal détails
+  readonly isDetailsModalOpen = signal(false);
+  readonly selectedProjectDetails = signal<ReviewProject | null>(null);
+
   assignForm = {
     projectId: null as number | null,
     chefProjetId: null as number | null,
@@ -66,16 +71,24 @@ export class ReviewProjetsComponent implements OnInit {
 
     this.managerService.getManagerProjects().subscribe({
       next: (data: ManagerProjectItemDto[]) => {
-        const mapped = data.map((project) => ({
-          id: project.id,
-          code: this.buildCode(project.projectName),
-          name: project.projectName,
-          representative: project.managerName ?? 'Non défini',
-          createdAt: project.createdAt,
-          status: this.mapBackendStatus(project.status),
-          client: project.client,
-          managerName: project.managerName ?? null,
-        }));
+        const mapped = data.map((project: any) => ({
+  id: project.id,
+  code: this.buildCode(project.projectName),
+  name: project.projectName,
+  client: project.client ?? 'Non défini',
+  createdAt: project.createdAt,
+  status: this.mapBackendStatus(project.status),
+  managerName: project.managerName ?? null,
+  chefProjetName:
+    project.chefProjetName ??
+    project.chefDeProjetName ??
+    project.projectLeaderName ??
+    null,
+  chefProjetId:
+    project.chefProjetId ??
+    project.projectLeaderId ??
+    null,
+}));
 
         this.projects.set(mapped);
         this.loading.set(false);
@@ -117,10 +130,10 @@ export class ReviewProjetsComponent implements OnInit {
     return this.projects().filter((project) =>
       [
         project.name,
-        project.representative,
+        project.client,
         project.status,
         project.code,
-        project.client,
+        project.chefProjetName ?? ''
       ]
         .join(' ')
         .toLowerCase()
@@ -190,16 +203,16 @@ export class ReviewProjetsComponent implements OnInit {
     }
   }
 
-  openAssignModal(project: ReviewProject): void {
-    this.selectedProject.set(project);
-    this.assignForm = {
-      projectId: project.id,
-      chefProjetId: null,
-      comment: '',
-    };
-    this.isAssignModalOpen.set(true);
-    document.body.style.overflow = 'hidden';
-  }
+openAssignModal(project: ReviewProject): void {
+  this.selectedProject.set(project);
+  this.assignForm = {
+    projectId: project.id,
+    chefProjetId: project.chefProjetId ?? null,
+    comment: '',
+  };
+  this.isAssignModalOpen.set(true);
+  document.body.style.overflow = 'hidden';
+}
 
   closeAssignModal(): void {
     this.isAssignModalOpen.set(false);
@@ -209,7 +222,21 @@ export class ReviewProjetsComponent implements OnInit {
       chefProjetId: null,
       comment: '',
     };
-    document.body.style.overflow = '';
+    this.restoreBodyScrollIfNeeded();
+  }
+
+  // Nouveau : ouvrir modal détails
+  openDetailsModal(project: ReviewProject): void {
+    this.selectedProjectDetails.set(project);
+    this.isDetailsModalOpen.set(true);
+    document.body.style.overflow = 'hidden';
+  }
+
+  // Nouveau : fermer modal détails
+  closeDetailsModal(): void {
+    this.isDetailsModalOpen.set(false);
+    this.selectedProjectDetails.set(null);
+    this.restoreBodyScrollIfNeeded();
   }
 
   rejectProject(): void {
@@ -233,39 +260,70 @@ export class ReviewProjetsComponent implements OnInit {
       error: (err) => {
         console.error('Erreur rejet projet', err);
         this.submitting.set(false);
-        alert("Erreur lors du rejet du projet.");
+        alert('Erreur lors du rejet du projet.');
       }
     });
   }
 
-  validateAssignment(): void {
-    if (!this.assignForm.projectId || !this.assignForm.chefProjetId) return;
+ validateAssignment(): void {
+  if (!this.assignForm.projectId || !this.assignForm.chefProjetId) return;
 
-    const payload: ManagerProjectReviewDto = {
-      projectId: this.assignForm.projectId,
-      chefProjetId: this.assignForm.chefProjetId,
-      commentaire: this.assignForm.comment?.trim() || 'Projet validé par le manager',
-      decision: 'VALIDER'
-    };
+  const selectedChef = this.chefProjetOptions().find(
+    chef => chef.id === this.assignForm.chefProjetId
+  );
 
-    this.submitting.set(true);
+  const payload: ManagerProjectReviewDto = {
+    projectId: this.assignForm.projectId,
+    chefProjetId: this.assignForm.chefProjetId,
+    commentaire: this.assignForm.comment?.trim() || 'Projet validé par le manager',
+    decision: 'VALIDER'
+  };
 
-    this.managerService.reviewProject(payload).subscribe({
-      next: () => {
-        this.submitting.set(false);
-        this.closeAssignModal();
-        this.loadManagerProjects();
-      },
-      error: (err) => {
-        console.error('Erreur validation assignation', err);
-        this.submitting.set(false);
-        alert("Erreur lors de l'assignation du chef de projet.");
+  this.submitting.set(true);
+
+  this.managerService.reviewProject(payload).subscribe({
+    next: () => {
+      const updatedProjects = this.projects().map(project => {
+        if (project.id === this.assignForm.projectId) {
+          return {
+            ...project,
+            status: 'Assigné',
+            chefProjetId: this.assignForm.chefProjetId,
+            chefProjetName: selectedChef?.fullName ?? null
+          };
+        }
+        return project;
+      });
+
+      this.projects.set(updatedProjects);
+
+      const updatedProject =
+        updatedProjects.find(p => p.id === this.assignForm.projectId) ?? null;
+
+      if (updatedProject) {
+        this.selectedProject.set(updatedProject);
+        this.selectedProjectDetails.set(updatedProject);
       }
-    });
-  }
+
+      this.submitting.set(false);
+      this.closeAssignModal();
+    },
+    error: (err) => {
+      console.error('Erreur validation assignation', err);
+      this.submitting.set(false);
+      alert("Erreur lors de l'assignation du chef de projet.");
+    }
+  });
+}
 
   trackByProjectId(_: number, item: ReviewProject): number {
     return item.id;
+  }
+
+  private restoreBodyScrollIfNeeded(): void {
+    if (!this.isAssignModalOpen() && !this.isDetailsModalOpen()) {
+      document.body.style.overflow = '';
+    }
   }
 
   private buildCode(projectName: string): string {
