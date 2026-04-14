@@ -16,6 +16,7 @@ export interface TaskDto {
   projectId: number;
   projectName?: string;
   deleted?: boolean;
+  priority?: 'BASSE' | 'MOYENNE' | 'HAUTE';
 }
 
 @Injectable({ providedIn: 'root' })

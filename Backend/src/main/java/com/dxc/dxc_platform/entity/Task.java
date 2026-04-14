@@ -1,5 +1,6 @@
 package com.dxc.dxc_platform.entity;
 
+import com.dxc.dxc_platform.enums.Priority;
 import com.dxc.dxc_platform.enums.Status;
 import jakarta.persistence.*;
 import java.time.LocalDate;
@@ -28,6 +29,9 @@ public class Task {
 
     @Column(name = "due_date")
     private LocalDate dueDate;
+    @Enumerated(EnumType.STRING)
+    @Column(length = 20)
+    private Priority priority = Priority.MOYENNE;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "assigned_to_id")
@@ -86,4 +90,6 @@ public class Task {
 
     public LocalDateTime getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
+    public Priority getPriority() { return priority; }
+    public void setPriority(Priority priority) { this.priority = priority; }
 }

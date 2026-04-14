@@ -1,5 +1,6 @@
 package com.dxc.dxc_platform.dto;
 
+import com.dxc.dxc_platform.enums.Priority;
 import com.dxc.dxc_platform.enums.Status;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -17,6 +18,8 @@ public class TaskDto {
     private Long projectId;
     private String projectName;
     private boolean deleted;
+    private Priority priority;
+
 
     // Constructeurs
     public TaskDto() {}
@@ -54,4 +57,6 @@ public class TaskDto {
 
     public boolean isDeleted() { return deleted; }
     public void setDeleted(boolean deleted) { this.deleted = deleted; }
+    public Priority getPriority() { return priority; }
+    public void setPriority(Priority priority) { this.priority = priority; }
 }

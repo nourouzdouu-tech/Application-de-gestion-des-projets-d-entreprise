@@ -28,6 +28,7 @@ public class AuthDto {
     public record Response(
             String accessToken,
             String tokenType,
+            Long id,                     // ← AJOUTER
             String email,
             String prenom,
             String nom,

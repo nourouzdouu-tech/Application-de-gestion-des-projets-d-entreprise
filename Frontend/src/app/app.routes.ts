@@ -18,6 +18,7 @@ import { Projets as ResponsableProjets } from './features/responsable-contract/p
 import { TjmCalculatorComponent } from './features/responsable-contract/tjm-calculator/tjm-calculator';
 
 import { ManagerLayoutComponent } from './features/manager/manager';
+import { MessagesComponent } from './features/chef-projet/messages/messages';
 import { ReviewProjetsComponent } from './features/manager/projets/projets';
 
 export const routes: Routes = [
@@ -53,7 +54,8 @@ export const routes: Routes = [
       { path: 'taches', component: TachesComponent },
       { path: 'equipes', component: Equipes },
       { path: 'calendrier', component: CalendarComponent },
-      { path: '', redirectTo: 'projets', pathMatch: 'full' }
+      { path: '', redirectTo: 'projets', pathMatch: 'full' },
+       { path: 'messages', component: MessagesComponent }
     ]
   },
 
@@ -75,6 +77,8 @@ export const routes: Routes = [
       { path: '', redirectTo: 'projets', pathMatch: 'full' }
     ]
   },
+  
+  
 
   {
     path: '',

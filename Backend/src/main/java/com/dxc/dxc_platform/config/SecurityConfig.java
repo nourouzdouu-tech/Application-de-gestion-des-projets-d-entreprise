@@ -40,6 +40,7 @@ public class SecurityConfig {
                                 "/swagger-ui/**",
                                 "/swagger-ui.html",
                                 "/v3/api-docs/**",
+                                "/ws-messages/**",
                                 "/actuator/health"
                         ).permitAll()
                         .requestMatchers("/api/admin/**").hasAuthority("ADMIN")

@@ -1,8 +1,5 @@
-/*package com.dxc.dxc_platform.enums;
+package com.dxc.dxc_platform.enums;
 
 public enum Priority {
-    Haute,
-    Moyenne,
-    Basse
-}*/
-
+    BASSE, MOYENNE, HAUTE
+}

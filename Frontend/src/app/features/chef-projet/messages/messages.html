@@ -1,0 +1,93 @@
+<div class="messages-container">
+  <!-- Colonne gauche : liste des conversations -->
+  <div class="conversations-panel">
+    <div class="panel-header">
+      <h2>Messages</h2>
+      <button class="new-message-btn" (click)="openNewMessageModal()">✏️ Nouveau</button>
+    </div>
+    <div class="conversations-list">
+      <div *ngFor="let conv of conversations"
+           class="conv-item"
+           [class.active]="selectedConv?.id === conv.id"
+           (click)="selectConversation(conv)">
+        <div class="conv-avatar" [style.backgroundColor]="getAvatarColor(conv.otherParticipantName)">
+          {{ conv.otherParticipantName | slice:0:2 | uppercase }}
+        </div>
+        <div class="conv-info">
+          <div class="conv-name">{{ conv.otherParticipantName }}</div>
+          <div class="conv-last-message">{{ conv.lastMessage | slice:0:40 }}</div>
+        </div>
+        <div class="conv-meta">
+          <div class="conv-time">{{ conv.lastMessageTime | date:'dd/MM HH:mm' }}</div>
+          <div class="unread-badge" *ngIf="conv.unreadCount > 0">{{ conv.unreadCount }}</div>
+        </div>
+      </div>
+      <div *ngIf="conversations.length === 0" class="no-conversations">
+        Aucune conversation. Cliquez sur "Nouveau" pour démarrer.
+      </div>
+    </div>
+  </div>
+
+  <!-- Colonne droite : zone de chat -->
+  <div class="chat-panel" *ngIf="selectedConv; else emptyChat">
+    <div class="chat-header">
+      <div class="chat-user-info">
+        <div class="chat-avatar" [style.backgroundColor]="getAvatarColor(selectedConv.otherParticipantName)">
+          {{ selectedConv.otherParticipantName | slice:0:2 | uppercase }}
+        </div>
+        <div class="chat-details">
+          <div class="chat-name">{{ selectedConv.otherParticipantName }}</div>
+          <div class="chat-status">En ligne</div>
+        </div>
+      </div>
+      <button class="close-chat" (click)="closeChat()">×</button>
+    </div>
+    <div class="chat-messages" #chatMessages>
+      <div *ngFor="let msg of messages" class="message" [class.sent]="msg.senderId === currentUserId">
+        <div class="message-bubble">
+          <div class="message-text">{{ msg.content }}</div>
+          <div class="message-time">{{ msg.sentAt | date:'HH:mm' }}</div>
+        </div>
+      </div>
+      <div *ngIf="messages.length === 0" class="empty-chat">
+        Aucun message. Écrivez votre premier message ci-dessous.
+      </div>
+    </div>
+    <div class="chat-input">
+      <textarea [(ngModel)]="newMessage"
+                placeholder="Écrivez votre message..."
+                (keydown.enter)="sendMessage($event)"
+                rows="1"></textarea>
+      <button class="send-btn" (click)="sendMessage()" [disabled]="!newMessage.trim()">Envoyer</button>
+    </div>
+  </div>
+
+  <ng-template #emptyChat>
+    <div class="empty-chat-panel">
+      <div class="empty-icon">💬</div>
+      <h3>Aucune conversation sélectionnée</h3>
+      <p>Choisissez une conversation à gauche ou créez-en une nouvelle.</p>
+    </div>
+  </ng-template>
+</div>
+
+<!-- Modal pour démarrer une nouvelle conversation -->
+<div class="modal-overlay" *ngIf="showNewMessageModal" (click)="closeNewMessageModal()">
+  <div class="modal-content" (click)="$event.stopPropagation()">
+    <div class="modal-header">
+      <h3>Nouvelle conversation</h3>
+      <button class="modal-close" (click)="closeNewMessageModal()">×</button>
+    </div>
+    <div class="modal-body">
+      <label>Choisir un destinataire :</label>
+      <select [(ngModel)]="newMessageReceiverId" class="user-select">
+        <option [ngValue]="null" disabled>-- Sélectionnez un membre --</option>
+        <option *ngFor="let user of usersList" [ngValue]="user.id">{{ user.prenom }} {{ user.nom }}</option>
+      </select>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" (click)="closeNewMessageModal()">Annuler</button>
+      <button class="btn-create" (click)="createNewConversation()" [disabled]="!newMessageReceiverId">Démarrer</button>
+    </div>
+  </div>
+</div>

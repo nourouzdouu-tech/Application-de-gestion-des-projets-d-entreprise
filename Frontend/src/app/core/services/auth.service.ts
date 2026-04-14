@@ -10,6 +10,7 @@ export interface LoginRequest {
 export interface AuthResponse {
   accessToken: string;
   tokenType: string;
+   id: number;
   email: string;
   prenom: string;
   nom: string;
@@ -69,6 +70,7 @@ unlockUser(email: string): Observable<any> {
 }
 saveUser(user: AuthResponse): void {
   localStorage.setItem('auth_user', JSON.stringify({
+    id: user.id,
     email: user.email,
     prenom: user.prenom,
     nom: user.nom,
@@ -76,9 +78,12 @@ saveUser(user: AuthResponse): void {
   }));
 }
 
-getUser(): { email: string; prenom: string; nom: string; roles: string[] } | null {
+getUser(): { id?: number; email: string; prenom: string; nom: string; roles: string[] } | null {
   const user = localStorage.getItem('auth_user');
   return user ? JSON.parse(user) : null;
+}
+getCurrentUserId(): number {
+  return this.getUser()?.id ?? 0;
 }
 
 getInitials(): string {

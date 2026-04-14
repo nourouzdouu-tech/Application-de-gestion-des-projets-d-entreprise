@@ -2,6 +2,7 @@ package com.dxc.dxc_platform.service.impl;
 
 import com.dxc.dxc_platform.dto.TaskDto;
 import com.dxc.dxc_platform.entity.*;
+import com.dxc.dxc_platform.enums.Priority; // AJOUT : import de l'enum Priority
 import com.dxc.dxc_platform.enums.Status;
 import com.dxc.dxc_platform.repository.*;
 import com.dxc.dxc_platform.service.TaskService;
@@ -39,21 +40,18 @@ public class TaskServiceImpl implements TaskService {
     @Override
     public TaskDto createTask(TaskDto dto) {
         User currentUser = getCurrentUser();
-        // Seul un chef de projet peut créer une tâche
         boolean isChef = currentUser.getRoles().stream()
                 .anyMatch(r -> r.getNom().equalsIgnoreCase("CHEF_PROJET"));
         if (!isChef) {
             throw new ForbiddenException("FORBIDDEN", "Seul un chef de projet peut créer des tâches");
         }
 
-        // Vérifier que le projet existe et que le chef est bien le chefProjet du projet
         Project project = projectRepository.findByIdAndDeletedFalse(dto.getProjectId())
                 .orElseThrow(() -> new NotFoundException("PROJECT_NOT_FOUND", "Projet introuvable"));
         if (project.getChefProjet() == null || !project.getChefProjet().getId().equals(currentUser.getId())) {
             throw new ForbiddenException("FORBIDDEN", "Vous n'êtes pas le chef de projet assigné à ce projet");
         }
 
-        // Vérifier que le membre assigné existe et fait partie de l'équipe du projet
         User assignedUser = userRepository.findByIdAndDeletedFalse(dto.getAssignedToId())
                 .orElseThrow(() -> new NotFoundException("USER_NOT_FOUND", "Utilisateur cible introuvable"));
         if (assignedUser.getTeam() == null || !assignedUser.getTeam().getId().equals(project.getTeam().getId())) {
@@ -67,6 +65,8 @@ public class TaskServiceImpl implements TaskService {
         task.setDueDate(dto.getDueDate());
         task.setAssignedTo(assignedUser);
         task.setProject(project);
+        // AJOUT : initialisation de la priorité (valeur par défaut MOYENNE si non fournie)
+        task.setPriority(dto.getPriority() != null ? dto.getPriority() : Priority.MOYENNE);
 
         Task saved = taskRepository.save(task);
         return toDto(saved);
@@ -77,7 +77,6 @@ public class TaskServiceImpl implements TaskService {
         Task task = taskRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("TASK_NOT_FOUND", "Tâche introuvable"));
         User currentUser = getCurrentUser();
-        // Vérifier que l'utilisateur est le chef de projet du projet associé
         if (task.getProject().getChefProjet() == null ||
                 !task.getProject().getChefProjet().getId().equals(currentUser.getId())) {
             throw new ForbiddenException("FORBIDDEN", "Vous ne pouvez pas modifier cette tâche");
@@ -87,6 +86,10 @@ public class TaskServiceImpl implements TaskService {
         task.setDueDate(dto.getDueDate());
         if (dto.getStatus() != null) {
             task.setStatus(dto.getStatus());
+        }
+        // AJOUT : mise à jour de la priorité si elle est fournie
+        if (dto.getPriority() != null) {
+            task.setPriority(dto.getPriority());
         }
         Task updated = taskRepository.save(task);
         return toDto(updated);
@@ -104,7 +107,6 @@ public class TaskServiceImpl implements TaskService {
         User currentUser = getCurrentUser();
         Project project = projectRepository.findByIdAndDeletedFalse(projectId)
                 .orElseThrow(() -> new NotFoundException("PROJECT_NOT_FOUND", "Projet introuvable"));
-        // Seul le chef de projet du projet peut voir les tâches
         if (project.getChefProjet() == null || !project.getChefProjet().getId().equals(currentUser.getId())) {
             throw new ForbiddenException("FORBIDDEN", "Accès non autorisé");
         }
@@ -132,9 +134,6 @@ public class TaskServiceImpl implements TaskService {
         taskRepository.save(task);
     }
 
-    // Implémentez les autres méthodes (update, getById, getByProject, getMyTasks, delete) de façon similaire
-    // ...
-
     private TaskDto toDto(Task task) {
         TaskDto dto = new TaskDto();
         dto.setId(task.getId());
@@ -143,6 +142,8 @@ public class TaskServiceImpl implements TaskService {
         dto.setStatus(task.getStatus());
         dto.setCreatedAt(task.getCreatedAt());
         dto.setDueDate(task.getDueDate());
+        // AJOUT : mapper la priorité
+        dto.setPriority(task.getPriority());
         if (task.getAssignedTo() != null) {
             dto.setAssignedToId(task.getAssignedTo().getId());
             dto.setAssignedToName(task.getAssignedTo().getPrenom() + " " + task.getAssignedTo().getNom());

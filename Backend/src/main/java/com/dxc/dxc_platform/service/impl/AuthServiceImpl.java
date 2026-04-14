@@ -18,6 +18,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.stream.Collectors;
+
 @Service
 public class AuthServiceImpl implements AuthService {
 
@@ -78,26 +80,27 @@ public class AuthServiceImpl implements AuthService {
 
             String redirectTo = buildRedirectFromDb(user);
 
-            AuthDto.Response base = authMapper.toResponse(user);
+            // Récupération des rôles sous forme de Set<String>
+            var roles = user.getRoles().stream()
+                    .map(role -> role.getNom())
+                    .collect(Collectors.toSet());
+
+            // Construction de la réponse AVEC l'id
+            AuthDto.Response finalResponse = new AuthDto.Response(
+                    token,
+                    "Bearer",
+                    user.getId(),               // ✅ id ajouté
+                    user.getEmail(),
+                    user.getPrenom(),
+                    user.getNom(),
+                    roles,
+                    redirectTo,
+                    user.isMustChangePassword()
+            );
 
             System.out.println(">>> LOGIN RÉUSSI pour: " + request.email());
             System.out.println(">>> Token généré: " + token.substring(0, 20) + "...");
-            System.out.println(">>> Response base avant retour: " + base);
-
-            AuthDto.Response finalResponse = new AuthDto.Response(
-                    token,
-                    base.tokenType(),
-                    base.email(),
-                    base.prenom(),
-                    base.nom(),
-                    base.roles(),
-                    redirectTo,
-                    base.mustChangePassword()
-            );
-
-            System.out.println(">>> Final Response objet créé: " + finalResponse);
-            System.out.println(">>> Token dans final: " + finalResponse.accessToken());
-            System.out.println(">>> RedirectTo dans final: " + finalResponse.redirectTo());
+            System.out.println(">>> Final Response: " + finalResponse);
 
             return finalResponse;
         } catch (Exception e) {
@@ -142,6 +145,7 @@ public class AuthServiceImpl implements AuthService {
                         .toLowerCase().replace("_", "-"))
                 .orElse("/dashboard");
     }
+
     @Override
     @Transactional
     public AuthDto.Response updateProfile(String email, AuthDto.UpdateProfileRequest request) {
@@ -161,6 +165,17 @@ public class AuthServiceImpl implements AuthService {
 
         userRepository.save(user);
 
-        return authMapper.toResponse(user); // 🔥 OBLIGATOIRE
+        // Retourner une réponse avec l'id
+        return new AuthDto.Response(
+                null,
+                null,
+                user.getId(),
+                user.getEmail(),
+                user.getPrenom(),
+                user.getNom(),
+                user.getRoles().stream().map(r -> r.getNom()).collect(Collectors.toSet()),
+                null,
+                user.isMustChangePassword()
+        );
     }
 }
