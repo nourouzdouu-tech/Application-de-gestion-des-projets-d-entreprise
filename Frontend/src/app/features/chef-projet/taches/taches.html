@@ -1,6 +1,5 @@
 <div class="taches-page">
 
-  <!-- Breadcrumb -->
   <div class="breadcrumb">
     <span class="breadcrumb-link">Tableau de bord</span>
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -9,7 +8,6 @@
     <span class="breadcrumb-current">Tâches</span>
   </div>
 
-  <!-- Header -->
   <div class="hero-header">
     <div class="hero-text">
       <h1 class="page-title">Gestion des Tâches</h1>
@@ -27,7 +25,6 @@
     </button>
   </div>
 
-  <!-- Stats -->
   <div class="stats-grid">
     <div class="stat-box">
       <div class="stat-icon icon-orange">
@@ -71,7 +68,6 @@
     </div>
   </div>
 
-  <!-- Filters Card -->
   <div class="filters-card">
     <div class="search-box">
       <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -81,29 +77,32 @@
       <input
         type="text"
         placeholder="Rechercher une tâche ou un projet..."
-        [ngModel]="searchQuery()"
-        (ngModelChange)="searchQuery.set($event)"
+        [(ngModel)]="searchValue"
+        (input)="onSearchChange($event)"
       />
     </div>
 
     <div class="filters-actions">
       <div class="filter-select">
         <span>Priorité :</span>
-        <select [ngModel]="filterPriorite()" (ngModelChange)="filterPriorite.set($event)">
-          <option *ngFor="let p of priorites" [value]="p">{{ p }}</option>
+        <select [(ngModel)]="filterPrioriteValue" (change)="onPrioriteChange($event)">
+          <option *ngFor="let p of priorites" [value]="p">
+            {{ p }}
+          </option>
         </select>
       </div>
 
       <div class="filter-select">
         <span>Membre :</span>
-        <select [ngModel]="filterMembre()" (ngModelChange)="filterMembre.set($event)">
-          <option value="Tous">Tous</option>
+        <select [(ngModel)]="filterMembreValue" (change)="onMembreChange($event)">
+          <option *ngFor="let m of membres()" [value]="m">
+            {{ m }}
+          </option>
         </select>
       </div>
     </div>
   </div>
 
-  <!-- Table Card -->
   <div class="table-card">
     <div class="table-header">
       <div>
@@ -149,7 +148,7 @@
                   *ngFor="let m of visibleMembres(tache.equipe)"
                   class="avatar"
                   [style.background]="m.couleur"
-                  [title]="m.initiales"
+                  [title]="m.nom || m.initiales"
                 >
                   {{ m.initiales }}
                 </div>

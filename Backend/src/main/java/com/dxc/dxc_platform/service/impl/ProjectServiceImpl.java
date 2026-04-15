@@ -179,40 +179,43 @@ public class ProjectServiceImpl implements ProjectService {
                 .collect(Collectors.toList());
     }
 
+    
     @Override
     public List<ProjectDto> getMyProjects(String query, ProjectStatus status) {
         User currentUser = getAuthenticatedUser();
+
         if (!isChefProjet(currentUser)) {
             throw new ForbiddenException("FORBIDDEN", "Accès réservé au chef de projet");
         }
 
-        List<Project> projects;
-        if (status == null || status == ProjectStatus.EN_COURS) {
-            projects = projectRepository.findAllByChefProjetIdAndDeletedFalseAndStatus(
-                    currentUser.getId(), ProjectStatus.PRE_VALIDE);
+        List<Project> projects = projectRepository.findAllByChefProjetIdAndDeletedFalse(currentUser.getId());
+
+        // Si un filtre de statut est demandé, on filtre en mémoire
+        if (status != null) {
+            projects = projects.stream()
+                    .filter(project -> project.getStatus() == status)
+                    .collect(Collectors.toList());
         } else {
-            projects = projectRepository.findAllByChefProjetIdAndDeletedFalseAndStatus(
-                    currentUser.getId(), status);
+            // Sans filtre, on garde uniquement les projets utiles au chef de projet
+            projects = projects.stream()
+                    .filter(project ->
+                            project.getStatus() == ProjectStatus.PRE_VALIDE
+                                    || project.getStatus() == ProjectStatus.EN_COURS)
+                    .collect(Collectors.toList());
         }
 
         // Filtre textuel
         if (query != null && !query.isBlank()) {
             String normalized = query.trim().toLowerCase();
             projects = projects.stream()
-                    .filter(p -> p.getName().toLowerCase().contains(normalized) ||
-                            p.getClient().toLowerCase().contains(normalized))
+                    .filter(p ->
+                            p.getName().toLowerCase().contains(normalized)
+                                    || p.getClient().toLowerCase().contains(normalized))
                     .collect(Collectors.toList());
         }
 
-        // Transformation PRE_VALIDE -> EN_COURS
         return projects.stream()
-                .map(project -> {
-                    ProjectDto dto = projectMapper.toDto(project);
-                    if (dto.getStatus() == ProjectStatus.PRE_VALIDE) {
-                        dto.setStatus(ProjectStatus.EN_COURS);
-                    }
-                    return dto;
-                })
+                .map(projectMapper::toDto)
                 .collect(Collectors.toList());
     }
     @Override
@@ -312,7 +315,22 @@ public class ProjectServiceImpl implements ProjectService {
     public ProjectDto assignTeamToProject(Long projectId, Long teamId) {
         Project project = findActiveProjectById(projectId);
         User currentUser = getAuthenticatedUser();
-        // Vérifier si cette équipe est déjà affectée à un autre projet (non supprimé)
+
+        // Seul le chef de projet peut affecter une équipe
+        if (!isChefProjet(currentUser)) {
+            throw new ForbiddenException("FORBIDDEN", "Seul un chef de projet peut assigner une équipe");
+        }
+
+        // Vérifier que le projet appartient bien au chef de projet connecté
+        if (project.getChefProjet() == null || !project.getChefProjet().getId().equals(currentUser.getId())) {
+            throw new ForbiddenException("FORBIDDEN", "Vous n'êtes pas le chef de projet assigné à ce projet");
+        }
+
+        // Vérifier que l'équipe existe
+        Team team = teamRepository.findByIdAndDeletedFalse(teamId)
+                .orElseThrow(() -> new NotFoundException("TEAM_NOT_FOUND", "Équipe introuvable"));
+
+        // Vérifier qu'elle n'est pas déjà affectée à un autre projet
         boolean alreadyAssigned = projectRepository.existsByTeamIdAndDeletedFalseAndIdNot(teamId, projectId);
         if (alreadyAssigned) {
             throw new BusinessException(
@@ -321,18 +339,20 @@ public class ProjectServiceImpl implements ProjectService {
             );
         }
 
-        // Vérifier que l'utilisateur connecté est bien le chef de projet assigné
-        if (!isChefProjet(currentUser)) {
-            throw new ForbiddenException("FORBIDDEN", "Seul un chef de projet peut assigner une équipe");
+        // Facultatif mais fortement conseillé :
+        // vérifier que cette équipe appartient bien à ce chef de projet
+        if (team.getProjectManager() == null || !team.getProjectManager().getId().equals(currentUser.getId())) {
+            throw new ForbiddenException(
+                    "FORBIDDEN",
+                    "Vous ne pouvez affecter que votre propre équipe à ce projet"
+            );
         }
-        if (project.getChefProjet() == null || !project.getChefProjet().getId().equals(currentUser.getId())) {
-            throw new ForbiddenException("FORBIDDEN", "Vous n'êtes pas le chef de projet assigné à ce projet");
-        }
-
-        Team team = teamRepository.findByIdAndDeletedFalse(teamId)
-                .orElseThrow(() -> new NotFoundException("TEAM_NOT_FOUND", "Équipe introuvable"));
 
         project.setTeam(team);
+
+        // IMPORTANT : faire avancer le workflow
+        project.setStatus(ProjectStatus.EN_COURS);
+
         Project saved = projectRepository.save(project);
         return projectMapper.toDto(saved);
     }
@@ -478,5 +498,46 @@ public class ProjectServiceImpl implements ProjectService {
         // On assigne directement le chef de projet, sans équipe.
         project.setChefProjet(chefProjet);
         // On peut aussi laisser team = null, il sera assigné plus tard par le chef de projet.
+    }
+    @Override
+    public List<ProjectDto> getMyAssignedProjects(String query, ProjectStatus status) {
+        User currentUser = getAuthenticatedUser();
+
+        if (currentUser.getTeam() == null) {
+            throw new NotFoundException(
+                    "TEAM_NOT_FOUND",
+                    "Aucune équipe n'est associée à l'utilisateur connecté"
+            );
+        }
+
+        Long teamId = currentUser.getTeam().getId();
+
+        List<Project> projects = (status == null)
+                ? projectRepository.findAllByTeamIdAndDeletedFalse(teamId)
+                : projectRepository.findAllByTeamIdAndDeletedFalseAndStatus(teamId, status);
+
+        // optionnel : ne montrer que les projets utiles aux membres
+        if (status == null) {
+            projects = projects.stream()
+                    .filter(project ->
+                            project.getStatus() == ProjectStatus.EN_COURS
+                                    || project.getStatus() == ProjectStatus.PRE_VALIDE
+                                    || project.getStatus() == ProjectStatus.EN_VALIDATION)
+                    .toList();
+        }
+
+        if (query != null && !query.isBlank()) {
+            String normalized = query.trim().toLowerCase();
+
+            projects = projects.stream()
+                    .filter(project ->
+                            project.getName().toLowerCase().contains(normalized)
+                                    || project.getClient().toLowerCase().contains(normalized))
+                    .toList();
+        }
+
+        return projects.stream()
+                .map(projectMapper::toDto)
+                .toList();
     }
 }

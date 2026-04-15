@@ -60,9 +60,12 @@ export class Login {
         this.authService.saveUser(response);
         this.isLoading.set(false);
 
-        const roles = (response.roles || []).map((r: string) =>
-          r.trim().toUpperCase()
-        );
+        const roles = (response.roles || []).map((r: any) => {
+          if (typeof r === 'string') {
+            return r.trim().toUpperCase();
+          }
+          return (r?.nom || '').trim().toUpperCase();
+        });
 
         console.log('Roles utilisateur :', roles);
 
@@ -75,9 +78,14 @@ export class Login {
           this.router.navigateByUrl('/responsable-contrat/projets');
         } else if (roles.includes('ADMIN') || roles.includes('ROLE_ADMIN')) {
           this.router.navigateByUrl('/admin');
-        }else if (roles.includes('MANAGER') || roles.includes('ROLE_MANAGER')) {
-  this.router.navigateByUrl('/manager/projets');
-} else {
+        } else if (roles.includes('MANAGER') || roles.includes('ROLE_MANAGER')) {
+          this.router.navigateByUrl('/manager/projets');
+        } else if (
+          roles.includes('MEMBRE_EQUIPE') ||
+          roles.includes('ROLE_MEMBRE_EQUIPE')
+        ) {
+          this.router.navigateByUrl('/membre-equipe/projets');
+        } else {
           this.router.navigateByUrl('/login');
         }
       },

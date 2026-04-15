@@ -53,8 +53,6 @@
       <button class="tab-btn" [class.active]="selectedStatus === 'PRE_VALIDE'" (click)="setStatusFilter('PRE_VALIDE')">
         Pré-validés
       </button>
-
-     
     </div>
   </div>
 
@@ -64,6 +62,10 @@
         <h3>Liste des projets</h3>
         <p>{{ projects.length }} projet(s)</p>
       </div>
+
+      <span class="pagination-top-info" *ngIf="!loading && !error && projects.length > 0">
+        Affichage de {{ startItem }}-{{ endItem }} sur {{ projects.length }} projets
+      </span>
     </div>
 
     <table class="users-table projects-table">
@@ -72,6 +74,7 @@
           <th>NOM DU PROJET</th>
           <th>CLIENT</th>
           <th>MANAGER</th>
+          <th>ÉQUIPE</th>
           <th>PROGRESSION</th>
           <th>DATES</th>
           <th>NIVEAU DE RISQUE</th>
@@ -82,18 +85,18 @@
 
       <tbody>
         <tr *ngIf="loading">
-          <td colspan="8" class="cell-center state-cell">Chargement des projets...</td>
+          <td colspan="9" class="cell-center state-cell">Chargement des projets...</td>
         </tr>
 
         <tr *ngIf="error">
-          <td colspan="8" class="cell-center state-cell error-text">{{ error }}</td>
+          <td colspan="9" class="cell-center state-cell error-text">{{ error }}</td>
         </tr>
 
         <tr *ngIf="!loading && !error && projects.length === 0">
-          <td colspan="8" class="cell-center state-cell">Aucun projet trouvé.</td>
+          <td colspan="9" class="cell-center state-cell">Aucun projet trouvé.</td>
         </tr>
 
-        <tr *ngFor="let project of projects">
+        <tr *ngFor="let project of paginatedProjects">
           <td>
             <div class="project-cell">
               <div class="project-icon">
@@ -115,6 +118,8 @@
           </td>
 
           <td>{{ project.managerName || '-' }}</td>
+
+          <td>{{ project.teamName || 'Non affectée' }}</td>
 
           <td>
             <div class="progress-box">
@@ -189,6 +194,39 @@
         </tr>
       </tbody>
     </table>
+
+    <div class="pagination-bar" *ngIf="!loading && !error && projects.length > 0">
+      <div class="pagination-controls">
+        <button
+          class="pagination-btn pagination-nav"
+          type="button"
+          (click)="goToPage(currentPage - 1)"
+          [disabled]="currentPage === 1">
+          ‹
+        </button>
+
+        <button
+          *ngFor="let page of pageNumbers"
+          class="pagination-btn"
+          type="button"
+          [class.active]="currentPage === page"
+          (click)="goToPage(page)">
+          {{ page }}
+        </button>
+
+        <button
+          class="pagination-btn pagination-nav"
+          type="button"
+          (click)="goToPage(currentPage + 1)"
+          [disabled]="currentPage === totalPages">
+          ›
+        </button>
+      </div>
+
+      <div class="pagination-bottom-info">
+        Affichant {{ itemsPerPage }} par page
+      </div>
+    </div>
   </div>
 </div>
 
@@ -281,8 +319,6 @@
       <button class="btn-secondary" type="button" (click)="closeForm()" [disabled]="isSubmitting">Annuler</button>
       <button class="btn-primary" type="button" (click)="submitForm()" [disabled]="isSubmitting">
         {{ isSubmitting ? 'Envoi...' : (isEditMode ? 'Modifier' : 'Créer') }}
-
-      
       </button>
     </div>
   </div>
@@ -304,6 +340,7 @@
     <div class="modal-body" *ngIf="selectedProjectDetails">
       <p><strong>Projet :</strong> {{ selectedProjectDetails.name }}</p>
       <p><strong>Statut :</strong> {{ getStatusLabel(selectedProjectDetails.status) }}</p>
+      <p><strong>Équipe :</strong> {{ selectedProjectDetails.teamName || 'Non affectée' }}</p>
 
       <p><strong>Commentaire manager :</strong></p>
       <div class="comment-box">

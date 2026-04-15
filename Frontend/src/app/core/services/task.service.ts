@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 
 export type TaskStatus = 'A_faire' | 'En_cours' | 'Terminé' | 'Validation';
@@ -30,18 +30,42 @@ export class TaskService {
   }
 
   getTasksByProject(projectId: number): Observable<TaskDto[]> {
-  return this.http.get<TaskDto[]>(`${this.apiUrl}/project/${projectId}`);
+    return this.http.get<TaskDto[]>(`${this.apiUrl}/project/${projectId}`);
+  }
+
+ getMyTasks(query?: string, priority?: string, assignedToId?: number): Observable<TaskDto[]> {
+  let params = new HttpParams();
+
+  if (query) {
+    params = params.set('query', query);
+  }
+
+  if (priority && priority !== 'Toutes') {
+    const backendPriorityMap: Record<string, string> = {
+      Haute: 'HAUTE',
+      Moyenne: 'MOYENNE',
+      Basse: 'BASSE'
+    };
+    params = params.set('priority', backendPriorityMap[priority] ?? priority);
+  }
+
+  if (assignedToId) {
+    params = params.set('assignedToId', assignedToId);
+  }
+
+  return this.http.get<TaskDto[]>(`${this.apiUrl}/my-tasks`, { params });
 }
 
-  getMyTasks(): Observable<TaskDto[]> {
-    return this.http.get<TaskDto[]>(`${this.apiUrl}/my-tasks`);
+  updateMyTaskStatus(id: number, status: TaskStatus): Observable<TaskDto> {
+    const params = new HttpParams().set('status', status);
+    return this.http.patch<TaskDto>(`${this.apiUrl}/${id}/status`, null, { params });
   }
 
   deleteTask(id: number): Observable<void> {
-  return this.http.delete<void>(`${this.apiUrl}/${id}`);
-}
+    return this.http.delete<void>(`${this.apiUrl}/${id}`);
+  }
+
   updateTask(id: number, task: TaskDto): Observable<TaskDto> {
-  return this.http.put<TaskDto>(`${this.apiUrl}/${id}`, task);
-}
-  
+    return this.http.put<TaskDto>(`${this.apiUrl}/${id}`, task);
+  }
 }

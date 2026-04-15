@@ -41,6 +41,12 @@
   </div>
 
   <div class="table-card">
+    <div class="table-top-bar" *ngIf="!loading && !error && filteredProfiles.length > 0">
+      <span class="table-top-info">
+        Affichage de {{ startItem }} à {{ endItem }} sur {{ filteredProfiles.length }} profils
+      </span>
+    </div>
+
     <table class="users-table">
       <thead>
         <tr>
@@ -65,7 +71,7 @@
           <td colspan="5" class="cell-center">Aucun profil trouvé.</td>
         </tr>
 
-        <tr *ngFor="let profile of filteredProfiles; trackBy: trackByProfile; let i = index">
+        <tr *ngFor="let profile of paginatedProfiles; trackBy: trackByProfile; let i = index">
           <td>
             <div class="profile-cell">
               <div class="profile-icon" [style.background-color]="getAvatarColor(i)">
@@ -87,26 +93,59 @@
 
           <td>
             <div class="actions-inline">
-  <button class="action-icon" (click)="openEditModal(profile)" title="Modifier">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-      <path d="M12 20h9"/>
-      <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z"/>
-    </svg>
-  </button>
+              <button class="action-icon" (click)="openEditModal(profile)" title="Modifier">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M12 20h9"/>
+                  <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z"/>
+                </svg>
+              </button>
 
-  <button class="action-icon" (click)="deleteProfile(profile)" title="Supprimer">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-      <polyline points="3 6 5 6 21 6"/>
-      <path d="M19 6l-1 14H6L5 6"/>
-      <path d="M10 11v6"/>
-      <path d="M14 11v6"/>
-    </svg>
-  </button>
-</div>
+              <button class="action-icon" (click)="deleteProfile(profile)" title="Supprimer">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="3 6 5 6 21 6"/>
+                  <path d="M19 6l-1 14H6L5 6"/>
+                  <path d="M10 11v6"/>
+                  <path d="M14 11v6"/>
+                </svg>
+              </button>
+            </div>
           </td>
         </tr>
       </tbody>
     </table>
+
+    <div class="pagination-bar" *ngIf="!loading && !error && filteredProfiles.length > 0">
+      <div class="pagination-controls">
+        <button
+          class="pagination-btn"
+          type="button"
+          (click)="goToPage(currentPage - 1)"
+          [disabled]="currentPage === 1">
+          ‹
+        </button>
+
+        <button
+          *ngFor="let page of pageNumbers"
+          class="pagination-btn"
+          type="button"
+          [class.active]="currentPage === page"
+          (click)="goToPage(page)">
+          {{ page }}
+        </button>
+
+        <button
+          class="pagination-btn"
+          type="button"
+          (click)="goToPage(currentPage + 1)"
+          [disabled]="currentPage === totalPages">
+          ›
+        </button>
+      </div>
+
+      <div class="pagination-page-size">
+        Affichant {{ itemsPerPage }} par page
+      </div>
+    </div>
   </div>
 </div>
 

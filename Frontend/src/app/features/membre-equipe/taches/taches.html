@@ -1,0 +1,184 @@
+<div class="tasks-page">
+  <div class="page-head">
+    <div>
+      <h1 class="page-title">Mes Tâches</h1>
+      <p class="page-subtitle">
+        Gérez votre flux de travail et suivez vos tâches.
+      </p>
+    </div>
+  </div>
+
+  <div class="stats-row">
+    <div class="stat-card">
+      <span>Total tâches</span>
+      <strong>{{ aFaire().length + enCours().length + enValidation().length + termine().length }}</strong>
+    </div>
+
+    <div class="stat-card purple">
+      <span>À faire</span>
+      <strong>{{ aFaire().length }}</strong>
+    </div>
+
+    <div class="stat-card blue">
+      <span>En cours</span>
+      <strong>{{ enCours().length }}</strong>
+    </div>
+
+    <div class="stat-card orange">
+      <span>Validation</span>
+      <strong>{{ enValidation().length }}</strong>
+    </div>
+
+    <div class="stat-card green">
+      <span>Terminées</span>
+      <strong>{{ termine().length }}</strong>
+    </div>
+  </div>
+
+  <div class="board-grid">
+    <!-- À FAIRE -->
+    <div class="board-column board-column-todo">
+      <div class="column-header">
+        <span class="column-title">À FAIRE</span>
+        <span class="count-badge">{{ aFaire().length }}</span>
+      </div>
+
+      <div
+        cdkDropList
+        id="todoList"
+        [cdkDropListData]="aFaire()"
+        [cdkDropListConnectedTo]="connectedLists"
+        class="drop-zone"
+        (cdkDropListDropped)="drop($event, 'A_FAIRE')"
+      >
+        <div class="task-card" *ngFor="let task of aFaire()" cdkDrag>
+          <div class="task-top">
+            <span class="project-chip">{{ task.projet }}</span>
+          </div>
+
+          <h3 class="task-title">{{ task.titre }}</h3>
+
+          <div class="task-meta">
+            <span>{{ task.date }}</span>
+            <span class="meta-separator">|</span>
+            <span class="priority {{task.priorite}}">
+              {{ getPriorityLabel(task.priorite) }}
+            </span>
+          </div>
+
+          <button class="action-primary" (click)="demarrerTache(task)">
+            Démarrer la tâche
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- EN COURS -->
+    <div class="board-column board-column-progress">
+      <div class="column-header">
+        <span class="column-title">EN COURS</span>
+        <span class="count-badge">{{ enCours().length }}</span>
+      </div>
+
+      <div
+        cdkDropList
+        id="doingList"
+        [cdkDropListData]="enCours()"
+        [cdkDropListConnectedTo]="connectedLists"
+        class="drop-zone"
+        (cdkDropListDropped)="drop($event, 'EN_COURS')"
+      >
+        <div class="task-card" *ngFor="let task of enCours()" cdkDrag>
+          <div class="task-top">
+            <span class="project-chip">{{ task.projet }}</span>
+          </div>
+
+          <h3 class="task-title">{{ task.titre }}</h3>
+
+          <div class="task-meta">
+            <span>{{ task.date }}</span>
+            <span class="meta-separator">|</span>
+            <span class="priority {{task.priorite}}">
+              {{ getPriorityLabel(task.priorite) }}
+            </span>
+          </div>
+
+          <button class="action-primary" (click)="soumettrePourValidation(task)">
+            Soumettre pour validation
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- EN VALIDATION -->
+    <div class="board-column board-column-validation">
+      <div class="column-header">
+        <span class="column-title">EN VALIDATION</span>
+        <span class="count-badge">{{ enValidation().length }}</span>
+      </div>
+
+      <div
+        cdkDropList
+        id="validationList"
+        [cdkDropListData]="enValidation()"
+        [cdkDropListConnectedTo]="connectedLists"
+        class="drop-zone"
+        (cdkDropListDropped)="drop($event, 'EN_VALIDATION')"
+      >
+        <div class="task-card task-card-light" *ngFor="let task of enValidation()" cdkDrag>
+          <div class="task-top">
+            <span class="project-chip">{{ task.projet }}</span>
+            <span class="waiting-dot"></span>
+          </div>
+
+          <h3 class="task-title">{{ task.titre }}</h3>
+
+          <div class="task-meta">
+            <span>{{ task.date }}</span>
+            <span class="meta-separator">|</span>
+            <span class="priority {{task.priorite}}">
+              {{ getPriorityLabel(task.priorite) }}
+            </span>
+          </div>
+
+          <button class="action-outline">
+            En attente de validation
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- TERMINÉ -->
+    <div class="board-column board-column-done">
+      <div class="column-header">
+        <span class="column-title">TERMINÉ</span>
+        <span class="count-badge">{{ termine().length }}</span>
+      </div>
+
+      <div
+        cdkDropList
+        id="doneList"
+        [cdkDropListData]="termine()"
+        [cdkDropListConnectedTo]="connectedLists"
+        class="drop-zone"
+        (cdkDropListDropped)="drop($event, 'TERMINE')"
+      >
+        <div class="task-card task-card-done" *ngFor="let task of termine()" cdkDrag>
+          <div class="task-top">
+            <span class="project-chip">{{ task.projet }}</span>
+            <span class="success-icon">✓</span>
+          </div>
+
+          <h3 class="task-title">{{ task.titre }}</h3>
+
+          <div class="task-meta muted-meta">
+            <span>{{ task.date }}</span>
+            <span class="task-ref">{{ task.reference }}</span>
+          </div>
+
+          <div class="done-badge">Tâche validée</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

@@ -27,4 +27,5 @@ public interface ProjectService {
 
     ProjectDto reviewProjectByManager(ManagerProjectReviewDto request);
     ProjectDto assignTeamToProject(Long projectId, Long teamId);
+    List<ProjectDto> getMyAssignedProjects(String query, ProjectStatus status);
 }

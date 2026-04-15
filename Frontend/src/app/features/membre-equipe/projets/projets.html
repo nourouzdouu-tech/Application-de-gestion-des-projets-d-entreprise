@@ -1,0 +1,170 @@
+<div class="projects-page">
+  <div class="breadcrumb">
+    <span class="breadcrumb-parent">Tableau de bord</span>
+    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+      <polyline points="9 18 15 12 9 6" />
+    </svg>
+    <span class="breadcrumb-current">Projets</span>
+  </div>
+
+  <div class="page-head">
+    <div>
+      <h1 class="page-title">Projets</h1>
+      <p class="page-subtitle">Consultez les projets assignés à votre équipe.</p>
+    </div>
+  </div>
+
+  <div class="search-card">
+    <div class="search-wrapper search-wrapper-large">
+      <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="11" cy="11" r="8"></circle>
+        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+      </svg>
+      <input
+        type="text"
+        class="search-input search-input-large"
+        placeholder="Rechercher un projet ou un client..."
+        [value]="searchTerm()"
+        (input)="onSearch($any($event.target).value)"
+      />
+    </div>
+
+    <button class="clear-btn" type="button" (click)="onSearch('')">
+      Effacer
+    </button>
+  </div>
+
+  <div class="stats-grid">
+    <div class="stat-card">
+      <div class="stat-icon stat-icon--purple">📁</div>
+      <div class="stat-content">
+        <div class="stat-label">TOTAL PROJETS</div>
+        <div class="stat-value">{{ totalProjects() }}</div>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon stat-icon--blue">⏳</div>
+      <div class="stat-content">
+        <div class="stat-label">EN COURS</div>
+        <div class="stat-value">{{ inProgressProjects() }}</div>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-icon stat-icon--orange">🗓️</div>
+      <div class="stat-content">
+        <div class="stat-label">ÉCHÉANCES PROCHES</div>
+        <div class="stat-value">{{ nearDeadlines() }}</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="list-card">
+    <div class="list-card-header">
+      <div>
+        <h2 class="list-title">Liste des projets</h2>
+        <p class="list-subtitle">{{ filteredProjects().length }} projet(s)</p>
+      </div>
+
+      <button class="refresh-btn" type="button" (click)="loadProjects()">
+        Actualiser
+      </button>
+    </div>
+
+    @if (loading()) {
+      <div class="loading-state">
+        Chargement des projets...
+      </div>
+    } @else if (error()) {
+      <div class="loading-state error-state">
+        {{ error() }}
+      </div>
+    } @else {
+      <div class="table-wrap">
+        <table class="projects-table">
+          <thead>
+            <tr>
+              <th>NOM DU PROJET</th>
+              <th>CLIENT</th>
+              <th>CHEF DE PROJET</th>
+              <th>DATES</th>
+              <th>STATUT</th>
+              <th>PROGRESSION</th>
+              <th>ACTIONS</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            <tr *ngFor="let project of filteredProjects()">
+              <td>
+                <div class="project-main-cell">
+                  <div class="project-avatar">{{ getProjectIcon(project.name) }}</div>
+                  <div class="project-info">
+                    <div class="project-name">{{ project.name }}</div>
+                    <div class="project-desc">{{ project.name }}</div>
+                  </div>
+                </div>
+              </td>
+
+              <td class="client-cell">{{ project.client }}</td>
+
+              <td class="chef-cell">{{ project.chefProjet }}</td>
+
+              <td class="date-cell">
+                <div class="date-main">{{ project.dueDate }}</div>
+                <div class="date-sub">Échéance</div>
+              </td>
+
+              <td>
+                <span class="status-badge" [ngClass]="getStatusClass(project.status)">
+                  {{ project.status }}
+                </span>
+              </td>
+
+              <td>
+                <div class="progress-box">
+                  <div class="progress-percent">{{ project.progress }}%</div>
+                  <div class="progress-track">
+                    <div class="progress-fill" [style.width.%]="project.progress"></div>
+                  </div>
+                </div>
+              </td>
+
+              <td>
+                <div class="actions-cell">
+                  <button class="action-btn action-view" type="button" title="Voir">👁</button>
+                  <button class="action-btn action-open" type="button" title="Ouvrir">↗</button>
+                </div>
+              </td>
+            </tr>
+
+            <tr *ngIf="filteredProjects().length === 0">
+              <td colspan="7" class="empty-cell">Aucun projet assigné à votre équipe.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="pagination-bar">
+        <button class="page-control" type="button">‹ Précédent</button>
+        <span class="page-indicator">Page 1 sur 1</span>
+        <button class="page-control" type="button">Suivant ›</button>
+      </div>
+    }
+  </div>
+
+  <div class="activities-section">
+    <h2 class="section-title">Dernières activités</h2>
+
+    <div class="activities-card">
+      <div class="activity-item" *ngFor="let item of activities()">
+        <div class="activity-dot"></div>
+        <div class="activity-content">
+          <div class="activity-text">{{ item.text }}</div>
+          <div class="activity-date">{{ item.date }}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

@@ -52,6 +52,9 @@ export class Projets implements OnInit, OnDestroy {
   projectForm: ProjectDto = this.getEmptyForm();
   currentUser = signal<any>(null);
 
+  currentPage = 1;
+  itemsPerPage = 4;
+
   private destroy$ = new Subject<void>();
 
   constructor(
@@ -105,6 +108,7 @@ export class Projets implements OnInit, OnDestroy {
   fetchProjects(): void {
     this.loading = true;
     this.error = null;
+    this.currentPage = 1;
 
     const query = this.searchTerm.trim() || undefined;
     const status = this.selectedStatus || undefined;
@@ -124,6 +128,33 @@ export class Projets implements OnInit, OnDestroy {
           this.cdr.detectChanges();
         }
       });
+  }
+
+  get paginatedProjects(): ProjectDto[] {
+    const start = (this.currentPage - 1) * this.itemsPerPage;
+    return this.projects.slice(start, start + this.itemsPerPage);
+  }
+
+  get totalPages(): number {
+    return Math.ceil(this.projects.length / this.itemsPerPage);
+  }
+
+  get pageNumbers(): number[] {
+    return Array.from({ length: this.totalPages }, (_, i) => i + 1);
+  }
+
+  get startItem(): number {
+    if (this.projects.length === 0) return 0;
+    return (this.currentPage - 1) * this.itemsPerPage + 1;
+  }
+
+  get endItem(): number {
+    return Math.min(this.currentPage * this.itemsPerPage, this.projects.length);
+  }
+
+  goToPage(page: number): void {
+    if (page < 1 || page > this.totalPages) return;
+    this.currentPage = page;
   }
 
   onClientChange(): void {
@@ -272,6 +303,14 @@ export class Projets implements OnInit, OnDestroy {
       .subscribe({
         next: () => {
           this.projects = this.projects.filter(p => p.id !== this.projectToDelete!.id);
+
+          if (this.currentPage > this.totalPages && this.totalPages > 0) {
+            this.currentPage = this.totalPages;
+          }
+          if (this.projects.length === 0) {
+            this.currentPage = 1;
+          }
+
           this.showDeleteConfirm = false;
           this.projectToDelete = null;
         },

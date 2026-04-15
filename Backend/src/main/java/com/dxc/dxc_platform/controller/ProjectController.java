@@ -98,4 +98,11 @@ public class ProjectController {
     public ResponseEntity<ProjectDto> assignTeamToProject(@PathVariable Long projectId, @RequestParam Long teamId) {
         return ResponseEntity.ok(projectService.assignTeamToProject(projectId, teamId));
     }
+    @GetMapping("/my-assigned-projects")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<List<ProjectDto>> getMyAssignedProjects(
+            @RequestParam(required = false) String query,
+            @RequestParam(required = false) ProjectStatus status) {
+        return ResponseEntity.ok(projectService.getMyAssignedProjects(query, status));
+    }
 }

@@ -21,6 +21,10 @@ import { ManagerLayoutComponent } from './features/manager/manager';
 import { MessagesComponent } from './features/chef-projet/messages/messages';
 import { ReviewProjetsComponent } from './features/manager/projets/projets';
 
+import { MembreEquipe } from './features/membre-equipe/membre-equipe';
+import { MembreEquipeProjets } from './features/membre-equipe/projets/projets';
+import { MembreEquipeTaches } from './features/membre-equipe/taches/taches';
+
 export const routes: Routes = [
   {
     path: 'login',
@@ -77,8 +81,17 @@ export const routes: Routes = [
       { path: '', redirectTo: 'projets', pathMatch: 'full' }
     ]
   },
-  
-  
+
+  {
+    path: 'membre-equipe',
+    component: MembreEquipe,
+    children: [
+      { path: '', redirectTo: 'projets', pathMatch: 'full' },
+      { path: 'projets', component: MembreEquipeProjets },
+      { path: 'taches', component: MembreEquipeTaches } 
+       ]
+  },
+
 
   {
     path: '',

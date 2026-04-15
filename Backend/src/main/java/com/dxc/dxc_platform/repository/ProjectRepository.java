@@ -32,4 +32,7 @@ public interface ProjectRepository extends JpaRepository<Project, Long> {
     List<Project> findAllByDeletedFalseAndManagerId(Long managerId);
 
     List<Project> findAllByDeletedFalseAndManagerIdAndStatusIn(Long managerId, List<ProjectStatus> statuses);
+    List<Project> findAllByTeamIdAndDeletedFalse(Long teamId);
+
+    List<Project> findAllByTeamIdAndDeletedFalseAndStatus(Long teamId, ProjectStatus status);
 }

@@ -29,10 +29,9 @@ export interface ProjectDto {
   updatedAt?: string;
   managerId?: number;
   managerName?: string;
-
   managerComment?: string;
   reviewedAt?: string;
-   chefProjetId?: number;
+  chefProjetId?: number;
   chefProjetName?: string;
 }
 
@@ -88,12 +87,29 @@ export class ProjectService {
     return this.http.get<ProjectDto[]>(`${this.API_URL}/my-projects`, { params });
   }
 
+  getMyAssignedProjects(query?: string, status?: string): Observable<ProjectDto[]> {
+    let params = new HttpParams();
+
+    if (query && query.trim()) {
+      params = params.set('query', query.trim());
+    }
+
+    if (status && status.trim()) {
+      params = params.set('status', status.trim());
+    }
+
+    return this.http.get<ProjectDto[]>(`${this.API_URL}/my-assigned-projects`, { params });
+  }
+
   setDeletedStatus(projectId: number, deleted: boolean): Observable<ProjectDto> {
     const params = new HttpParams().set('deleted', deleted.toString());
     return this.http.patch<ProjectDto>(`${this.API_URL}/${projectId}/deleted`, null, { params });
   }
+
   assignTeamToProject(projectId: number, teamId: number): Observable<ProjectDto> {
-  return this.http.patch<ProjectDto>(`${this.API_URL}/${projectId}/assign-team?teamId=${teamId}`, {});
-}
-  
+    return this.http.patch<ProjectDto>(
+      `${this.API_URL}/${projectId}/assign-team?teamId=${teamId}`,
+      {}
+    );
+  }
 }
