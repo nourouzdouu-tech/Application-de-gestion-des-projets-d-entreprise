@@ -15,6 +15,7 @@ import com.dxc.dxc_platform.mapper.UserMapper;
 import com.dxc.dxc_platform.repository.ProjectRepository;
 import com.dxc.dxc_platform.repository.TeamRepository;
 import com.dxc.dxc_platform.repository.UserRepository;
+import com.dxc.dxc_platform.repository.TaskRepository;
 import com.dxc.dxc_platform.service.ProjectService;
 import com.dxc.dxc_platform.shared.exception.BusinessException;
 import com.dxc.dxc_platform.shared.exception.ConflictException;
@@ -24,6 +25,7 @@ import jakarta.transaction.Transactional;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -38,19 +40,22 @@ public class ProjectServiceImpl implements ProjectService {
     private final ProjectMapper projectMapper;
     private final ManagerProjectMapper managerProjectMapper;
     private final UserMapper userMapper;
+    private final TaskRepository taskRepository;
 
     public ProjectServiceImpl(ProjectRepository projectRepository,
                               TeamRepository teamRepository,
                               UserRepository userRepository,
                               ProjectMapper projectMapper,
                               ManagerProjectMapper managerProjectMapper,
-                              UserMapper userMapper) {
+                              UserMapper userMapper,
+    TaskRepository taskRepository) {
         this.projectRepository = projectRepository;
         this.teamRepository = teamRepository;
         this.userRepository = userRepository;
         this.projectMapper = projectMapper;
         this.managerProjectMapper = managerProjectMapper;
         this.userMapper = userMapper;
+        this.taskRepository = taskRepository;
     }
 
     @Override
@@ -117,21 +122,14 @@ public class ProjectServiceImpl implements ProjectService {
         Project savedProject = projectRepository.save(project);
         return projectMapper.toDto(savedProject);
     }
-
     @Override
     public ProjectDto updateProject(Long projectId, ProjectDto request) {
         Project project = findActiveProjectById(projectId);
         User currentUser = getAuthenticatedUser();
-
-        // Vérifie que l'utilisateur connecté a le droit de modifier ce projet
         validateCurrentUserCanManageProject(project, currentUser);
-
-        // Vérification métier sur les dates
         validateProjectDates(request);
 
         String newName = request.getName().trim();
-
-        // Si le nom change, on vérifie qu'il n'existe pas déjà
         if (!project.getName().equalsIgnoreCase(newName)
                 && projectRepository.existsByNameIgnoreCaseAndDeletedFalse(newName)) {
             throw new ConflictException("PROJECT_ALREADY_EXISTS", "Un projet avec ce nom existe déjà");
@@ -145,13 +143,28 @@ public class ProjectServiceImpl implements ProjectService {
         project.setStartDate(request.getStartDate());
         project.setEndDate(request.getEndDate());
 
-        // Mise à jour éventuelle du manager
         if (request.getManagerId() != null) {
             User manager = findValidManagerById(request.getManagerId());
             project.setManager(manager);
         }
 
-
+        // ✅ Vérifier si l'équipe change et si des tâches existent
+        Long newTeamId = request.getTeamId();
+        if (newTeamId != null) {
+            Long currentTeamId = project.getTeam() != null ? project.getTeam().getId() : null;
+            if (!newTeamId.equals(currentTeamId)) {
+                long taskCount = taskRepository.countByProjectIdAndDeletedFalse(projectId);
+                if (taskCount > 0) {
+                    throw new BusinessException(
+                            "TASKS_ALREADY_EXIST",
+                            "Impossible de changer d'équipe car des tâches existent déjà pour ce projet."
+                    );
+                }
+                Team newTeam = teamRepository.findByIdAndDeletedFalse(newTeamId)
+                        .orElseThrow(() -> new NotFoundException("TEAM_NOT_FOUND", "Équipe introuvable"));
+                project.setTeam(newTeam);
+            }
+        }
 
         Project updatedProject = projectRepository.save(project);
         return projectMapper.toDto(updatedProject);
@@ -309,48 +322,37 @@ public class ProjectServiceImpl implements ProjectService {
         Project saved = projectRepository.save(project);
         return projectMapper.toDto(saved);
     }
-
     @Override
     @Transactional
     public ProjectDto assignTeamToProject(Long projectId, Long teamId) {
         Project project = findActiveProjectById(projectId);
         User currentUser = getAuthenticatedUser();
 
-        // Seul le chef de projet peut affecter une équipe
         if (!isChefProjet(currentUser)) {
             throw new ForbiddenException("FORBIDDEN", "Seul un chef de projet peut assigner une équipe");
         }
 
-        // Vérifier que le projet appartient bien au chef de projet connecté
         if (project.getChefProjet() == null || !project.getChefProjet().getId().equals(currentUser.getId())) {
             throw new ForbiddenException("FORBIDDEN", "Vous n'êtes pas le chef de projet assigné à ce projet");
         }
 
-        // Vérifier que l'équipe existe
+        // ✅ Vérifier si des tâches existent déjà pour ce projet
+        long taskCount = taskRepository.countByProjectIdAndDeletedFalse(projectId);
+        if (taskCount > 0) {
+            throw new BusinessException(
+                    "TASKS_ALREADY_EXIST",
+                    "Impossible de modifier l'équipe car des tâches ont déjà été créées pour ce projet."
+            );
+        }
+
         Team team = teamRepository.findByIdAndDeletedFalse(teamId)
                 .orElseThrow(() -> new NotFoundException("TEAM_NOT_FOUND", "Équipe introuvable"));
 
-        // Vérifier qu'elle n'est pas déjà affectée à un autre projet
-        boolean alreadyAssigned = projectRepository.existsByTeamIdAndDeletedFalseAndIdNot(teamId, projectId);
-        if (alreadyAssigned) {
-            throw new BusinessException(
-                    "TEAM_ALREADY_ASSIGNED",
-                    "Cette équipe est déjà affectée à un autre projet."
-            );
-        }
-
-        // Facultatif mais fortement conseillé :
-        // vérifier que cette équipe appartient bien à ce chef de projet
         if (team.getProjectManager() == null || !team.getProjectManager().getId().equals(currentUser.getId())) {
-            throw new ForbiddenException(
-                    "FORBIDDEN",
-                    "Vous ne pouvez affecter que votre propre équipe à ce projet"
-            );
+            throw new ForbiddenException("FORBIDDEN", "Vous ne pouvez affecter que votre propre équipe à ce projet");
         }
 
         project.setTeam(team);
-
-        // IMPORTANT : faire avancer le workflow
         project.setStatus(ProjectStatus.EN_COURS);
 
         Project saved = projectRepository.save(project);

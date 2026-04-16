@@ -292,20 +292,20 @@
           </div>
         </div>
 
-        <div class="form-group">
-          <label>RÔLE</label>
-          <div class="select-wrapper">
-            <select class="form-control" [value]="newRole()" (change)="newRole.set($any($event.target).value)">
-              <option value="" disabled selected>Sélectionner un rôle...</option>
-              @for (role of roles(); track role.id) {
-                <option [value]="role.nom">{{ role.nom }}</option>
-              }
-            </select>
-            <svg class="select-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="2">
-              <polyline points="6 9 12 15 18 9"></polyline>
-            </svg>
-          </div>
-        </div>
+       <div class="form-group">
+  <label>RÔLE(S)</label>
+  <div class="roles-checkbox-group">
+    @for (role of roles(); track role.id) {
+      <label class="role-checkbox">
+        <input type="checkbox"
+               [value]="role.nom"
+               [checked]="newRoles().includes(role.nom)"
+               (change)="toggleRoleSelection(role.nom, $event)" />
+        <span>{{ role.nom }}</span>
+      </label>
+    }
+  </div>
+</div>
 
         <div class="form-group">
           <label>PROFIL</label>
@@ -389,21 +389,21 @@
           </div>
         </div>
 
-        <div class="form-group">
-          <label>RÔLE</label>
-          <div class="select-wrapper">
-            <select class="form-control" [value]="editRole()" (change)="editRole.set($any($event.target).value)">
-              <option value="" disabled>Sélectionner un rôle...</option>
-              @for (role of roles(); track role.id) {
-                <option [value]="role.nom">{{ role.nom }}</option>
-              }
-            </select>
-            <svg class="select-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="2">
-              <polyline points="6 9 12 15 18 9"></polyline>
-            </svg>
-          </div>
-        </div>
-
+        <!-- Dans la modale d'édition -->
+<div class="form-group">
+  <label>RÔLE(S)</label>
+  <div class="roles-checkbox-group">
+    @for (role of roles(); track role.id) {
+      <label class="role-checkbox">
+        <input type="checkbox"
+               [value]="role.nom"
+               [checked]="editRoles().includes(role.nom)"
+               (change)="toggleEditRoleSelection(role.nom, $event)" />
+        <span>{{ role.nom }}</span>
+      </label>
+    }
+  </div>
+</div>
         <div class="form-group">
           <label>PROFIL</label>
           <div class="select-wrapper">

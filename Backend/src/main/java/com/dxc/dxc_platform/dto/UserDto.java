@@ -3,6 +3,7 @@ package com.dxc.dxc_platform.dto;
 import com.dxc.dxc_platform.enums.Genre;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 
 import java.util.Set;
@@ -14,7 +15,7 @@ public class UserDto {
             @NotBlank String nom,
             @Email @NotBlank String email,
             @NotNull Genre genre,
-            @NotBlank String roleCode,
+            @NotEmpty Set<String> roleCodes,
             @NotBlank String password,
             @NotNull Long profileId
     ) {}
@@ -24,7 +25,7 @@ public class UserDto {
             @NotBlank String nom,
             @Email @NotBlank String email,
             @NotNull Genre genre,
-            @NotBlank String roleCode,
+            @NotEmpty Set<String> roleCodes,
             @NotNull Long profileId
     ) {}
 

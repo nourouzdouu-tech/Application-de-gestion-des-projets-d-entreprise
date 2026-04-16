@@ -32,6 +32,7 @@ export class Utilisateurs implements OnInit {
   profilePrenom = signal('');
   profileEmail = signal('');
   profilePassword = signal('');
+  
 
   itemsPerPage = 5;
   loading = signal(false);
@@ -50,7 +51,7 @@ export class Utilisateurs implements OnInit {
   newPrenom = signal('');
   newEmail = signal('');
   newPassword = signal('');
-  newRole = signal('');
+newRoles = signal<string[]>([]);
   newGenre = signal('FEMME');
   newProfileId = signal<number | null>(null);
 
@@ -59,7 +60,7 @@ export class Utilisateurs implements OnInit {
   editNom = signal('');
   editPrenom = signal('');
   editEmail = signal('');
-  editRole = signal('');
+  editRoles = signal<string[]>([]);
   editGenre = signal('FEMME');
   editProfileId = signal<number | null>(null);
 
@@ -201,101 +202,100 @@ export class Utilisateurs implements OnInit {
   }
 
   closeModal() {
-    this.showModal.set(false);
-    this.newNom.set('');
-    this.newPrenom.set('');
-    this.newEmail.set('');
-    this.newPassword.set('');
-    this.newRole.set('');
-    this.newGenre.set('FEMME');
-    this.newProfileId.set(null);
+  this.showModal.set(false);
+  this.newNom.set('');
+  this.newPrenom.set('');
+  this.newEmail.set('');
+  this.newPassword.set('');
+  this.newRoles.set([]);        // ← réinitialisation
+  this.newGenre.set('FEMME');
+  this.newProfileId.set(null);
+}
+
+submitModal() {
+  if (!this.newNom() || !this.newPrenom() || !this.newEmail() ||
+      !this.newPassword() || this.newRoles().length === 0 || !this.newGenre() || !this.newProfileId()) {
+    this.showError('Veuillez remplir tous les champs (au moins un rôle)');
+    return;
   }
 
-  submitModal() {
-    if (!this.newNom() || !this.newPrenom() || !this.newEmail() ||
-        !this.newPassword() || !this.newRole() || !this.newGenre() || !this.newProfileId()) {
-      this.showError('Veuillez remplir tous les champs');
-      return;
-    }
-
-    this.adminService.createUser({
-      nom: this.newNom(),
-      prenom: this.newPrenom(),
-      email: this.newEmail(),
-      password: this.newPassword(),
-      roleCode: this.newRole(),
-      genre: this.newGenre(),
-      profileId: this.newProfileId()!
-    }).subscribe({
-      next: () => {
-        this.closeModal();
-        this.loadUsers();
-        this.showSuccess('Utilisateur créé avec succès !');
-      },
-      error: (err) => {
-        if (err.status === 409) {
-          this.showError('Cet email est déjà utilisé');
-        } else if (err.status === 404) {
-          this.showError('Rôle ou profil introuvable');
-        } else {
-          this.showError('Erreur lors de la création');
-        }
+  this.adminService.createUser({
+    nom: this.newNom(),
+    prenom: this.newPrenom(),
+    email: this.newEmail(),
+    password: this.newPassword(),
+    roleCodes: this.newRoles(),
+    genre: this.newGenre(),
+    profileId: this.newProfileId()!
+  }).subscribe({
+    next: () => {
+      this.closeModal();
+      this.loadUsers();
+      this.showSuccess('Utilisateur créé avec succès !');
+    },
+    error: (err) => {
+      if (err.status === 409) {
+        this.showError('Cet email est déjà utilisé');
+      } else if (err.status === 404) {
+        this.showError('Rôle ou profil introuvable');
+      } else {
+        this.showError('Erreur lors de la création');
       }
-    });
-  }
-
-  openEditModal(user: UserResponse) {
-    this.editId.set(user.id);
-    this.editNom.set(user.nom);
-    this.editPrenom.set(user.prenom);
-    this.editEmail.set(user.email);
-    this.editGenre.set(user.genre === 'M' ? 'HOMME' : 'FEMME');
-    this.editRole.set(user.roles[0]?.nom ?? '');
-    this.editProfileId.set(user.profileId ?? null);
-    this.showEditModal.set(true);
-  }
-
-  closeEditModal() {
-    this.showEditModal.set(false);
-    this.editId.set(null);
-    this.editNom.set('');
-    this.editPrenom.set('');
-    this.editEmail.set('');
-    this.editRole.set('');
-    this.editGenre.set('FEMME');
-    this.editProfileId.set(null);
-  }
-
-  submitEditModal() {
-    if (!this.editNom() || !this.editPrenom() || !this.editEmail() ||
-        !this.editRole() || !this.editGenre() || !this.editProfileId()) {
-      this.showError('Veuillez remplir tous les champs');
-      return;
     }
+  });
+}
 
-    this.adminService.updateUser(this.editId()!, {
-      nom: this.editNom(),
-      prenom: this.editPrenom(),
-      email: this.editEmail(),
-      genre: this.editGenre(),
-      roleCode: this.editRole(),
-      profileId: this.editProfileId()!
-    }).subscribe({
-      next: () => {
-        this.closeEditModal();
-        this.loadUsers();
-        this.showSuccess('Utilisateur modifié avec succès !');
-      },
-      error: (err) => {
-        if (err.status === 409) {
-          this.showError('Cet email est déjà utilisé');
-        } else {
-          this.showError('Erreur lors de la modification');
-        }
-      }
-    });
+ openEditModal(user: UserResponse) {
+  this.editId.set(user.id);
+  this.editNom.set(user.nom);
+  this.editPrenom.set(user.prenom);
+  this.editEmail.set(user.email);
+  this.editGenre.set(user.genre === 'M' ? 'HOMME' : 'FEMME');
+  // Récupérer les noms des rôles existants
+  this.editRoles.set(user.roles.map(r => r.nom));
+  this.editProfileId.set(user.profileId ?? null);
+  this.showEditModal.set(true);
+}
+
+closeEditModal() {
+  this.showEditModal.set(false);
+  this.editId.set(null);
+  this.editNom.set('');
+  this.editPrenom.set('');
+  this.editEmail.set('');
+  this.editRoles.set([]);       // ← réinitialisation
+  this.editGenre.set('FEMME');
+  this.editProfileId.set(null);
+}
+submitEditModal() {
+  if (!this.editNom() || !this.editPrenom() || !this.editEmail() ||
+      this.editRoles().length === 0 || !this.editGenre() || !this.editProfileId()) {
+    this.showError('Veuillez remplir tous les champs (au moins un rôle)');
+    return;
   }
 
+  this.adminService.updateUser(this.editId()!, {
+    nom: this.editNom(),
+    prenom: this.editPrenom(),
+    email: this.editEmail(),
+    genre: this.editGenre(),
+    roleCodes: this.editRoles(),
+    profileId: this.editProfileId()!
+  }).subscribe({
+    next: () => {
+      this.closeEditModal();
+      this.loadUsers();
+      this.showSuccess('Utilisateur modifié avec succès !');
+    },
+    error: (err) => {
+      if (err.status === 409) {
+        this.showError('Cet email est déjà utilisé');
+      } else {
+        this.showError('Erreur lors de la modification');
+      }
+    }
+  });
+}
   showSuccess(msg: string) {
     this.toastMessage.set(msg);
     this.toastType.set('success');
@@ -380,4 +380,31 @@ export class Utilisateurs implements OnInit {
       }
     });
   }
+  updateSelectedRoles(event: Event) {
+  const select = event.target as HTMLSelectElement;
+  const selectedOptions = Array.from(select.selectedOptions).map(opt => opt.value);
+  this.newRoles.set(selectedOptions);
+}
+updateEditRoles(event: Event) {
+  const select = event.target as HTMLSelectElement;
+  const selectedOptions = Array.from(select.selectedOptions).map(opt => opt.value);
+  this.editRoles.set(selectedOptions);
+}
+toggleRoleSelection(roleNom: string, event: Event) {
+  const isChecked = (event.target as HTMLInputElement).checked;
+  if (isChecked) {
+    this.newRoles.set([...this.newRoles(), roleNom]);
+  } else {
+    this.newRoles.set(this.newRoles().filter(r => r !== roleNom));
+  }
+}
+
+toggleEditRoleSelection(roleNom: string, event: Event) {
+  const isChecked = (event.target as HTMLInputElement).checked;
+  if (isChecked) {
+    this.editRoles.set([...this.editRoles(), roleNom]);
+  } else {
+    this.editRoles.set(this.editRoles().filter(r => r !== roleNom));
+  }
+}
 }

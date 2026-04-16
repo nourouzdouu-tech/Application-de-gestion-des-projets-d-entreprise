@@ -26,7 +26,7 @@ export interface UserUpdateRequest {
   nom: string;
   email: string;
   genre: string;
-  roleCode: string;
+  roleCodes: string[]; 
   profileId: number;
 }
 
@@ -49,7 +49,7 @@ export interface UserCreateRequest {
   nom: string;
   email: string;
   genre: string;
-  roleCode: string;
+  roleCodes: string[]; 
   password: string;
   profileId: number;
 }

@@ -45,15 +45,19 @@ public class UserAdminServiceImpl implements UserAdminService {
         this.passwordEncoder = passwordEncoder;
         this.userMapper = userMapper;
     }
-
     @Override
     public UserDto.Response create(UserDto.CreateRequest req) {
         if (userRepository.existsByEmailAndDeletedFalse(req.email())) {
             throw new ConflictException("EMAIL_ALREADY_USED", "Email déjà utilisé");
         }
 
-        Role role = roleRepository.findByNom(req.roleCode())
-                .orElseThrow(() -> new NotFoundException("ROLE_NOT_FOUND", "Rôle introuvable: " + req.roleCode()));
+        // Récupérer tous les rôles demandés
+        Set<Role> roles = new HashSet<>();
+        for (String code : req.roleCodes()) {
+            Role role = roleRepository.findByNom(code)
+                    .orElseThrow(() -> new NotFoundException("ROLE_NOT_FOUND", "Rôle introuvable: " + code));
+            roles.add(role);
+        }
 
         Profile profile = profileRepository.findByIdAndDeletedFalse(req.profileId())
                 .orElseThrow(() -> new NotFoundException("PROFILE_NOT_FOUND", "Profil introuvable: " + req.profileId()));
@@ -70,11 +74,7 @@ public class UserAdminServiceImpl implements UserAdminService {
         user.setLocked(false);
         user.setMustChangePassword(false);
         user.setDeleted(false);
-
-        Set<Role> roles = new HashSet<>();
-        roles.add(role);
         user.setRoles(roles);
-
         user.setProfile(profile);
 
         user = userRepository.save(user);
@@ -116,8 +116,13 @@ public class UserAdminServiceImpl implements UserAdminService {
             throw new ConflictException("EMAIL_ALREADY_USED", "Email déjà utilisé");
         }
 
-        Role roleObj = roleRepository.findByNom(req.roleCode())
-                .orElseThrow(() -> new NotFoundException("ROLE_NOT_FOUND", "Rôle introuvable: " + req.roleCode()));
+        // Récupérer tous les rôles demandés
+        Set<Role> roles = new HashSet<>();
+        for (String code : req.roleCodes()) {
+            Role role = roleRepository.findByNom(code)
+                    .orElseThrow(() -> new NotFoundException("ROLE_NOT_FOUND", "Rôle introuvable: " + code));
+            roles.add(role);
+        }
 
         Profile profile = profileRepository.findByIdAndDeletedFalse(req.profileId())
                 .orElseThrow(() -> new NotFoundException("PROFILE_NOT_FOUND", "Profil introuvable: " + req.profileId()));
@@ -126,11 +131,7 @@ public class UserAdminServiceImpl implements UserAdminService {
         user.setNom(req.nom());
         user.setEmail(req.email());
         user.setGenre(req.genre());
-
-        Set<Role> roles = new HashSet<>();
-        roles.add(roleObj);
         user.setRoles(roles);
-
         user.setProfile(profile);
 
         userRepository.save(user);

@@ -1703,3 +1703,30 @@
     font-size: 13px;
   }
 }
+/* Tags pour sélection multiple */
+.selected-users-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 16px;
+}
+.selected-user-tag {
+  background: #f3f4f6;
+  border-radius: 20px;
+  padding: 5px 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+.tag-remove {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #9ca3af;
+  font-weight: bold;
+  padding: 0 4px;
+}
+.tag-remove:hover {
+  color: #ef4444;
+}
