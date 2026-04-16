@@ -17,58 +17,48 @@ import { TaskService, TaskDto } from '../../../core/services/task.service';
   styleUrl: './projets.css',
 })
 export class Projets implements OnInit {
-
-  // ─── Projects ─────────────────────────────────────
   projects: ProjectDto[] = [];
   loading = false;
   error: string | null = null;
   formError: string | null = null;
-// Pagination projets
-currentPageProjets = 1;
-itemsPerPageProjets = 5;
-totalProjets = 0;
-paginatedProjects: ProjectDto[] = [];
 
-// Pagination tâches
-currentPageTaches = 1;
-itemsPerPageTaches = 5;
-totalTaches = 0;
-paginatedTasks: TaskDto[] = [];
+  currentPageProjets = 1;
+  itemsPerPageProjets = 5;
+  totalProjets = 0;
+  paginatedProjects: ProjectDto[] = [];
 
-// Pour utiliser Math dans le template
-Math = Math;
-  // ─── Teams ────────────────────────────────────────
+  currentPageTaches = 1;
+  itemsPerPageTaches = 5;
+  totalTaches = 0;
+  paginatedTasks: TaskDto[] = [];
+
+  Math = Math;
+
   teams: TeamDto[] = [];
   selectedTeamId: number | null = null;
   showTeamModal = false;
   currentProjectForTeam: ProjectDto | null = null;
 
-  // ─── Create Task modal ────────────────────────────
   showTaskModal = false;
   currentProjectForTask: ProjectDto | null = null;
-  taskForm: Partial<TaskDto> = { title:'', description:'', dueDate:'', assignedToId:undefined };
+  taskForm: Partial<TaskDto> = { title: '', description: '', dueDate: '', assignedToId: undefined };
 
-  // ─── View Tasks (full page) ───────────────────────
   showTasksModal = false;
   currentProjectTasks: ProjectDto | null = null;
   projectTasks: TaskDto[] = [];
 
-  // Filtres page tâches
   taskSearchTerm = '';
   taskFilterPriority = '';
   taskFilterMember = '';
 
-  // ─── Edit Task ────────────────────────────────────
   editingTask: TaskDto | null = null;
   taskFormModal = false;
 
-  // ─── Validation ───────────────────────────────────
   showValidationModal = false;
   taskToValidate: TaskDto | null = null;
   validationAction: 'valider' | 'rejeter' = 'valider';
   validationComment = '';
 
-  // ─── Shared ───────────────────────────────────────
   teamMembers: any[] = [];
   searchTerm = '';
   selectedStatus = '';
@@ -81,8 +71,8 @@ Math = Math;
   toastType: 'success' | 'error' = 'success';
 
   private avatarColors = [
-    '#8b5cf6','#10b981','#f59e0b','#ef4444',
-    '#3b82f6','#ec4899','#14b8a6','#f97316'
+    '#8b5cf6', '#10b981', '#f59e0b', '#ef4444',
+    '#3b82f6', '#ec4899', '#14b8a6', '#f97316'
   ];
 
   constructor(
@@ -99,12 +89,16 @@ Math = Math;
     this.fetchProjects();
   }
 
-  // ══════════════════════════════════════════════════
-  // HELPERS
-  // ══════════════════════════════════════════════════
-
   getEmptyForm(): ProjectDto {
-    return { name:'', description:'', client:'', progressPercentage:0, riskLevel:'FAIBLE', startDate:'', endDate:'' };
+    return {
+      name: '',
+      description: '',
+      client: '',
+      progressPercentage: 0,
+      riskLevel: 'FAIBLE',
+      startDate: '',
+      endDate: ''
+    };
   }
 
   getInitialsFromName(fullName?: string): string {
@@ -117,7 +111,9 @@ Math = Math;
   getAvatarColor(name?: string): string {
     if (!name) return this.avatarColors[0];
     let hash = 0;
-    for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
+    for (let i = 0; i < name.length; i++) {
+      hash = name.charCodeAt(i) + ((hash << 5) - hash);
+    }
     return this.avatarColors[Math.abs(hash) % this.avatarColors.length];
   }
 
@@ -125,21 +121,25 @@ Math = Math;
     return this.projectTasks.filter(t => t.status === status).length;
   }
 
-  /** Retourne les tâches filtrées par recherche, priorité et membre */
   getFilteredTasks(): TaskDto[] {
     return this.projectTasks.filter(t => {
-      const matchSearch = !this.taskSearchTerm ||
+      const matchSearch =
+        !this.taskSearchTerm ||
         t.title.toLowerCase().includes(this.taskSearchTerm.toLowerCase()) ||
         (t.description || '').toLowerCase().includes(this.taskSearchTerm.toLowerCase());
-      const matchPriority = !this.taskFilterPriority ||
+
+      const matchPriority =
+        !this.taskFilterPriority ||
         (t.priority || '').toUpperCase() === this.taskFilterPriority.toUpperCase();
-      const matchMember = !this.taskFilterMember ||
+
+      const matchMember =
+        !this.taskFilterMember ||
         (t.assignedToName || '') === this.taskFilterMember;
+
       return matchSearch && matchPriority && matchMember;
     });
   }
 
-  /** Retourne la liste unique des membres assignés aux tâches */
   getUniqueMembres(): string[] {
     const names = this.projectTasks
       .map(t => t.assignedToName)
@@ -149,7 +149,9 @@ Math = Math;
 
   getInitials(): string {
     const user = this.currentUser();
-    if (user?.prenom && user?.nom) return (user.prenom.charAt(0) + user.nom.charAt(0)).toUpperCase();
+    if (user?.prenom && user?.nom) {
+      return (user.prenom.charAt(0) + user.nom.charAt(0)).toUpperCase();
+    }
     return 'U';
   }
 
@@ -158,327 +160,503 @@ Math = Math;
     window.location.href = '/login';
   }
 
-  // ══════════════════════════════════════════════════
-  // PROJECTS
-  // ══════════════════════════════════════════════════
-
   fetchProjects(): void {
-  this.loading = true; this.error = null;
-  const query = this.searchTerm.trim() || undefined;
-  const status = this.selectedStatus || undefined;
-  this.projectService.getMyProjects(query, status).subscribe({
-    next: (projects) => this.ngZone.run(() => {
-      this.projects = [...(projects ?? [])];
-      this.currentPageProjets = 1;
-      this.updatePaginatedProjects();
-      this.loading = false;
-      this.cdr.detectChanges();
-    }),
-    error: (err) => this.ngZone.run(() => { this.error = err?.error?.message || 'Erreur lors du chargement.'; this.loading = false; this.cdr.detectChanges(); })
-  });
-}
+    this.loading = true;
+    this.error = null;
+    const query = this.searchTerm.trim() || undefined;
+    const status = this.selectedStatus || undefined;
+
+    this.projectService.getMyProjects(query, status).subscribe({
+      next: (projects) => this.ngZone.run(() => {
+        this.projects = [...(projects ?? [])];
+        this.currentPageProjets = 1;
+        this.updatePaginatedProjects();
+        this.loading = false;
+        this.cdr.detectChanges();
+      }),
+      error: (err) => this.ngZone.run(() => {
+        this.error = err?.error?.message || 'Erreur lors du chargement.';
+        this.loading = false;
+        this.cdr.detectChanges();
+      })
+    });
+  }
 
   openEditForm(project: ProjectDto): void {
-    this.showForm = true; this.isEditMode = true; this.editingProjectId = project.id ?? null; this.formError = null;
-    this.projectForm = { id:project.id, name:project.name??'', description:project.description??'', client:project.client??'', progressPercentage:project.progressPercentage??0, riskLevel:project.riskLevel??'FAIBLE', startDate:project.startDate??'', endDate:project.endDate??'', status:project.status, teamId:project.teamId, teamName:project.teamName };
+    this.showForm = true;
+    this.isEditMode = true;
+    this.editingProjectId = project.id ?? null;
+    this.formError = null;
+
+    this.projectForm = {
+      id: project.id,
+      name: project.name ?? '',
+      description: project.description ?? '',
+      client: project.client ?? '',
+      progressPercentage: project.progressPercentage ?? 0,
+      riskLevel: project.riskLevel ?? 'FAIBLE',
+      startDate: project.startDate ?? '',
+      endDate: project.endDate ?? '',
+      status: project.status,
+      teamId: project.teamId,
+      teamName: project.teamName
+    };
+
     this.cdr.detectChanges();
   }
 
   closeForm(): void {
-    this.showForm = false; this.isEditMode = false; this.editingProjectId = null; this.formError = null;
-    this.projectForm = this.getEmptyForm(); this.cdr.detectChanges();
+    this.showForm = false;
+    this.isEditMode = false;
+    this.editingProjectId = null;
+    this.formError = null;
+    this.projectForm = this.getEmptyForm();
+    this.cdr.detectChanges();
   }
 
   submitForm(): void {
     this.formError = null;
-    const payload: ProjectDto = { ...this.projectForm, name:(this.projectForm.name??'').toString().trim(), description:(this.projectForm.description??'').toString().trim(), client:(this.projectForm.client??'').toString().trim(), progressPercentage:Number(this.projectForm.progressPercentage??0) };
-    if (!payload.name)     { this.formError='Le nom du projet est obligatoire.'; this.cdr.detectChanges(); return; }
-    if (!payload.client)   { this.formError='Le client est obligatoire.';        this.cdr.detectChanges(); return; }
-    if (!payload.startDate||!payload.endDate) { this.formError='Les dates sont obligatoires.'; this.cdr.detectChanges(); return; }
-    if (payload.progressPercentage<0||payload.progressPercentage>100) { this.formError='La progression doit être entre 0 et 100.'; this.cdr.detectChanges(); return; }
-    if (payload.startDate>payload.endDate) { this.formError='La date de début doit être antérieure à la date de fin.'; this.cdr.detectChanges(); return; }
-    if (this.isEditMode && this.editingProjectId!==null) {
-      this.projectService.updateProject(this.editingProjectId, payload).subscribe({
-        next: () => this.ngZone.run(() => { this.closeForm(); this.fetchProjects(); this.showToast('✅ Projet modifié avec succès','success'); this.cdr.detectChanges(); }),
-        error: (err) => this.ngZone.run(() => { this.formError=err?.error?.message||'Erreur lors de la modification.'; this.cdr.detectChanges(); })
-      }); return;
+
+    const payload: ProjectDto = {
+      ...this.projectForm,
+      name: (this.projectForm.name ?? '').toString().trim(),
+      description: (this.projectForm.description ?? '').toString().trim(),
+      client: (this.projectForm.client ?? '').toString().trim(),
+      progressPercentage: Number(this.projectForm.progressPercentage ?? 0)
+    };
+
+    if (!payload.name) {
+      this.formError = 'Le nom du projet est obligatoire.';
+      this.cdr.detectChanges();
+      return;
     }
+    if (!payload.client) {
+      this.formError = 'Le client est obligatoire.';
+      this.cdr.detectChanges();
+      return;
+    }
+    if (!payload.startDate || !payload.endDate) {
+      this.formError = 'Les dates sont obligatoires.';
+      this.cdr.detectChanges();
+      return;
+    }
+    if (payload.progressPercentage < 0 || payload.progressPercentage > 100) {
+      this.formError = 'La progression doit être entre 0 et 100.';
+      this.cdr.detectChanges();
+      return;
+    }
+    if (payload.startDate > payload.endDate) {
+      this.formError = 'La date de début doit être antérieure à la date de fin.';
+      this.cdr.detectChanges();
+      return;
+    }
+
+    if (this.isEditMode && this.editingProjectId !== null) {
+      this.projectService.updateProject(this.editingProjectId, payload).subscribe({
+        next: () => this.ngZone.run(() => {
+          this.closeForm();
+          this.fetchProjects();
+          this.showToast('✅ Projet modifié avec succès', 'success');
+          this.cdr.detectChanges();
+        }),
+        error: (err) => this.ngZone.run(() => {
+          this.formError = err?.error?.message || 'Erreur lors de la modification.';
+          this.cdr.detectChanges();
+        })
+      });
+      return;
+    }
+
     this.projectService.createProject(payload).subscribe({
-      next: () => this.ngZone.run(() => { this.closeForm(); this.fetchProjects(); this.showToast('✅ Projet créé avec succès','success'); this.cdr.detectChanges(); }),
-      error: (err) => this.ngZone.run(() => { this.formError=err?.error?.message||'Erreur lors de la création.'; this.cdr.detectChanges(); })
+      next: () => this.ngZone.run(() => {
+        this.closeForm();
+        this.fetchProjects();
+        this.showToast('✅ Projet créé avec succès', 'success');
+        this.cdr.detectChanges();
+      }),
+      error: (err) => this.ngZone.run(() => {
+        this.formError = err?.error?.message || 'Erreur lors de la création.';
+        this.cdr.detectChanges();
+      })
     });
   }
 
   deleteProject(project: ProjectDto): void {
-  if (!project.id || !confirm(`Supprimer le projet "${project.name}" ?`)) return;
-  this.projectService.setDeletedStatus(project.id, true).subscribe({
-    next: () => this.ngZone.run(() => {
-      // Supprimer localement
-      this.projects = this.projects.filter(p => p.id !== project.id);
-      
-      // Ajuster la page courante si nécessaire
-      const maxPage = Math.ceil(this.projects.length / this.itemsPerPageProjets);
-      if (this.currentPageProjets > maxPage && maxPage > 0) {
-        this.currentPageProjets = maxPage;
-      } else if (this.projects.length === 0) {
-        this.currentPageProjets = 1;
-      }
-      
-      // Recalculer la pagination
-      this.updatePaginatedProjects();
-      
-      this.showToast('🗑️ Projet supprimé', 'success');
-      this.cdr.detectChanges();
-    }),
-    error: (err) => this.ngZone.run(() => {
-      this.error = err?.error?.message || 'Erreur suppression.';
-      this.cdr.detectChanges();
-    })
-  });
-}
+    if (!project.id || !confirm(`Supprimer le projet "${project.name}" ?`)) return;
 
-onSearch(): void { this.currentPageProjets = 1; this.fetchProjects(); }
-clearSearch(): void { this.searchTerm = ''; this.selectedStatus = ''; this.currentPageProjets = 1; this.fetchProjects(); }
+    this.projectService.setDeletedStatus(project.id, true).subscribe({
+      next: () => this.ngZone.run(() => {
+        this.projects = this.projects.filter(p => p.id !== project.id);
 
-  // ══════════════════════════════════════════════════
-  // LABEL / CLASS HELPERS
-  // ══════════════════════════════════════════════════
+        const maxPage = Math.ceil(this.projects.length / this.itemsPerPageProjets);
+        if (this.currentPageProjets > maxPage && maxPage > 0) {
+          this.currentPageProjets = maxPage;
+        } else if (this.projects.length === 0) {
+          this.currentPageProjets = 1;
+        }
+
+        this.updatePaginatedProjects();
+        this.showToast('🗑️ Projet supprimé', 'success');
+        this.cdr.detectChanges();
+      }),
+      error: (err) => this.ngZone.run(() => {
+        this.error = err?.error?.message || 'Erreur suppression.';
+        this.cdr.detectChanges();
+      })
+    });
+  }
+
+  onSearch(): void {
+    this.currentPageProjets = 1;
+    this.fetchProjects();
+  }
+
+  clearSearch(): void {
+    this.searchTerm = '';
+    this.selectedStatus = '';
+    this.currentPageProjets = 1;
+    this.fetchProjects();
+  }
 
   getStatusLabel(status?: string): string {
-    const m: Record<string,string> = { PRE_VALIDE:'Pré validé', EN_COURS:'En cours', EN_VALIDATION:'En validation', VALIDE:'Validé', REJETE:'Rejeté', CLOTURE:'Clôturé' };
-    return status ? (m[status]??status) : '-';
+    const m: Record<string, string> = {
+      PRE_VALIDE: 'Pré validé',
+      EN_COURS: 'En cours',
+      EN_VALIDATION: 'En validation',
+      VALIDE: 'Validé',
+      REJETE: 'Rejeté',
+      CLOTURE: 'Clôturé'
+    };
+    return status ? (m[status] ?? status) : '-';
   }
 
   getRiskLabel(risk?: string): string {
-    const m: Record<string,string> = { FAIBLE:'Faible', MOYEN:'Moyen', ELEVE:'Élevé' };
-    return risk ? (m[risk]??risk) : '-';
+    const m: Record<string, string> = { FAIBLE: 'Faible', MOYEN: 'Moyen', ELEVE: 'Élevé' };
+    return risk ? (m[risk] ?? risk) : '-';
   }
 
   getRiskClass(risk?: string): string {
-    const m: Record<string,string> = { FAIBLE:'faible', MOYEN:'moyen', ELEVE:'eleve' };
-    return risk ? (m[risk]??'faible') : 'faible';
+    const m: Record<string, string> = { FAIBLE: 'faible', MOYEN: 'moyen', ELEVE: 'eleve' };
+    return risk ? (m[risk] ?? 'faible') : 'faible';
   }
 
-  getProgressLabel(progress: number|undefined): string {
-    const v = Number(progress??0);
-    if (v===100) return 'SUCCÈS'; if (v>=75) return 'TERMINÉ'; if (v>=40) return 'ATTENTION'; if (v>0) return 'CRITIQUE'; return 'N/A';
+  getProgressLabel(progress: number | undefined): string {
+    const v = Number(progress ?? 0);
+    if (v === 100) return 'SUCCÈS';
+    if (v >= 75) return 'TERMINÉ';
+    if (v >= 40) return 'ATTENTION';
+    if (v > 0) return 'CRITIQUE';
+    return 'N/A';
   }
 
   getTaskStatusLabel(status?: string): string {
-    const m: Record<string,string> = { A_faire:'À faire', En_cours:'En cours', Terminé:'Terminé', Validation:'Validation' };
-    return status ? (m[status]??status) : 'À faire';
+    const m: Record<string, string> = {
+      A_faire: 'À faire',
+      En_cours: 'En cours',
+      Terminé: 'Terminé',
+      Validation: 'Validation'
+    };
+    return status ? (m[status] ?? status) : 'À faire';
   }
 
   getTaskStatusClass(status?: string): string {
-    const m: Record<string,string> = { A_faire:'statut-a-faire', En_cours:'statut-en-cours', Terminé:'statut-termine', Validation:'statut-validation' };
-    return status ? (m[status]??'') : 'statut-a-faire';
+    const m: Record<string, string> = {
+      A_faire: 'statut-a-faire',
+      En_cours: 'statut-en-cours',
+      Terminé: 'statut-termine',
+      Validation: 'statut-validation'
+    };
+    return status ? (m[status] ?? '') : 'statut-a-faire';
   }
 
   getTaskPriorityClass(priority?: string): string {
     if (!priority) return 'priorite-moyenne';
     const p = priority.toLowerCase();
-    if (p==='haute'||p==='high') return 'priorite-haute';
-    if (p==='basse'||p==='low')  return 'priorite-basse';
+    if (p === 'haute' || p === 'high') return 'priorite-haute';
+    if (p === 'basse' || p === 'low') return 'priorite-basse';
     return 'priorite-moyenne';
   }
 
   getTaskPriorityLabel(priority?: string): string {
     if (!priority) return 'Moyenne';
     const p = priority.toUpperCase();
-    if (p==='HAUTE'||p==='HIGH') return 'Haute';
-    if (p==='BASSE'||p==='LOW')  return 'Basse';
+    if (p === 'HAUTE' || p === 'HIGH') return 'Haute';
+    if (p === 'BASSE' || p === 'LOW') return 'Basse';
     return 'Moyenne';
   }
 
-  // ══════════════════════════════════════════════════
-  // TEAM
-  // ══════════════════════════════════════════════════
-
   openAssignTeamModal(project: ProjectDto): void {
-    this.currentProjectForTeam = project; this.selectedTeamId = null;
+    this.currentProjectForTeam = project;
+    this.selectedTeamId = null;
+
     this.teamService.getMyTeams().subscribe({
-      next: (teams) => this.ngZone.run(() => { this.teams=[...teams]; this.showTeamModal=true; this.cdr.detectChanges(); }),
+      next: (teams) => this.ngZone.run(() => {
+        this.teams = [...teams];
+        this.showTeamModal = true;
+        this.cdr.detectChanges();
+      }),
       error: () => alert('Impossible de charger vos équipes.')
     });
   }
 
   confirmAssignTeam(): void {
-    if (!this.selectedTeamId||!this.currentProjectForTeam?.id) return;
+    if (!this.selectedTeamId || !this.currentProjectForTeam?.id) return;
+
     this.projectService.assignTeamToProject(this.currentProjectForTeam.id, this.selectedTeamId).subscribe({
-      next: () => this.ngZone.run(() => { this.showTeamModal=false; this.currentProjectForTeam=null; this.selectedTeamId=null; this.fetchProjects(); this.showToast('✅ Équipe assignée avec succès','success'); this.cdr.detectChanges(); }),
-      error: (err) => alert('Erreur : '+(err.error?.message||'Erreur lors de l\'assignation'))
+      next: () => this.ngZone.run(() => {
+        this.showTeamModal = false;
+        this.currentProjectForTeam = null;
+        this.selectedTeamId = null;
+        this.fetchProjects();
+        this.showToast('✅ Équipe assignée avec succès', 'success');
+        this.cdr.detectChanges();
+      }),
+      error: (err) => alert('Erreur : ' + (err.error?.message || 'Erreur lors de l\'assignation'))
     });
   }
 
-  closeTeamModal(): void { this.showTeamModal=false; this.currentProjectForTeam=null; this.selectedTeamId=null; this.cdr.detectChanges(); }
-
-  // ══════════════════════════════════════════════════
-  // CREATE TASK
-  // ══════════════════════════════════════════════════
+  closeTeamModal(): void {
+    this.showTeamModal = false;
+    this.currentProjectForTeam = null;
+    this.selectedTeamId = null;
+    this.cdr.detectChanges();
+  }
 
   openCreateTaskModal(project: ProjectDto): void {
     this.currentProjectForTask = project;
-    this.taskForm = { title:'', description:'', dueDate:'', assignedToId:undefined, projectId:project.id };
+    this.taskForm = {
+      title: '',
+      description: '',
+      dueDate: '',
+      assignedToId: undefined,
+      projectId: project.id
+    };
+
     if (project.teamId) {
       this.teamService.getTeamById(project.teamId).subscribe({
-        next: (team) => this.ngZone.run(() => { this.teamMembers=team.members||[]; this.showTaskModal=true; this.cdr.detectChanges(); }),
+        next: (team) => this.ngZone.run(() => {
+          this.teamMembers = team.members || [];
+          this.showTaskModal = true;
+          this.cdr.detectChanges();
+        }),
         error: () => alert('Impossible de charger les membres de l\'équipe.')
       });
-    } else { alert('Ce projet n\'a pas encore d\'équipe assignée.'); }
+    } else {
+      alert('Ce projet n\'a pas encore d\'équipe assignée.');
+    }
   }
 
-  closeTaskModal(): void { this.showTaskModal=false; this.currentProjectForTask=null; this.taskForm={title:'',description:'',dueDate:'',assignedToId:undefined}; this.cdr.detectChanges(); }
+  closeTaskModal(): void {
+    this.showTaskModal = false;
+    this.currentProjectForTask = null;
+    this.taskForm = { title: '', description: '', dueDate: '', assignedToId: undefined };
+    this.cdr.detectChanges();
+  }
 
   saveTask(): void {
-  if (!this.taskForm.title || !this.taskForm.assignedToId || !this.taskForm.dueDate) {
-    alert('Veuillez remplir tous les champs obligatoires.');
-    return;
+    if (!this.taskForm.title || !this.taskForm.assignedToId || !this.taskForm.dueDate) {
+      alert('Veuillez remplir tous les champs obligatoires.');
+      return;
+    }
+
+    this.taskService.createTask(this.taskForm as TaskDto).subscribe({
+      next: () => this.ngZone.run(() => {
+        this.showToast('✅ Tâche créée avec succès !', 'success');
+        if (this.showTasksModal && this.currentProjectForTask?.id) {
+          this.loadTasksForProject(this.currentProjectForTask.id);
+        }
+        this.closeTaskModal();
+        this.cdr.detectChanges();
+      }),
+      error: (err) => alert('Erreur : ' + (err.error?.message || 'Création échouée'))
+    });
   }
-  this.taskService.createTask(this.taskForm as TaskDto).subscribe({
-    next: () => this.ngZone.run(() => {
-      this.showToast('✅ Tâche créée avec succès !', 'success');
-      // Recharger les tâches du projet si on est dans la vue Tâches
-      if (this.showTasksModal && this.currentProjectForTask?.id) {
-        this.loadTasksForProject(this.currentProjectForTask.id);
-      }
-      this.closeTaskModal();
-      this.cdr.detectChanges();
-    }),
-    error: (err) => alert('Erreur : ' + (err.error?.message || 'Création échouée'))
-  });
-}
 
-  // ══════════════════════════════════════════════════
-  // VIEW TASKS (full page)
-  // ══════════════════════════════════════════════════
+  openViewTasksModal(project: ProjectDto): void {
+    this.currentProjectTasks = project;
+    this.taskSearchTerm = '';
+    this.taskFilterPriority = '';
+    this.taskFilterMember = '';
+    this.currentPageTaches = 1;
+    this.loadTasksForProject(project.id!);
+  }
 
- openViewTasksModal(project: ProjectDto): void {
-  this.currentProjectTasks = project;
-  this.taskSearchTerm = '';
-  this.taskFilterPriority = '';
-  this.taskFilterMember = '';
-  this.currentPageTaches = 1;
-  this.loadTasksForProject(project.id!);
-}
+  loadTasksForProject(projectId: number): void {
+    this.taskService.getTasksByProject(projectId).subscribe({
+      next: (tasks) => this.ngZone.run(() => {
+        this.projectTasks = [...tasks];
+        this.currentPageTaches = 1;
+        this.refreshTasksPagination();
+        this.showTasksModal = true;
+        this.cdr.detectChanges();
+      }),
+      error: () => alert('Erreur lors du chargement des tâches')
+    });
+  }
 
-loadTasksForProject(projectId: number): void {
-  this.taskService.getTasksByProject(projectId).subscribe({
-    next: (tasks) => this.ngZone.run(() => {
-      this.projectTasks = [...tasks];
-      this.currentPageTaches = 1;
-      this.updatePaginatedTasks();
-      this.showTasksModal = true;
-      this.cdr.detectChanges();
-    }),
-    error: () => alert('Erreur lors du chargement des tâches')
-  });
-}
-
-  closeTasksModal(): void { this.showTasksModal=false; this.currentProjectTasks=null; this.projectTasks=[]; this.cdr.detectChanges(); }
-
-  // ══════════════════════════════════════════════════
-  // EDIT TASK
-  // ══════════════════════════════════════════════════
+  closeTasksModal(): void {
+    this.showTasksModal = false;
+    this.currentProjectTasks = null;
+    this.projectTasks = [];
+    this.paginatedTasks = [];
+    this.totalTaches = 0;
+    this.taskSearchTerm = '';
+    this.taskFilterPriority = '';
+    this.taskFilterMember = '';
+    this.cdr.detectChanges();
+  }
 
   editTask(task: TaskDto): void {
     this.editingTask = { ...task };
+
     if (this.currentProjectTasks?.teamId) {
       this.teamService.getTeamById(this.currentProjectTasks.teamId).subscribe({
-        next: (team) => this.ngZone.run(() => { this.teamMembers=team.members||[]; this.taskFormModal=true; this.cdr.detectChanges(); }),
+        next: (team) => this.ngZone.run(() => {
+          this.teamMembers = team.members || [];
+          this.taskFormModal = true;
+          this.cdr.detectChanges();
+        }),
         error: (err) => console.error(err)
       });
-    } else { this.taskFormModal=true; this.cdr.detectChanges(); }
+    } else {
+      this.taskFormModal = true;
+      this.cdr.detectChanges();
+    }
   }
 
-  closeTaskFormModal(): void { this.taskFormModal=false; this.editingTask=null; this.cdr.detectChanges(); }
+  closeTaskFormModal(): void {
+    this.taskFormModal = false;
+    this.editingTask = null;
+    this.cdr.detectChanges();
+  }
 
   saveTaskEdit(): void {
     if (!this.editingTask) return;
+
     this.taskService.updateTask(this.editingTask.id!, this.editingTask).subscribe({
-      next: () => this.ngZone.run(() => { this.showToast('✅ Tâche modifiée avec succès !','success'); this.closeTaskFormModal(); if (this.currentProjectTasks) this.loadTasksForProject(this.currentProjectTasks.id!); this.cdr.detectChanges(); }),
-      error: (err) => this.showToast(err.error?.message||'Modification échouée','error')
+      next: () => this.ngZone.run(() => {
+        this.showToast('✅ Tâche modifiée avec succès !', 'success');
+        this.closeTaskFormModal();
+        if (this.currentProjectTasks) this.loadTasksForProject(this.currentProjectTasks.id!);
+        this.cdr.detectChanges();
+      }),
+      error: (err) => this.showToast(err.error?.message || 'Modification échouée', 'error')
     });
   }
 
- deleteTask(taskId: number): void {
-  if (!confirm('Supprimer cette tâche ?')) return;
-  this.taskService.deleteTask(taskId).subscribe({
-    next: () => this.ngZone.run(() => {
-      this.showToast('🗑️ Tâche supprimée avec succès', 'success');
-      // Recharger la liste depuis le serveur si on est dans la vue Tâches
-      if (this.showTasksModal && this.currentProjectTasks?.id) {
-        this.loadTasksForProject(this.currentProjectTasks.id);
-      } else {
-        // Sinon, filtrer localement (comme avant)
-        this.projectTasks = this.projectTasks.filter(t => t.id !== taskId);
-      }
-      this.cdr.detectChanges();
-    }),
-    error: (err) => this.showToast(err.error?.message || 'Suppression échouée', 'error')
-  });
-}
+  deleteTask(taskId: number): void {
+    if (!confirm('Supprimer cette tâche ?')) return;
 
-  // ══════════════════════════════════════════════════
-  // VALIDATION
-  // ══════════════════════════════════════════════════
+    this.taskService.deleteTask(taskId).subscribe({
+      next: () => this.ngZone.run(() => {
+        this.showToast('🗑️ Tâche supprimée avec succès', 'success');
+        if (this.showTasksModal && this.currentProjectTasks?.id) {
+          this.loadTasksForProject(this.currentProjectTasks.id);
+        } else {
+          this.projectTasks = this.projectTasks.filter(t => t.id !== taskId);
+          this.refreshTasksPagination();
+        }
+        this.cdr.detectChanges();
+      }),
+      error: (err) => this.showToast(err.error?.message || 'Suppression échouée', 'error')
+    });
+  }
 
-  validerTask(task: TaskDto): void { this.taskToValidate=task; this.validationAction='valider'; this.validationComment=''; this.showValidationModal=true; this.cdr.detectChanges(); }
-  rejeterTask(task: TaskDto): void { this.taskToValidate=task; this.validationAction='rejeter'; this.validationComment=''; this.showValidationModal=true; this.cdr.detectChanges(); }
-  closeValidationModal(): void { this.showValidationModal=false; this.taskToValidate=null; this.validationComment=''; this.cdr.detectChanges(); }
+  validerTask(task: TaskDto): void {
+    this.taskToValidate = task;
+    this.validationAction = 'valider';
+    this.validationComment = '';
+    this.showValidationModal = true;
+    this.cdr.detectChanges();
+  }
+
+  rejeterTask(task: TaskDto): void {
+    this.taskToValidate = task;
+    this.validationAction = 'rejeter';
+    this.validationComment = '';
+    this.showValidationModal = true;
+    this.cdr.detectChanges();
+  }
+
+  closeValidationModal(): void {
+    this.showValidationModal = false;
+    this.taskToValidate = null;
+    this.validationComment = '';
+    this.cdr.detectChanges();
+  }
 
   confirmValidation(): void {
     if (!this.taskToValidate?.id) return;
-    const newStatus = this.validationAction==='valider' ? 'Terminé' : 'A_faire';
-    const payload: TaskDto = { ...this.taskToValidate, status:newStatus };
+
+    const newStatus = this.validationAction === 'valider' ? 'Terminé' : 'A_faire';
+    const payload: TaskDto = { ...this.taskToValidate, status: newStatus };
+
     this.taskService.updateTask(this.taskToValidate.id, payload).subscribe({
       next: () => this.ngZone.run(() => {
-        const idx = this.projectTasks.findIndex(t=>t.id===this.taskToValidate!.id);
-        if (idx!==-1) { this.projectTasks[idx]={...this.projectTasks[idx],status:newStatus}; this.projectTasks=[...this.projectTasks]; }
-        this.showToast(this.validationAction==='valider'?'✅ Tâche validée !':'❌ Tâche rejetée.', this.validationAction==='valider'?'success':'error');
-        this.closeValidationModal(); this.cdr.detectChanges();
+        const idx = this.projectTasks.findIndex(t => t.id === this.taskToValidate!.id);
+        if (idx !== -1) {
+          this.projectTasks[idx] = { ...this.projectTasks[idx], status: newStatus };
+          this.projectTasks = [...this.projectTasks];
+          this.refreshTasksPagination();
+        }
+
+        this.showToast(
+          this.validationAction === 'valider' ? '✅ Tâche validée !' : '❌ Tâche rejetée.',
+          this.validationAction === 'valider' ? 'success' : 'error'
+        );
+
+        this.closeValidationModal();
+        this.cdr.detectChanges();
       }),
-      error: (err) => { this.showToast(err.error?.message||'Erreur lors de la validation','error'); this.closeValidationModal(); }
+      error: (err) => {
+        this.showToast(err.error?.message || 'Erreur lors de la validation', 'error');
+        this.closeValidationModal();
+      }
     });
   }
 
-  // ══════════════════════════════════════════════════
-  // TOAST
-  // ══════════════════════════════════════════════════
+  showToast(message: string, type: 'success' | 'error' = 'success'): void {
+    this.toastMessage = message;
+    this.toastType = type;
+    this.cdr.detectChanges();
 
-  showToast(message: string, type: 'success'|'error' = 'success'): void {
-    this.toastMessage=message; this.toastType=type; this.cdr.detectChanges();
-    setTimeout(() => { this.toastMessage=null; this.cdr.detectChanges(); }, 3000);
+    setTimeout(() => {
+      this.toastMessage = null;
+      this.cdr.detectChanges();
+    }, 3000);
   }
+
   updatePaginatedProjects(): void {
-  const start = (this.currentPageProjets - 1) * this.itemsPerPageProjets;
-  const end = start + this.itemsPerPageProjets;
-  this.paginatedProjects = this.projects.slice(start, end);
-  this.totalProjets = this.projects.length;
-}
+    const start = (this.currentPageProjets - 1) * this.itemsPerPageProjets;
+    const end = start + this.itemsPerPageProjets;
+    this.paginatedProjects = this.projects.slice(start, end);
+    this.totalProjets = this.projects.length;
+  }
 
-goToPageProjets(page: number): void {
-  const maxPage = Math.ceil(this.totalProjets / this.itemsPerPageProjets);
-  if (page < 1 || page > maxPage) return;
-  this.currentPageProjets = page;
-  this.updatePaginatedProjects();
-}
+  goToPageProjets(page: number): void {
+    const maxPage = Math.ceil(this.totalProjets / this.itemsPerPageProjets) || 1;
+    if (page < 1 || page > maxPage) return;
+    this.currentPageProjets = page;
+    this.updatePaginatedProjects();
+  }
 
-updatePaginatedTasks(): void {
-  const filtered = this.getFilteredTasks();
-  const start = (this.currentPageTaches - 1) * this.itemsPerPageTaches;
-  const end = start + this.itemsPerPageTaches;
-  this.paginatedTasks = filtered.slice(start, end);
-  this.totalTaches = filtered.length;
-}
+  updatePaginatedTasks(): void {
+    const filtered = this.getFilteredTasks();
+    const start = (this.currentPageTaches - 1) * this.itemsPerPageTaches;
+    const end = start + this.itemsPerPageTaches;
+    this.paginatedTasks = filtered.slice(start, end);
+    this.totalTaches = filtered.length;
+  }
 
-goToPageTaches(page: number): void {
-  const maxPage = Math.ceil(this.totalTaches / this.itemsPerPageTaches);
-  if (page < 1 || page > maxPage) return;
-  this.currentPageTaches = page;
-  this.updatePaginatedTasks();
-}
-refreshTasksPagination(): void {
-  this.currentPageTaches = 1;
-  this.updatePaginatedTasks();
-}
+  goToPageTaches(page: number): void {
+    const maxPage = Math.ceil(this.totalTaches / this.itemsPerPageTaches) || 1;
+    if (page < 1 || page > maxPage) return;
+    this.currentPageTaches = page;
+    this.updatePaginatedTasks();
+  }
+
+  refreshTasksPagination(): void {
+    this.currentPageTaches = 1;
+    this.updatePaginatedTasks();
+  }
 }

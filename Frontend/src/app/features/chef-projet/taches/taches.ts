@@ -18,6 +18,7 @@ export interface Tache {
   projet: string;
   equipe: Membre[];
   membreNom: string;
+  membreId?: number;
   priorite: Priorite;
   echeance: string;
   statut: Statut;
@@ -33,13 +34,9 @@ export interface Tache {
 export class TachesComponent implements OnInit {
   private taskService = inject(TaskService);
 
-  searchQuery = signal('');
-  filterPriorite = signal<string>('Toutes');
-  filterMembre = signal<string>('Tous');
   loading = signal(false);
   error = signal<string | null>(null);
 
-  // valeurs liées aux select/input
   searchValue = '';
   filterPrioriteValue = 'Toutes';
   filterMembreValue = 'Tous';
@@ -56,10 +53,18 @@ export class TachesComponent implements OnInit {
     this.loading.set(true);
     this.error.set(null);
 
-    this.taskService.getMyTasks().subscribe({
+    const query = this.searchValue?.trim() || undefined;
+    const priority = this.filterPrioriteValue !== 'Toutes' ? this.filterPrioriteValue : undefined;
+
+    this.taskService.getMyTasks(query, priority).subscribe({
       next: (tasks: TaskDto[]) => {
         const mappedTasks = tasks.map(task => this.mapTaskDtoToTache(task));
-        this.taches.set(mappedTasks);
+
+        const finalTasks = this.filterMembreValue === 'Tous'
+          ? mappedTasks
+          : mappedTasks.filter(t => t.membreNom === this.filterMembreValue);
+
+        this.taches.set(finalTasks);
         this.loading.set(false);
       },
       error: (err) => {
@@ -78,6 +83,7 @@ export class TachesComponent implements OnInit {
       nom: task.title,
       projet: task.projectName || 'Sans projet',
       membreNom,
+      membreId: task.assignedToId,
       equipe: [
         {
           initiales: this.getInitiales(membreNom),
@@ -105,14 +111,15 @@ export class TachesComponent implements OnInit {
   }
 
   mapStatus(status: TaskStatus): Statut {
-    switch (status) {
-      case 'Validation':
+    switch ((status || '').toUpperCase()) {
+      case 'VALIDATION':
         return 'Validation';
-      case 'En_cours':
+      case 'EN_COURS':
         return 'En cours';
-      case 'A_faire':
+      case 'A_FAIRE':
         return 'A faire';
-      case 'Terminé':
+      case 'TERMINE':
+      case 'TERMINÉ':
         return 'Terminé';
       default:
         return 'A faire';
@@ -162,44 +169,18 @@ export class TachesComponent implements OnInit {
     return ['Tous', ...Array.from(new Set(noms))];
   });
 
-  tachesFiltrees = computed(() => {
-    const query = this.searchQuery().toLowerCase().trim();
-    const priorite = this.filterPriorite();
-    const membre = this.filterMembre();
+  tachesFiltrees = computed(() => this.taches());
 
-    return this.taches().filter(t => {
-      const matchSearch =
-        !query ||
-        t.nom.toLowerCase().includes(query) ||
-        t.projet.toLowerCase().includes(query) ||
-        t.membreNom.toLowerCase().includes(query);
-
-      const matchPriorite =
-        priorite === 'Toutes' || t.priorite === priorite;
-
-      const matchMembre =
-        membre === 'Tous' || t.membreNom === membre;
-
-      return matchSearch && matchPriorite && matchMembre;
-    });
-  });
-
-  onSearchChange(event: Event): void {
-    const value = (event.target as HTMLInputElement).value;
-    this.searchValue = value;
-    this.searchQuery.set(value);
+  onSearchChange(): void {
+    this.loadTasks();
   }
 
-  onPrioriteChange(event: Event): void {
-    const value = (event.target as HTMLSelectElement).value;
-    this.filterPrioriteValue = value;
-    this.filterPriorite.set(value);
+  onPrioriteChange(): void {
+    this.loadTasks();
   }
 
-  onMembreChange(event: Event): void {
-    const value = (event.target as HTMLSelectElement).value;
-    this.filterMembreValue = value;
-    this.filterMembre.set(value);
+  onMembreChange(): void {
+    this.loadTasks();
   }
 
   get enAttente(): number {

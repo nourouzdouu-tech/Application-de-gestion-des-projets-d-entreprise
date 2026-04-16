@@ -2,13 +2,13 @@ package com.dxc.dxc_platform.dto;
 
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-//Form asighantion
+
 public class ManagerProjectReviewDto {
 
     @NotNull(message = "L'id du projet est obligatoire")
     private Long projectId;
 
-    @NotNull(message = "L'id du chef de projet est obligatoire")
+    // plus de @NotNull ici
     private Long chefProjetId;
 
     @NotBlank(message = "Le commentaire est obligatoire")

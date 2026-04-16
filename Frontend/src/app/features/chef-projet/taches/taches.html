@@ -75,30 +75,30 @@
         <line x1="21" y1="21" x2="16.65" y2="16.65" />
       </svg>
       <input
-        type="text"
-        placeholder="Rechercher une tâche ou un projet..."
-        [(ngModel)]="searchValue"
-        (input)="onSearchChange($event)"
-      />
+  type="text"
+  placeholder="Rechercher une tâche ou un projet..."
+  [(ngModel)]="searchValue"
+  (input)="onSearchChange()"
+/> 
     </div>
 
     <div class="filters-actions">
       <div class="filter-select">
         <span>Priorité :</span>
-        <select [(ngModel)]="filterPrioriteValue" (change)="onPrioriteChange($event)">
-          <option *ngFor="let p of priorites" [value]="p">
-            {{ p }}
-          </option>
-        </select>
+        <select [(ngModel)]="filterPrioriteValue" (change)="onPrioriteChange()">
+  <option *ngFor="let p of priorites" [value]="p">
+    {{ p }}
+  </option>
+</select>
       </div>
 
       <div class="filter-select">
         <span>Membre :</span>
-        <select [(ngModel)]="filterMembreValue" (change)="onMembreChange($event)">
-          <option *ngFor="let m of membres()" [value]="m">
-            {{ m }}
-          </option>
-        </select>
+        <select [(ngModel)]="filterMembreValue" (change)="onMembreChange()">
+  <option *ngFor="let m of membres()" [value]="m">
+    {{ m }}
+  </option>
+</select>
       </div>
     </div>
   </div>

@@ -307,15 +307,22 @@ public class ProjectServiceImpl implements ProjectService {
             throw new BusinessException("COMMENT_REQUIRED", "Le commentaire est obligatoire");
         }
 
-        User chefProjet = findValidChefProjetById(request.getChefProjetId());
-        assignChefProjetToProject(project, chefProjet);
-
         project.setManagerComment(request.getCommentaire().trim());
         project.setReviewedAt(java.time.LocalDateTime.now());
 
         if (request.getDecision() == ManagerProjectReviewDto.Decision.VALIDER) {
+            if (request.getChefProjetId() == null) {
+                throw new BusinessException(
+                        "CHEF_PROJET_REQUIRED",
+                        "Le chef de projet est obligatoire pour valider l'assignation"
+                );
+            }
+
+            User chefProjet = findValidChefProjetById(request.getChefProjetId());
+            assignChefProjetToProject(project, chefProjet);
             project.setStatus(ProjectStatus.PRE_VALIDE);
-        } else {
+
+        } else if (request.getDecision() == ManagerProjectReviewDto.Decision.REJETER) {
             project.setStatus(ProjectStatus.REJETE);
         }
 

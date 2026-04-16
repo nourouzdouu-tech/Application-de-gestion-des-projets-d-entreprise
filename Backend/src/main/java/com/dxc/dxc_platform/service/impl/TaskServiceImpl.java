@@ -61,7 +61,8 @@ public class TaskServiceImpl implements TaskService {
         Project project = projectRepository.findByIdAndDeletedFalse(dto.getProjectId())
                 .orElseThrow(() -> new NotFoundException("PROJECT_NOT_FOUND", "Projet introuvable"));
 
-        if (project.getChefProjet() == null || !project.getChefProjet().getId().equals(currentUser.getId())) {
+        if (project.getTeam() == null || project.getTeam().getProjectManager() == null ||
+                !project.getTeam().getProjectManager().getId().equals(currentUser.getId())) {
             throw new ForbiddenException("FORBIDDEN", "Vous n'êtes pas le chef de projet assigné à ce projet");
         }
 
@@ -103,8 +104,9 @@ public class TaskServiceImpl implements TaskService {
         User currentUser = getCurrentUser();
 
         if (task.getProject() == null ||
-                task.getProject().getChefProjet() == null ||
-                !task.getProject().getChefProjet().getId().equals(currentUser.getId())) {
+                task.getProject().getTeam() == null ||
+                task.getProject().getTeam().getProjectManager() == null ||
+                !task.getProject().getTeam().getProjectManager().getId().equals(currentUser.getId())) {
             throw new ForbiddenException("FORBIDDEN", "Vous ne pouvez pas modifier cette tâche");
         }
 
@@ -142,11 +144,15 @@ public class TaskServiceImpl implements TaskService {
         Project project = projectRepository.findByIdAndDeletedFalse(projectId)
                 .orElseThrow(() -> new NotFoundException("PROJECT_NOT_FOUND", "Projet introuvable"));
 
-        if (project.getChefProjet() == null) {
+        if (project.getTeam() == null) {
+            throw new ForbiddenException("FORBIDDEN", "Aucune équipe n'est assignée à ce projet");
+        }
+
+        if (project.getTeam().getProjectManager() == null) {
             throw new ForbiddenException("FORBIDDEN", "Aucun chef de projet n'est assigné à ce projet");
         }
 
-        if (!project.getChefProjet().getId().equals(currentUser.getId())) {
+        if (!project.getTeam().getProjectManager().getId().equals(currentUser.getId())) {
             throw new ForbiddenException("FORBIDDEN", "Accès non autorisé");
         }
 
@@ -158,7 +164,7 @@ public class TaskServiceImpl implements TaskService {
     }
 
     @Override
-    public List<TaskDto> getMyTasks() {
+    public List<TaskDto> getMyTasks(String query, Priority priority, Long assignedToId) {
         User currentUser = getCurrentUser();
 
         if (currentUser.getTeam() == null) {
@@ -171,6 +177,39 @@ public class TaskServiceImpl implements TaskService {
         );
 
         return tasks.stream()
+                .filter(task -> {
+                    boolean matchesQuery = true;
+                    boolean matchesPriority = true;
+                    boolean matchesAssignedTo = true;
+
+                    if (query != null && !query.isBlank()) {
+                        String q = query.trim().toLowerCase();
+
+                        String title = task.getTitle() != null ? task.getTitle().toLowerCase() : "";
+                        String projectName = task.getProject() != null && task.getProject().getName() != null
+                                ? task.getProject().getName().toLowerCase()
+                                : "";
+                        String assignedToName = task.getAssignedTo() != null
+                                ? ((task.getAssignedTo().getPrenom() != null ? task.getAssignedTo().getPrenom() : "") + " " +
+                                (task.getAssignedTo().getNom() != null ? task.getAssignedTo().getNom() : "")).trim().toLowerCase()
+                                : "";
+
+                        matchesQuery = title.contains(q)
+                                || projectName.contains(q)
+                                || assignedToName.contains(q);
+                    }
+
+                    if (priority != null) {
+                        matchesPriority = task.getPriority() == priority;
+                    }
+
+                    if (assignedToId != null) {
+                        matchesAssignedTo = task.getAssignedTo() != null
+                                && task.getAssignedTo().getId().equals(assignedToId);
+                    }
+
+                    return matchesQuery && matchesPriority && matchesAssignedTo;
+                })
                 .map(this::toDto)
                 .collect(Collectors.toList());
     }
@@ -213,8 +252,9 @@ public class TaskServiceImpl implements TaskService {
         User currentUser = getCurrentUser();
 
         if (task.getProject() == null ||
-                task.getProject().getChefProjet() == null ||
-                !task.getProject().getChefProjet().getId().equals(currentUser.getId())) {
+                task.getProject().getTeam() == null ||
+                task.getProject().getTeam().getProjectManager() == null ||
+                !task.getProject().getTeam().getProjectManager().getId().equals(currentUser.getId())) {
             throw new ForbiddenException("FORBIDDEN", "Vous ne pouvez pas supprimer cette tâche");
         }
 

@@ -1,7 +1,9 @@
 package com.dxc.dxc_platform.service;
 
 import com.dxc.dxc_platform.dto.TaskDto;
+import com.dxc.dxc_platform.enums.Priority;
 import com.dxc.dxc_platform.enums.Status;
+
 import java.util.List;
 
 public interface TaskService {
@@ -9,7 +11,7 @@ public interface TaskService {
     TaskDto updateTask(Long id, TaskDto dto);
     TaskDto getTaskById(Long id);
     List<TaskDto> getTasksByProject(Long projectId);
-    List<TaskDto> getMyTasks();
+    List<TaskDto> getMyTasks(String query, Priority priority, Long assignedToId);
     TaskDto updateMyTaskStatus(Long taskId, Status status);
     void deleteTask(Long id);
 }

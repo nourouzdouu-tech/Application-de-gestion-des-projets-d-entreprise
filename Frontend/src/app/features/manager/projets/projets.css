@@ -310,6 +310,11 @@
   color: #4f46e5;
 }
 
+.status-pill.rejected {
+  background: #fef2f2;
+  color: #dc2626;
+}
+
 /* Action */
 .th-action,
 .action-cell {
@@ -350,6 +355,17 @@
   background: #ddd6fe;
   transform: translateY(-1px);
   box-shadow: 0 8px 18px rgba(109, 40, 217, 0.18);
+}
+
+.icon-action.reject-project {
+  background: #fef2f2;
+  color: #dc2626;
+}
+
+.icon-action.reject-project:hover {
+  background: #fee2e2;
+  transform: translateY(-1px);
+  box-shadow: 0 8px 18px rgba(220, 38, 38, 0.18);
 }
 
 .icon-action.view-details {
@@ -474,6 +490,11 @@
 .modal-icon-box svg {
   width: 24px;
   height: 24px;
+}
+
+.reject-icon {
+  background: linear-gradient(180deg, #fee2e2 0%, #fecaca 100%);
+  color: #dc2626;
 }
 
 .modal-title {
@@ -632,8 +653,8 @@
   border-top: 1px solid #edf1f7;
 }
 
-.btn-reject,
-.btn-validate {
+.btn-validate,
+.btn-reject-solid {
   min-width: 220px;
   min-height: 52px;
   padding: 0 22px;
@@ -643,16 +664,6 @@
   font-family: 'Inter', sans-serif;
   cursor: pointer;
   transition: all 0.18s ease;
-}
-
-.btn-reject {
-  border: 1px solid #fecaca;
-  background: #ffffff;
-  color: #ef4444;
-}
-
-.btn-reject:hover {
-  background: #fff5f5;
 }
 
 .btn-validate {
@@ -672,6 +683,23 @@
   box-shadow: none;
 }
 
+.btn-reject-solid {
+  border: none;
+  background: #dc2626;
+  color: #ffffff;
+  box-shadow: 0 8px 18px rgba(220, 38, 38, 0.18);
+}
+
+.btn-reject-solid:hover:not(:disabled) {
+  background: #b91c1c;
+}
+
+.btn-reject-solid:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
 /* Modal détails */
 .details-modal {
   max-width: 760px;
@@ -680,6 +708,10 @@
 .details-icon {
   background: linear-gradient(180deg, #e0f2fe 0%, #dbeafe 100%);
   color: #0284c7;
+}
+
+.reject-modal {
+  max-width: 700px;
 }
 
 .details-grid {
@@ -764,8 +796,8 @@
     align-items: stretch;
   }
 
-  .btn-reject,
-  .btn-validate {
+  .btn-validate,
+  .btn-reject-solid {
     width: 100%;
     min-width: 100%;
   }
