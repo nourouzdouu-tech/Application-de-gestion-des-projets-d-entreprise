@@ -67,9 +67,15 @@
         <p class="list-subtitle">{{ filteredProjects().length }} projet(s)</p>
       </div>
 
-      <button class="refresh-btn" type="button" (click)="loadProjects()">
-        Actualiser
-      </button>
+      <div class="list-header-right">
+        <span class="list-range-info" *ngIf="filteredProjects().length > 0">
+          Affichage de {{ rangeStart() }} à {{ rangeEnd() }} sur {{ filteredProjects().length }} projets
+        </span>
+
+        <button class="refresh-btn" type="button" (click)="loadProjects()">
+          Actualiser
+        </button>
+      </div>
     </div>
 
     @if (loading()) {
@@ -90,13 +96,11 @@
               <th>CHEF DE PROJET</th>
               <th>DATES</th>
               <th>STATUT</th>
-              <th>PROGRESSION</th>
-              <th>ACTIONS</th>
             </tr>
           </thead>
 
           <tbody>
-            <tr *ngFor="let project of filteredProjects()">
+            <tr *ngFor="let project of paginatedProjects(); trackBy: trackByProjectId">
               <td>
                 <div class="project-main-cell">
                   <div class="project-avatar">{{ getProjectIcon(project.name) }}</div>
@@ -121,35 +125,46 @@
                   {{ project.status }}
                 </span>
               </td>
-
-              <td>
-                <div class="progress-box">
-                  <div class="progress-percent">{{ project.progress }}%</div>
-                  <div class="progress-track">
-                    <div class="progress-fill" [style.width.%]="project.progress"></div>
-                  </div>
-                </div>
-              </td>
-
-              <td>
-                <div class="actions-cell">
-                  <button class="action-btn action-view" type="button" title="Voir">👁</button>
-                  <button class="action-btn action-open" type="button" title="Ouvrir">↗</button>
-                </div>
-              </td>
             </tr>
 
-            <tr *ngIf="filteredProjects().length === 0">
-              <td colspan="7" class="empty-cell">Aucun projet assigné à votre équipe.</td>
+            <tr *ngIf="paginatedProjects().length === 0">
+              <td colspan="5" class="empty-cell">Aucun projet assigné à votre équipe.</td>
             </tr>
           </tbody>
         </table>
       </div>
 
-      <div class="pagination-bar">
-        <button class="page-control" type="button">‹ Précédent</button>
-        <span class="page-indicator">Page 1 sur 1</span>
-        <button class="page-control" type="button">Suivant ›</button>
+      <div class="pagination-bar" *ngIf="filteredProjects().length > 0">
+        <div class="pagination-controls">
+          <button
+            class="page-btn page-nav"
+            type="button"
+            [disabled]="currentPage() === 1"
+            (click)="prevPage()">
+            ‹
+          </button>
+
+          <button
+            *ngFor="let page of pages()"
+            class="page-btn"
+            type="button"
+            [class.page-active]="page === currentPage()"
+            (click)="setPage(page)">
+            {{ page }}
+          </button>
+
+          <button
+            class="page-btn page-nav"
+            type="button"
+            [disabled]="currentPage() === totalPages()"
+            (click)="nextPage()">
+            ›
+          </button>
+        </div>
+
+        <span class="pagination-info">
+          Affichant {{ itemsPerPage }} par page
+        </span>
       </div>
     }
   </div>

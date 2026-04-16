@@ -42,18 +42,22 @@
     </div>
 
     <div class="tabs-filter">
-      <button class="tab-btn" [class.active]="selectedStatus === ''" (click)="setStatusFilter('')">
-        Tous
-      </button>
+  <button class="tab-btn" [class.active]="selectedStatus === ''" (click)="setStatusFilter('')">
+    Tous
+  </button>
 
-      <button class="tab-btn" [class.active]="selectedStatus === 'EN_VALIDATION'" (click)="setStatusFilter('EN_VALIDATION')">
-        En cours de validation
-      </button>
+  <button class="tab-btn" [class.active]="selectedStatus === 'PRE_VALIDE'" (click)="setStatusFilter('PRE_VALIDE')">
+    Pré-validés
+  </button>
 
-      <button class="tab-btn" [class.active]="selectedStatus === 'PRE_VALIDE'" (click)="setStatusFilter('PRE_VALIDE')">
-        Pré-validés
-      </button>
-    </div>
+  <button class="tab-btn" [class.active]="selectedStatus === 'EN_COURS'" (click)="setStatusFilter('EN_COURS')">
+    En cours
+  </button>
+
+  <button class="tab-btn" [class.active]="selectedStatus === 'REJETE'" (click)="setStatusFilter('REJETE')">
+    Rejetés
+  </button>
+</div>
   </div>
 
   <div class="table-card projects-card">
@@ -71,33 +75,31 @@
     <table class="users-table projects-table">
       <thead>
         <tr>
-          <th>NOM DU PROJET</th>
+          <th class="col-project">NOM DU PROJET</th>
           <th>CLIENT</th>
           <th>MANAGER</th>
           <th>ÉQUIPE</th>
-          <th>PROGRESSION</th>
           <th>DATES</th>
-          <th>NIVEAU DE RISQUE</th>
           <th>STATUT</th>
-          <th>ACTIONS</th>
+          <th class="col-actions">ACTIONS</th>
         </tr>
       </thead>
 
       <tbody>
         <tr *ngIf="loading">
-          <td colspan="9" class="cell-center state-cell">Chargement des projets...</td>
+          <td colspan="7" class="cell-center state-cell">Chargement des projets...</td>
         </tr>
 
         <tr *ngIf="error">
-          <td colspan="9" class="cell-center state-cell error-text">{{ error }}</td>
+          <td colspan="7" class="cell-center state-cell error-text">{{ error }}</td>
         </tr>
 
         <tr *ngIf="!loading && !error && projects.length === 0">
-          <td colspan="9" class="cell-center state-cell">Aucun projet trouvé.</td>
+          <td colspan="7" class="cell-center state-cell">Aucun projet trouvé.</td>
         </tr>
 
         <tr *ngFor="let project of paginatedProjects">
-          <td>
+          <td class="project-main-cell">
             <div class="project-cell">
               <div class="project-icon">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -107,7 +109,7 @@
                 </svg>
               </div>
               <div class="user-name-block">
-                <span class="user-fullname">{{ project.name }}</span>
+                <span class="user-fullname" [title]="project.name">{{ project.name }}</span>
                 <span class="project-subline">{{ project.description || 'Projet stratégique' }}</span>
               </div>
             </div>
@@ -121,31 +123,9 @@
 
           <td>{{ project.teamName || 'Non affectée' }}</td>
 
-          <td>
-            <div class="progress-box">
-              <div class="progress-label-row">
-                <span class="progress-label">{{ getProgressLabel(project.progressPercentage) }}</span>
-                <span class="progress-percent">{{ project.progressPercentage }}%</span>
-              </div>
-              <div class="progress-bar">
-                <div
-                  class="progress-fill"
-                  [ngClass]="getProgressBarClass(project.progressPercentage)"
-                  [ngStyle]="{ width: project.progressPercentage + '%' }">
-                </div>
-              </div>
-            </div>
-          </td>
-
           <td class="date-col">
             <div class="date-main">{{ project.startDate | date:'dd/MM/yy' }}</div>
             <div class="date-muted">Fin: {{ project.endDate | date:'dd/MM/yy' }}</div>
-          </td>
-
-          <td>
-            <span class="risk-badge" [ngClass]="getRiskClass(project.riskLevel)">
-              {{ getRiskLabel(project.riskLevel) }}
-            </span>
           </td>
 
           <td>
@@ -154,7 +134,7 @@
             </span>
           </td>
 
-          <td class="actions-cell">
+          <td class="actions-cell col-actions">
             <button
               class="icon-action-btn icon-edit"
               type="button"
@@ -190,6 +170,18 @@
                 <circle cx="12" cy="12" r="3" />
               </svg>
             </button>
+            <button
+  class="icon-action-btn icon-billing"
+  type="button"
+  title="Calculer la facture"
+  (click)="goToBilling(project)">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+    <rect x="4" y="3" width="16" height="18" rx="2" />
+    <line x1="8" y1="7" x2="16" y2="7" />
+    <line x1="8" y1="11" x2="16" y2="11" />
+    <line x1="8" y1="15" x2="12" y2="15" />
+  </svg>
+</button>
           </td>
         </tr>
       </tbody>
@@ -284,20 +276,6 @@
           <select name="projectManager" [(ngModel)]="projectForm.managerId">
             <option [ngValue]="undefined">Choisir un manager</option>
             <option *ngFor="let manager of managers" [ngValue]="manager.id">{{ manager.fullName }}</option>
-          </select>
-        </div>
-
-        <div class="form-group">
-          <label>Progression (%)</label>
-          <input type="number" name="projectProgress" min="0" max="100" [(ngModel)]="projectForm.progressPercentage" />
-        </div>
-
-        <div class="form-group">
-          <label>Niveau de risque</label>
-          <select name="projectRisk" [(ngModel)]="projectForm.riskLevel">
-            <option value="FAIBLE">Faible</option>
-            <option value="MOYEN">Moyen</option>
-            <option value="ELEVE">Élevé</option>
           </select>
         </div>
 

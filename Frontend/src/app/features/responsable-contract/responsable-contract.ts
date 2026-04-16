@@ -2,11 +2,12 @@ import { Component, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterModule } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
+import { SidebarComponent } from '../../shared/components/sidebar/sidebar';
 
 @Component({
   selector: 'app-responsable-contract',
   standalone: true,
-  imports: [CommonModule, RouterModule],
+  imports: [CommonModule, RouterModule, SidebarComponent],
   templateUrl: './responsable-contract.html',
   styleUrls: ['./responsable-contract.css']
 })

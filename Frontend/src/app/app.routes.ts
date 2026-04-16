@@ -58,8 +58,8 @@ export const routes: Routes = [
       { path: 'taches', component: TachesComponent },
       { path: 'equipes', component: Equipes },
       { path: 'calendrier', component: CalendarComponent },
-      { path: '', redirectTo: 'projets', pathMatch: 'full' },
-       { path: 'messages', component: MessagesComponent }
+      { path: 'messages', component: MessagesComponent },
+      { path: '', redirectTo: 'projets', pathMatch: 'full' }
     ]
   },
 
@@ -69,6 +69,7 @@ export const routes: Routes = [
     children: [
       { path: 'projets', component: ResponsableProjets },
       { path: 'facturation', component: TjmCalculatorComponent },
+      { path: 'facturation/:projectId', component: TjmCalculatorComponent },
       { path: '', redirectTo: 'projets', pathMatch: 'full' }
     ]
   },
@@ -88,10 +89,9 @@ export const routes: Routes = [
     children: [
       { path: '', redirectTo: 'projets', pathMatch: 'full' },
       { path: 'projets', component: MembreEquipeProjets },
-      { path: 'taches', component: MembreEquipeTaches } 
-       ]
+      { path: 'taches', component: MembreEquipeTaches }
+    ]
   },
-
 
   {
     path: '',

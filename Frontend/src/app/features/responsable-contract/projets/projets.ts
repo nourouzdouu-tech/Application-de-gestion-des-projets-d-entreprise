@@ -231,7 +231,7 @@ export class Projets implements OnInit, OnDestroy {
       description: (this.projectForm.description ?? '').toString().trim(),
       client: (this.projectForm.client ?? '').toString().trim(),
       progressPercentage: Number(this.projectForm.progressPercentage ?? 0),
-      riskLevel: this.projectForm.riskLevel,
+      riskLevel: this.projectForm.riskLevel ?? 'FAIBLE',
       startDate: this.projectForm.startDate,
       endDate: this.projectForm.endDate,
       managerId: this.projectForm.managerId ? Number(this.projectForm.managerId) : undefined
@@ -251,10 +251,6 @@ export class Projets implements OnInit, OnDestroy {
     }
     if (!payload.startDate || !payload.endDate) {
       this.formError = 'Les dates sont obligatoires.';
-      return;
-    }
-    if (payload.progressPercentage < 0 || payload.progressPercentage > 100) {
-      this.formError = 'La progression doit être comprise entre 0 et 100.';
       return;
     }
     if (payload.startDate > payload.endDate) {
@@ -338,6 +334,11 @@ export class Projets implements OnInit, OnDestroy {
     this.fetchProjects();
   }
 
+  goToBilling(project: ProjectDto): void {
+    if (!project.id) return;
+    this.router.navigate(['/responsable-contrat/facturation', project.id]);
+  }
+
   openDetails(project: ProjectDto): void {
     this.selectedProjectDetails = project;
     this.showDetailsModal = true;
@@ -364,7 +365,7 @@ export class Projets implements OnInit, OnDestroy {
   getStatusLabel(status?: string): string {
     switch (status) {
       case 'EN_VALIDATION':
-        return 'En cours de validation';
+        return 'En validation';
       case 'PRE_VALIDE':
         return 'Pré-validé';
       case 'EN_COURS':
@@ -397,47 +398,5 @@ export class Projets implements OnInit, OnDestroy {
       default:
         return 'status-info';
     }
-  }
-
-  getRiskLabel(risk?: string): string {
-    switch (risk) {
-      case 'FAIBLE':
-        return 'Faible';
-      case 'MOYEN':
-        return 'Moyen';
-      case 'ELEVE':
-        return 'Élevé';
-      default:
-        return risk ?? '-';
-    }
-  }
-
-  getRiskClass(risk?: string): string {
-    switch (risk) {
-      case 'FAIBLE':
-        return 'risk-low';
-      case 'MOYEN':
-        return 'risk-medium';
-      case 'ELEVE':
-        return 'risk-high';
-      default:
-        return 'risk-default';
-    }
-  }
-
-  getProgressLabel(progress: number): string {
-    if (progress === 100) return 'SUCCÈS';
-    if (progress >= 75) return 'TERMINÉ';
-    if (progress >= 40) return 'ATTENTION';
-    if (progress > 0) return 'CRITIQUE';
-    return 'N/A';
-  }
-
-  getProgressBarClass(progress: number): string {
-    if (progress === 100) return 'progress-success';
-    if (progress >= 75) return 'progress-good';
-    if (progress >= 40) return 'progress-medium';
-    if (progress > 0) return 'progress-critical';
-    return 'progress-empty';
   }
 }

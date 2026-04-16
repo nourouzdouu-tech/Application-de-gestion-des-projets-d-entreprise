@@ -2,11 +2,11 @@ import { Component, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
-
+import { SidebarComponent } from '../../shared/components/sidebar/sidebar';
 @Component({
   selector: 'app-chef-projet',
   standalone: true,
-  imports: [CommonModule, RouterModule],
+  imports: [CommonModule, RouterModule, SidebarComponent],
   templateUrl: './chef-projet.html',
   styleUrls: ['./chef-projet.css']
 })

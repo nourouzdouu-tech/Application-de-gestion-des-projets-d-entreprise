@@ -10,7 +10,7 @@ export interface LoginRequest {
 export interface AuthResponse {
   accessToken: string;
   tokenType: string;
-   id: number;
+  id: number;
   email: string;
   prenom: string;
   nom: string;
@@ -18,11 +18,13 @@ export interface AuthResponse {
   redirectTo: string;
   mustChangePassword: boolean;
 }
+
 export interface ChangePasswordRequest {
   oldPassword: string;
   newPassword: string;
   confirmPassword: string;
 }
+
 @Injectable({
   providedIn: 'root'
 })
@@ -55,52 +57,65 @@ export class AuthService {
   isAuthenticated(): boolean {
     return !!this.getToken();
   }
+
   changePassword(request: ChangePasswordRequest): Observable<any> {
-  return this.http.post(
-    `${this.apiUrl}/change-password`, 
-    request
-  );
-}
+    return this.http.post(`${this.apiUrl}/change-password`, request);
+  }
 
-unlockUser(email: string): Observable<any> {
-  return this.http.post(
-    `http://localhost:8080/api/admin/users/${email}/unlock`, 
-    {}
-  );
-}
-saveUser(user: AuthResponse): void {
-  localStorage.setItem('auth_user', JSON.stringify({
-    id: user.id,
-    email: user.email,
-    prenom: user.prenom,
-    nom: user.nom,
-    roles: user.roles
-  }));
-}
+  unlockUser(email: string): Observable<any> {
+    return this.http.post(`http://localhost:8080/api/admin/users/${email}/unlock`, {});
+  }
 
-getUser(): { id?: number; email: string; prenom: string; nom: string; roles: string[] } | null {
-  const user = localStorage.getItem('auth_user');
-  return user ? JSON.parse(user) : null;
-}
-getCurrentUserId(): number {
-  return this.getUser()?.id ?? 0;
-}
+  saveUser(user: AuthResponse): void {
+    localStorage.setItem('auth_user', JSON.stringify({
+      id: user.id,
+      email: user.email,
+      prenom: user.prenom,
+      nom: user.nom,
+      roles: user.roles
+    }));
+  }
 
-getInitials(): string {
-  const user = this.getUser();
-  if (!user) return '??';
-  return (user.prenom?.charAt(0) + user.nom?.charAt(0)).toUpperCase();
-}
+  getUser(): { id?: number; email: string; prenom: string; nom: string; roles: string[] } | null {
+    const user = localStorage.getItem('auth_user');
+    return user ? JSON.parse(user) : null;
+  }
 
-removeUser(): void {
-  localStorage.removeItem('auth_user');
-  localStorage.removeItem('auth_token');
-}
-updateProfile(data: any): Observable<AuthResponse> {
-  return this.http.put<AuthResponse>(
-    `${this.apiUrl}/update-profile`, 
-    data
-  );
-}
+  getCurrentUserId(): number {
+    return this.getUser()?.id ?? 0;
+  }
 
+  getInitials(): string {
+    const user = this.getUser();
+    if (!user) return '??';
+    return (user.prenom?.charAt(0) + user.nom?.charAt(0)).toUpperCase();
+  }
+
+  removeUser(): void {
+    localStorage.removeItem('auth_user');
+    localStorage.removeItem('auth_token');
+  }
+
+  updateProfile(data: any): Observable<AuthResponse> {
+    return this.http.put<AuthResponse>(`${this.apiUrl}/update-profile`, data);
+  }
+
+  hasRole(role: string): boolean {
+    const user = this.getUser();
+    if (!user || !user.roles) return false;
+
+    return user.roles.includes(role);
+  }
+
+  hasAnyRole(roles: string[]): boolean {
+    const user = this.getUser();
+    if (!user || !user.roles) return false;
+
+    return roles.some(role => user.roles.includes(role));
+  }
+
+  getRoles(): string[] {
+    const user = this.getUser();
+    return user?.roles ?? [];
+  }
 }

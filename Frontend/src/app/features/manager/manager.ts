@@ -2,6 +2,7 @@ import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterModule } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
+import { SidebarComponent } from '../../shared/components/sidebar/sidebar';
 
 interface SidebarItem {
   label: string;
@@ -13,7 +14,7 @@ interface SidebarItem {
 @Component({
   selector: 'app-manager-layout',
   standalone: true,
-  imports: [CommonModule, RouterModule],
+  imports: [CommonModule, RouterModule, SidebarComponent],
   templateUrl: './manager.html',
   styleUrl: './manager.css',
 })
