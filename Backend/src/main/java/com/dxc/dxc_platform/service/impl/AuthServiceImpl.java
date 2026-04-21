@@ -17,6 +17,7 @@ import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.dxc.dxc_platform.service.AuditService;
 
 import java.util.stream.Collectors;
 
@@ -30,6 +31,7 @@ public class AuthServiceImpl implements AuthService {
     private final PasswordEncoder passwordEncoder;
     private final LoginAttemptService loginAttemptService;
     private final AuthMapper authMapper;
+    private final AuditService auditService;
 
     public AuthServiceImpl(AuthenticationManager authenticationManager,
                            UserRepository userRepository,
@@ -37,7 +39,7 @@ public class AuthServiceImpl implements AuthService {
                            UserDetailsService userDetailsService,
                            PasswordEncoder passwordEncoder,
                            LoginAttemptService loginAttemptService,
-                           AuthMapper authMapper) {
+                           AuthMapper authMapper, AuditService auditService) {
         this.authenticationManager = authenticationManager;
         this.userRepository = userRepository;
         this.jwtService = jwtService;
@@ -45,51 +47,65 @@ public class AuthServiceImpl implements AuthService {
         this.passwordEncoder = passwordEncoder;
         this.loginAttemptService = loginAttemptService;
         this.authMapper = authMapper;
+        this.auditService = auditService;
     }
 
     @Override
     public AuthDto.Response login(AuthDto.LoginRequest request) {
+        String email = request.email();
+        String ipAddress = getClientIp(); // À implémenter
+
         try {
-            User user = userRepository.findByEmailAndDeletedFalse(request.email())
+            User user = userRepository.findByEmailAndDeletedFalse(email)
                     .orElseThrow(() -> new NotFoundException(
                             "USER_NOT_FOUND", "Utilisateur introuvable"));
 
             if (user.isLocked()) {
+                // ✅ Audit pour compte verrouillé
+                auditService.log("ACCOUNT_LOCKED", "USER", user.getId(),
+                        "Tentative de connexion sur compte verrouillé: " + email,
+                        email, ipAddress);
                 throw new LockedException(
                         "Compte verrouillé après 3 tentatives. Contactez l'administrateur.");
             }
 
             try {
                 authenticationManager.authenticate(
-                        new UsernamePasswordAuthenticationToken(
-                                request.email(),
-                                request.password()
-                        )
+                        new UsernamePasswordAuthenticationToken(email, request.password())
                 );
             } catch (BadCredentialsException e) {
-                int remaining = loginAttemptService.registerFailedAttempt(request.email());
+                int remaining = loginAttemptService.registerFailedAttempt(email);
+
+                // ✅ Audit pour échec de connexion
+                auditService.log("LOGIN_FAILED", "AUTH", user.getId(),
+                        "Échec de connexion pour " + email + ". Mot de passe incorrect. Tentatives restantes: " + remaining,
+                        email, ipAddress);
+
                 throw new BadCredentialsException(
                         "Mot de passe incorrect. " + remaining
                                 + " tentative(s) restante(s) avant verrouillage.");
             }
 
-            loginAttemptService.resetAttempts(request.email());
+            loginAttemptService.resetAttempts(email);
 
-            UserDetails userDetails = userDetailsService.loadUserByUsername(request.email());
+            UserDetails userDetails = userDetailsService.loadUserByUsername(email);
             String token = jwtService.generateToken(userDetails);
 
             String redirectTo = buildRedirectFromDb(user);
 
-            // Récupération des rôles sous forme de Set<String>
             var roles = user.getRoles().stream()
                     .map(role -> role.getNom())
                     .collect(Collectors.toSet());
 
-            // Construction de la réponse AVEC l'id
+            // ✅ Audit pour connexion réussie
+            auditService.log("LOGIN_SUCCESS", "AUTH", user.getId(),
+                    "Connexion réussie pour " + email ,
+                    email, ipAddress);
+
             AuthDto.Response finalResponse = new AuthDto.Response(
                     token,
                     "Bearer",
-                    user.getId(),               // ✅ id ajouté
+                    user.getId(),
                     user.getEmail(),
                     user.getPrenom(),
                     user.getNom(),
@@ -98,23 +114,37 @@ public class AuthServiceImpl implements AuthService {
                     user.isMustChangePassword()
             );
 
-            System.out.println(">>> LOGIN RÉUSSI pour: " + request.email());
-            System.out.println(">>> Token généré: " + token.substring(0, 20) + "...");
-            System.out.println(">>> Final Response: " + finalResponse);
-
             return finalResponse;
-        } catch (Exception e) {
-            System.err.println(">>> ERREUR LOGIN EXCEPTION: " + e.getClass().getName());
-            System.err.println(">>> MESSAGE: " + e.getMessage());
-            e.printStackTrace();
+
+        } catch (NotFoundException e) {
+            // ✅ Audit pour utilisateur inexistant
+            auditService.log("LOGIN_FAILED", "AUTH", null,
+                    "Tentative de connexion avec email inexistant: " + email,
+                    email, ipAddress);
             throw e;
+        }
+    }
+
+    // ✅ Méthode pour récupérer l'IP du client
+    private String getClientIp() {
+        try {
+            jakarta.servlet.http.HttpServletRequest request =
+                    ((org.springframework.web.context.request.ServletRequestAttributes)
+                            org.springframework.web.context.request.RequestContextHolder.currentRequestAttributes())
+                            .getRequest();
+            String ip = request.getHeader("X-Forwarded-For");
+            if (ip == null || ip.isEmpty()) {
+                ip = request.getRemoteAddr();
+            }
+            return ip;
+        } catch (Exception e) {
+            return "unknown";
         }
     }
 
     @Override
     @Transactional
     public void changePassword(String email, AuthDto.ChangePasswordRequest request) {
-
         User user = userRepository.findByEmailAndDeletedFalse(email)
                 .orElseThrow(() -> new NotFoundException(
                         "USER_NOT_FOUND", "Utilisateur introuvable"));
@@ -136,6 +166,11 @@ public class AuthServiceImpl implements AuthService {
         user.setPasswordHash(passwordEncoder.encode(request.newPassword()));
         user.setMustChangePassword(false);
         userRepository.saveAndFlush(user);
+
+        // ✅ Audit pour changement de mot de passe
+        auditService.log("RESET_PASSWORD", "USER", user.getId(),
+                "Changement de mot de passe pour " + email,
+                email, getClientIp());
     }
 
     private String buildRedirectFromDb(User user) {
@@ -149,7 +184,6 @@ public class AuthServiceImpl implements AuthService {
     @Override
     @Transactional
     public AuthDto.Response updateProfile(String email, AuthDto.UpdateProfileRequest request) {
-
         User user = userRepository.findByEmailAndDeletedFalse(email)
                 .orElseThrow(() -> new NotFoundException(
                         "USER_NOT_FOUND", "Utilisateur introuvable"));
@@ -165,7 +199,11 @@ public class AuthServiceImpl implements AuthService {
 
         userRepository.save(user);
 
-        // Retourner une réponse avec l'id
+        // ✅ Audit pour mise à jour du profil
+        auditService.log("UPDATE_USER", "USER", user.getId(),
+                "Mise à jour du profil pour " + email + " (nouvel email: " + request.email() + ")",
+                email, getClientIp());
+
         return new AuthDto.Response(
                 null,
                 null,

@@ -8,6 +8,7 @@ import com.dxc.dxc_platform.entity.User;
 import com.dxc.dxc_platform.mapper.TeamMapper;
 import com.dxc.dxc_platform.repository.TeamRepository;
 import com.dxc.dxc_platform.repository.UserRepository;
+import com.dxc.dxc_platform.service.AuditService;
 import com.dxc.dxc_platform.service.TeamService;
 import com.dxc.dxc_platform.shared.exception.BusinessException;
 import com.dxc.dxc_platform.shared.exception.ConflictException;
@@ -30,15 +31,20 @@ public class TeamServiceImpl implements TeamService {
     private final TeamRepository teamRepository;
     private final UserRepository userRepository;
     private final TeamMapper teamMapper;
+    private final AuditService auditService;
 
     public TeamServiceImpl(TeamRepository teamRepository,
                            UserRepository userRepository,
-                           TeamMapper teamMapper) {
+                           TeamMapper teamMapper, AuditService auditService) {
         this.teamRepository = teamRepository;
         this.userRepository = userRepository;
         this.teamMapper = teamMapper;
+        this.auditService = auditService;
     }
-
+    private String getCurrentUserEmail() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        return auth != null ? auth.getName() : "system";
+    }
     @Override
     public TeamDto createTeam(TeamDto request) {
         String teamName = request.getName().trim();
@@ -62,8 +68,9 @@ public class TeamServiceImpl implements TeamService {
 
         Team savedTeam = teamRepository.save(team);
 
-        // Le chef de projet n'est pas automatiquement ajouté comme membre
-        // Il est seulement le manager de l'équipe
+        auditService.log("CREATE_TEAM", "TEAM", savedTeam.getId(),
+                "Création de l'équipe " + savedTeam.getName(),
+                getCurrentUserEmail(),  null);
 
         return teamMapper.toDto(savedTeam);
     }
@@ -74,7 +81,7 @@ public class TeamServiceImpl implements TeamService {
         User currentUser = getAuthenticatedUser();
 
         validateCurrentUserCanManageTeam(team, currentUser);
-
+        String oldName = team.getName();
         String newName = request.getName().trim();
 
         // Vérifier si un autre team du même manager a ce nom
@@ -93,6 +100,9 @@ public class TeamServiceImpl implements TeamService {
         team.setDescription(request.getDescription());
 
         Team updatedTeam = teamRepository.save(team);
+        auditService.log("UPDATE_TEAM", "TEAM", teamId,
+                "Modification de l'équipe " + oldName + " → " + newName,
+                getCurrentUserEmail(),  null);
         return teamMapper.toDto(updatedTeam);
     }
 
@@ -128,6 +138,10 @@ public class TeamServiceImpl implements TeamService {
         }
 
         Team savedTeam = teamRepository.save(team);
+        String action = deleted ? "DELETE_TEAM" : "RESTORE_TEAM";
+        auditService.log(action, "TEAM", teamId,
+                (deleted ? "Suppression" : "Restauration") + " de l'équipe " + team.getName(),
+                getCurrentUserEmail(),  null);
         return teamMapper.toDto(savedTeam);
     }
 
@@ -215,6 +229,10 @@ public class TeamServiceImpl implements TeamService {
 
         userToRemove.setTeam(null);
         userRepository.save(userToRemove);
+        auditService.log("REMOVE_MEMBER_FROM_TEAM", "TEAM", teamId,
+                "Retrait de " + userToRemove.getEmail() + " de l'équipe " + team.getName(),
+                getCurrentUserEmail(),  null);
+
 
         return teamMapper.toDto(team);
     }
@@ -289,6 +307,10 @@ public class TeamServiceImpl implements TeamService {
 
         user.setTeam(team);
         userRepository.save(user);
+        auditService.log("ASSIGN_MEMBER_TO_TEAM", "TEAM", teamId,
+                "Assignation de " + user.getEmail() + " à l'équipe " + team.getName(),
+                getCurrentUserEmail(),  null);
+
 
         return teamMapper.toDto(team);
     }

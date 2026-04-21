@@ -14,4 +14,14 @@ public interface TaskService {
     List<TaskDto> getMyTasks(String query, Priority priority, Long assignedToId);
     TaskDto updateMyTaskStatus(Long taskId, Status status);
     void deleteTask(Long id);
+
+    // ✅ Nouvelle méthode pour que le chef de projet valide une tâche
+    TaskDto validateTask(Long taskId, String commentaire);
+
+    // ✅ Nouvelle méthode pour que le chef de projet rejette une tâche
+    TaskDto rejectTask(Long taskId, String commentaire);
+
+    // ✅ Nouvelle méthode pour soumettre une tâche pour validation
+    TaskDto submitTaskForValidation(Long taskId);
 }
+

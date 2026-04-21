@@ -53,6 +53,12 @@
           </svg>
           <span>Gestion des Profils</span>
         </a>
+        <a routerLink="/admin/audit" routerLinkActive="active" class="nav-item">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+    <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5.586a1 1 0 0 1 .707.293l5.414 5.414a1 1 0 0 1 .293.707V19a2 2 0 0 1-2 2z"/>
+  </svg>
+  <span>Audit</span>
+</a>
       </div>
 
       <!-- MANAGER -->
@@ -95,6 +101,13 @@
           </div>
           <span class="nav-badge">3</span>
         </a>
+        <a routerLink="/manager/audit" routerLinkActive="active" class="nav-item">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+    <path d="M12 8v4l3 3M12 2a10 10 0 1 0 10 10" />
+    <path d="M12 6v2" />
+  </svg>
+  <span>Audit</span>
+</a>
       </div>
 
       <!-- CHEF PROJET -->
@@ -138,15 +151,7 @@
           <span>Calendrier</span>
         </a>
 
-        <a class="nav-item" routerLink="/chef-projet/reporting" routerLinkActive="active">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <line x1="12" y1="20" x2="12" y2="10" />
-            <line x1="18" y1="20" x2="18" y2="4" />
-            <line x1="6" y1="20" x2="6" y2="16" />
-          </svg>
-          <span>Reporting</span>
-        </a>
-
+        
         <a class="nav-item nav-item-with-badge" routerLink="/chef-projet/messages" routerLinkActive="active">
           <div class="nav-item-left">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -157,13 +162,7 @@
           <span class="nav-badge">3</span>
         </a>
 
-        <a class="nav-item" routerLink="/chef-projet/audit" routerLinkActive="active">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-            <path d="M9 12l2 2 4-4" />
-          </svg>
-          <span>Audit</span>
-        </a>
+       
       </div>
 
       <!-- MEMBRE EQUIPE -->

@@ -9,6 +9,7 @@ import com.dxc.dxc_platform.enums.Status;
 import com.dxc.dxc_platform.repository.ProjectRepository;
 import com.dxc.dxc_platform.repository.TaskRepository;
 import com.dxc.dxc_platform.repository.UserRepository;
+import com.dxc.dxc_platform.service.AuditService;
 import com.dxc.dxc_platform.service.TaskService;
 import com.dxc.dxc_platform.shared.exception.BusinessException;
 import com.dxc.dxc_platform.shared.exception.ForbiddenException;
@@ -30,14 +31,20 @@ public class TaskServiceImpl implements TaskService {
     private final TaskRepository taskRepository;
     private final UserRepository userRepository;
     private final ProjectRepository projectRepository;
+    private final AuditService auditService;
 
     public TaskServiceImpl(TaskRepository taskRepository,
                            UserRepository userRepository,
-                           ProjectRepository projectRepository) {
+                           ProjectRepository projectRepository, AuditService auditService) {
         this.taskRepository = taskRepository;
         this.userRepository = userRepository;
         this.projectRepository = projectRepository;
+        this.auditService = auditService;
     }
+    private String getCurrentUserEmail() {
+        return SecurityContextHolder.getContext().getAuthentication().getName();
+    }
+
 
     private User getCurrentUser() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
@@ -125,6 +132,9 @@ public class TaskServiceImpl implements TaskService {
         task.setPriority(dto.getPriority() != null ? dto.getPriority() : Priority.MOYENNE);
 
         Task saved = taskRepository.save(task);
+        auditService.log("CREATE_TASK", "TASK", saved.getId(),
+                "Création de la tâche '" + saved.getTitle() + "' pour le projet " + project.getName(),
+                getCurrentUserEmail(), null);
         return toDto(saved);
     }
 
@@ -141,7 +151,7 @@ public class TaskServiceImpl implements TaskService {
                 !task.getProject().getTeam().getProjectManager().getId().equals(currentUser.getId())) {
             throw new ForbiddenException("FORBIDDEN", "Vous ne pouvez pas modifier cette tâche");
         }
-
+        String oldTitle = task.getTitle();
         task.setTitle(dto.getTitle());
         task.setDescription(dto.getDescription());
 
@@ -164,6 +174,9 @@ public class TaskServiceImpl implements TaskService {
         }
 
         Task updated = taskRepository.save(task);
+        auditService.log("UPDATE_TASK", "TASK", id,
+                "Modification de la tâche '" + oldTitle + "' → '" + updated.getTitle() + "'",
+                getCurrentUserEmail(), null);
         return toDto(updated);
     }
 
@@ -253,9 +266,7 @@ public class TaskServiceImpl implements TaskService {
                 })
                 .map(this::toDto)
                 .collect(Collectors.toList());
-    }
-
-    @Override
+    }@Override
     public TaskDto updateMyTaskStatus(Long taskId, Status status) {
         User currentUser = getCurrentUser();
 
@@ -279,8 +290,128 @@ public class TaskServiceImpl implements TaskService {
             throw new ForbiddenException("FORBIDDEN", "Cette tâche n'appartient pas à un projet de votre équipe");
         }
 
+        Status oldStatus = task.getStatus();
         task.setStatus(status);
         Task updated = taskRepository.save(task);
+
+        // ✅ Audit pour le changement de statut
+        auditService.log("UPDATE_TASK_STATUS", "TASK", taskId,
+                "Membre équipe '" + currentUser.getEmail() + "' a changé le statut de la tâche '" +
+                        task.getTitle() + "' de " + oldStatus + " à " + status,
+                getCurrentUserEmail(), null);
+
+        // ✅ Si le statut devient "Validation", logger une soumission
+        if (status == Status.Validation) {
+            auditService.log("SUBMIT_TASK", "TASK", taskId,
+                    "Membre équipe '" + currentUser.getEmail() + "' a soumis la tâche '" +
+                            task.getTitle() + "' pour validation au chef de projet",
+                    getCurrentUserEmail(), null);
+        }
+
+        return toDto(updated);
+    }
+
+    // ✅ Nouvelle méthode pour soumettre une tâche pour validation
+    @Override
+    public TaskDto submitTaskForValidation(Long taskId) {
+        User currentUser = getCurrentUser();
+
+        Task task = taskRepository.findById(taskId)
+                .orElseThrow(() -> new NotFoundException("TASK_NOT_FOUND", "Tâche introuvable"));
+
+        if (task.isDeleted()) {
+            throw new NotFoundException("TASK_NOT_FOUND", "Tâche introuvable");
+        }
+
+        if (task.getAssignedTo() == null || !task.getAssignedTo().getId().equals(currentUser.getId())) {
+            throw new ForbiddenException("FORBIDDEN", "Cette tâche ne vous est pas assignée");
+        }
+
+        if (task.getStatus() != Status.En_cours && task.getStatus() != Status.A_faire) {
+            throw new BusinessException("INVALID_STATUS", "Seules les tâches en cours peuvent être soumises pour validation");
+        }
+
+        task.setStatus(Status.Validation);
+        Task updated = taskRepository.save(task);
+
+        auditService.log("SUBMIT_TASK", "TASK", taskId,
+                "Membre équipe '" + currentUser.getEmail() + "' a soumis la tâche '" +
+                        task.getTitle() + "' pour validation",
+                getCurrentUserEmail(), null);
+
+        return toDto(updated);
+    }
+
+    // ✅ Nouvelle méthode pour que le chef de projet valide une tâche
+    @Override
+    public TaskDto validateTask(Long taskId, String commentaire) {
+        User currentUser = getCurrentUser();
+
+        if (!isChefProjet(currentUser)) {
+            throw new ForbiddenException("FORBIDDEN", "Seul un chef de projet peut valider les tâches");
+        }
+
+        Task task = taskRepository.findById(taskId)
+                .orElseThrow(() -> new NotFoundException("TASK_NOT_FOUND", "Tâche introuvable"));
+
+        if (task.isDeleted()) {
+            throw new NotFoundException("TASK_NOT_FOUND", "Tâche introuvable");
+        }
+
+        if (task.getProject() == null || task.getProject().getTeam() == null ||
+                task.getProject().getTeam().getProjectManager() == null ||
+                !task.getProject().getTeam().getProjectManager().getId().equals(currentUser.getId())) {
+            throw new ForbiddenException("FORBIDDEN", "Vous n'êtes pas le chef de projet de ce projet");
+        }
+
+        if (task.getStatus() != Status.Validation) {
+            throw new BusinessException("INVALID_STATUS", "Cette tâche n'est pas en attente de validation");
+        }
+
+        task.setStatus(Status.Terminé);
+        Task updated = taskRepository.save(task);
+
+        auditService.log("VALIDATE_TASK", "TASK", taskId,
+                "Chef de projet '" + currentUser.getEmail() + "' a validé la tâche '" +
+                        task.getTitle() + "'. Commentaire: " + (commentaire != null ? commentaire : ""),
+                getCurrentUserEmail(), null);
+
+        return toDto(updated);
+    }
+
+    // ✅ Nouvelle méthode pour que le chef de projet rejette une tâche
+    @Override
+    public TaskDto rejectTask(Long taskId, String commentaire) {
+        User currentUser = getCurrentUser();
+
+        if (!isChefProjet(currentUser)) {
+            throw new ForbiddenException("FORBIDDEN", "Seul un chef de projet peut rejeter les tâches");
+        }
+
+        Task task = taskRepository.findById(taskId)
+                .orElseThrow(() -> new NotFoundException("TASK_NOT_FOUND", "Tâche introuvable"));
+
+        if (task.isDeleted()) {
+            throw new NotFoundException("TASK_NOT_FOUND", "Tâche introuvable");
+        }
+
+        if (task.getProject() == null || task.getProject().getTeam() == null ||
+                task.getProject().getTeam().getProjectManager() == null ||
+                !task.getProject().getTeam().getProjectManager().getId().equals(currentUser.getId())) {
+            throw new ForbiddenException("FORBIDDEN", "Vous n'êtes pas le chef de projet de ce projet");
+        }
+
+        if (task.getStatus() != Status.Validation) {
+            throw new BusinessException("INVALID_STATUS", "Cette tâche n'est pas en attente de validation");
+        }
+
+        task.setStatus(Status.A_revoir);  // À ajouter dans votre enum
+        Task updated = taskRepository.save(task);
+
+        auditService.log("REJECT_TASK", "TASK", taskId,
+                "Chef de projet '" + currentUser.getEmail() + "' a rejeté la tâche '" +
+                        task.getTitle() + "'. Motif: " + (commentaire != null ? commentaire : ""),
+                getCurrentUserEmail(), null);
 
         return toDto(updated);
     }
@@ -298,10 +429,16 @@ public class TaskServiceImpl implements TaskService {
                 !task.getProject().getTeam().getProjectManager().getId().equals(currentUser.getId())) {
             throw new ForbiddenException("FORBIDDEN", "Vous ne pouvez pas supprimer cette tâche");
         }
-
+        String taskTitle = task.getTitle();
         task.setDeleted(true);
+        auditService.log("DELETE_TASK", "TASK", id,
+                "Suppression de la tâche '" + taskTitle + "'",
+                getCurrentUserEmail(), null);
         taskRepository.save(task);
+
     }
+
+
 
     private TaskDto toDto(Task task) {
         TaskDto dto = new TaskDto();

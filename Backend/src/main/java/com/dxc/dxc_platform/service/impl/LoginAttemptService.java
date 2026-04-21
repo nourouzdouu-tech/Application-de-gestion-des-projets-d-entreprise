@@ -2,6 +2,7 @@ package com.dxc.dxc_platform.service.impl;
 
 import com.dxc.dxc_platform.entity.User;
 import com.dxc.dxc_platform.repository.UserRepository;
+import com.dxc.dxc_platform.service.AuditService;
 import com.dxc.dxc_platform.shared.exception.NotFoundException;
 import org.springframework.security.authentication.LockedException;
 import org.springframework.stereotype.Service;
@@ -15,11 +16,13 @@ public class LoginAttemptService {
 
     private final UserRepository userRepository;
     private final LockUserService lockUserService;
+    private final AuditService auditService;
 
     public LoginAttemptService(UserRepository userRepository,
-                               LockUserService lockUserService) {
+                               LockUserService lockUserService, AuditService auditService) {
         this.userRepository = userRepository;
         this.lockUserService = lockUserService;
+        this.auditService = auditService;
     }
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
@@ -33,13 +36,15 @@ public class LoginAttemptService {
         System.out.println(">>> TENTATIVE " + attempts + " pour " + email);
 
         if (attempts >= MAX_FAILED_ATTEMPTS) {
-            // Verrouiller dans un bean séparé → transaction propre commitée
-            // AVANT de lancer l'exception
-            lockUserService.lockUser(email);
-            throw new LockedException(
-                    "Compte verrouillé après " + MAX_FAILED_ATTEMPTS
-                            + " tentatives échouées. Contactez l'administrateur.");
-        }
+
+                user.setLocked(true);
+                userRepository.save(user);
+            String failedAttempts = "";
+            auditService.log("ACCOUNT_LOCKED", "USER", user.getId(),
+                    "Compte verrouillé après " + failedAttempts + " tentatives échouées",
+                    email, null);
+            }
+
 
         userRepository.incrementFailedAttempts(email);
         System.out.println(">>> incrementFailedAttempts() TERMINÉ");

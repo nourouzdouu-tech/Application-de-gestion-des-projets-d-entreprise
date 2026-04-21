@@ -11,6 +11,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/tasks")
@@ -61,5 +62,30 @@ public class TaskController {
     public ResponseEntity<Void> deleteTask(@PathVariable Long id) {
         taskService.deleteTask(id);
         return ResponseEntity.noContent().build();
+    }
+    @PostMapping("/{id}/submit")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<TaskDto> submitTaskForValidation(@PathVariable Long id) {
+        return ResponseEntity.ok(taskService.submitTaskForValidation(id));
+    }
+
+    // ✅ Valider une tâche (chef de projet)
+    @PostMapping("/{id}/validate")
+    @PreAuthorize("hasRole('CHEF_PROJET')")
+    public ResponseEntity<TaskDto> validateTask(
+            @PathVariable Long id,
+            @RequestBody(required = false) Map<String, String> body) {
+        String commentaire = body != null ? body.get("commentaire") : null;
+        return ResponseEntity.ok(taskService.validateTask(id, commentaire));
+    }
+
+    // ✅ Rejeter une tâche (chef de projet)
+    @PostMapping("/{id}/reject")
+    @PreAuthorize("hasRole('CHEF_PROJET')")
+    public ResponseEntity<TaskDto> rejectTask(
+            @PathVariable Long id,
+            @RequestBody(required = false) Map<String, String> body) {
+        String commentaire = body != null ? body.get("commentaire") : null;
+        return ResponseEntity.ok(taskService.rejectTask(id, commentaire));
     }
 }

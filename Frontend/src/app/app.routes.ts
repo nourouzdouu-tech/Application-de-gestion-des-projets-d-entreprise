@@ -24,6 +24,9 @@ import { ReviewProjetsComponent } from './features/manager/projets/projets';
 import { MembreEquipe } from './features/membre-equipe/membre-equipe';
 import { MembreEquipeProjets } from './features/membre-equipe/projets/projets';
 import { MembreEquipeTaches } from './features/membre-equipe/taches/taches';
+import { AuditComponent } from './features/admin/audit/audit';
+import { ManagerAuditComponent } from './features/manager/audit/audit';
+
 
 export const routes: Routes = [
   {
@@ -46,6 +49,7 @@ export const routes: Routes = [
       { path: 'roles', component: Roles },
       { path: 'clients', component: Clients },
       { path: 'profile', component: Profiles },
+       { path: 'audit',        component: AuditComponent },
       { path: '', redirectTo: 'dashboard', pathMatch: 'full' }
     ]
   },
@@ -83,7 +87,10 @@ export const routes: Routes = [
     children: [
       { path: 'dashboard', component: Dashboard },
       { path: 'projets', component: ReviewProjetsComponent },
-      { path: '', redirectTo: 'dashboard', pathMatch: 'full' }
+
+      { path: 'audit',   component: ManagerAuditComponent }, 
+      { path: '', redirectTo: 'projets', pathMatch: 'full' }
+
     ]
   },
 
