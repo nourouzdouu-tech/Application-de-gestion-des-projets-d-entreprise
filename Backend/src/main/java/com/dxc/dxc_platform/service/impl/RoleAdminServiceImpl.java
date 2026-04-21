@@ -6,9 +6,11 @@ import com.dxc.dxc_platform.entity.Role;
 import com.dxc.dxc_platform.mapper.RoleMapper;
 import com.dxc.dxc_platform.repository.PermissionRepository;
 import com.dxc.dxc_platform.repository.RoleRepository;
+import com.dxc.dxc_platform.service.AuditService;
 import com.dxc.dxc_platform.service.RoleAdminService;
 import com.dxc.dxc_platform.shared.exception.ConflictException;
 import com.dxc.dxc_platform.shared.exception.NotFoundException;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,13 +26,18 @@ public class RoleAdminServiceImpl implements RoleAdminService {
     private final RoleRepository roleRepository;
     private final PermissionRepository permissionRepository;
     private final RoleMapper roleMapper;
+    private final AuditService auditService;
 
     public RoleAdminServiceImpl(RoleRepository roleRepository,
                                 PermissionRepository permissionRepository,
-                                RoleMapper roleMapper) {
+                                RoleMapper roleMapper, AuditService auditService) {
         this.roleRepository = roleRepository;
         this.permissionRepository = permissionRepository;
         this.roleMapper = roleMapper;
+        this.auditService = auditService;
+    }
+    private String getCurrentUserEmail() {
+        return SecurityContextHolder.getContext().getAuthentication().getName();
     }
 
     @Override
@@ -43,8 +50,13 @@ public class RoleAdminServiceImpl implements RoleAdminService {
         role.setActive(true);
         role.setPermissions(resolvePermissions(req.permissionCodes()));
 
-        role = roleRepository.save(role);
-        return roleMapper.toResponse(role);
+        Role saved = roleRepository.save(role);  // ← sauvegarde dans 'saved'
+
+        auditService.log("CREATE_ROLE", "ROLE", saved.getId(),  // ← utilise 'saved'
+                "Création du rôle " + req.nom(),
+                getCurrentUserEmail(),  null);
+
+        return roleMapper.toResponse(saved);  // ← retourne 'saved'
     }
 
     @Override
@@ -96,7 +108,7 @@ public class RoleAdminServiceImpl implements RoleAdminService {
                 && roleRepository.existsByNom(req.nom())) {
             throw new ConflictException("ROLE_ALREADY_EXISTS", "Rôle existe déjà: " + req.nom());
         }
-
+        String oldName = role.getNom();
         role.setNom(req.nom());
         role.setDescription(req.description());
 
@@ -110,6 +122,9 @@ public class RoleAdminServiceImpl implements RoleAdminService {
         }
 
         role = roleRepository.save(role);
+        auditService.log("UPDATE_ROLE", "ROLE", id,
+                "Modification du rôle " + oldName + " → " + req.nom(),
+                getCurrentUserEmail(), null);
         return roleMapper.toResponse(role);
     }
 
@@ -119,6 +134,10 @@ public class RoleAdminServiceImpl implements RoleAdminService {
                 .orElseThrow(() -> new NotFoundException("ROLE_NOT_FOUND", "Rôle introuvable: " + id));
         role.setActive(true);
         roleRepository.save(role);
+
+        auditService.log("ACTIVATE_ROLE", "ROLE", id,
+                "Activation du rôle " + role.getNom(),
+                getCurrentUserEmail(),  null);
     }
 
     @Override
@@ -127,6 +146,10 @@ public class RoleAdminServiceImpl implements RoleAdminService {
                 .orElseThrow(() -> new NotFoundException("ROLE_NOT_FOUND", "Rôle introuvable: " + id));
         role.setActive(false);
         roleRepository.save(role);
+
+        auditService.log("DEACTIVATE_ROLE", "ROLE", id,
+                "Désactivation du rôle " + role.getNom(),
+                getCurrentUserEmail(), null);
     }
 
     @Override
@@ -143,7 +166,10 @@ public class RoleAdminServiceImpl implements RoleAdminService {
     public void softDelete(Long id) {
         Role role = roleRepository.findById(id)
                 .orElseThrow(() -> new NotFoundException("ROLE_NOT_FOUND", "Rôle introuvable: " + id));
-
+        String roleName = role.getNom();
+        auditService.log("DELETE_ROLE", "ROLE", id,
+                "Suppression du rôle " + roleName,
+                getCurrentUserEmail(), null);
         roleRepository.delete(role);
     }
 

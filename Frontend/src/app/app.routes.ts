@@ -24,6 +24,8 @@ import { ReviewProjetsComponent } from './features/manager/projets/projets';
 import { MembreEquipe } from './features/membre-equipe/membre-equipe';
 import { MembreEquipeProjets } from './features/membre-equipe/projets/projets';
 import { MembreEquipeTaches } from './features/membre-equipe/taches/taches';
+import { AuditComponent } from './features/admin/audit/audit';
+import { ManagerAuditComponent } from './features/manager/audit/audit';
 
 import { SharedMessagesComponent } from './shared/components/messages/messages';
 import { SharedCalendarComponent } from './shared/components/calendar/calendar';
@@ -49,6 +51,7 @@ export const routes: Routes = [
       { path: 'roles', component: Roles },
       { path: 'clients', component: Clients },
       { path: 'profile', component: Profiles },
+      { path: 'audit', component: AuditComponent },
       { path: '', redirectTo: 'dashboard', pathMatch: 'full' }
     ]
   },
@@ -85,6 +88,7 @@ export const routes: Routes = [
       { path: 'projets', component: ReviewProjetsComponent },
       { path: 'calendrier', component: SharedCalendarComponent },
       { path: 'messages', component: SharedMessagesComponent },
+      { path: 'audit', component: ManagerAuditComponent },
       { path: '', redirectTo: 'dashboard', pathMatch: 'full' }
     ]
   },

@@ -2,6 +2,7 @@ package com.dxc.dxc_platform.controller;
 
 import com.dxc.dxc_platform.dto.AuthDto;
 import com.dxc.dxc_platform.repository.UserRepository;
+import com.dxc.dxc_platform.service.AuditService;
 import com.dxc.dxc_platform.service.AuthService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -20,9 +21,11 @@ import java.util.Map;
 public class AuthController {
 
     private final AuthService authService;
+    private final AuditService auditService;
 
-    public AuthController(AuthService authService) {
+    public AuthController(AuthService authService, AuditService auditService) {
         this.authService = authService;
+        this.auditService = auditService;
     }
 
     @PostMapping("/login")
@@ -53,11 +56,12 @@ public class AuthController {
     }
 
     @PostMapping("/logout")
-    public ResponseEntity<?> logout(Authentication authentication) {
-        SecurityContextHolder.clearContext();
-        return ResponseEntity.ok(Map.of(
-                "message", "Déconnexion réussie."
-        ));
+    public ResponseEntity<Void> logout() {
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        auditService.log("LOGOUT", "USER", null,
+                "Déconnexion de " + email,
+                email, null);
+        return ResponseEntity.ok().build();
     }
 
     @PostMapping("/change-password")

@@ -14,4 +14,5 @@ public interface ClientRepository extends JpaRepository<Client, Long> {
 
     @Query("SELECT c FROM Client c WHERE c.deleted = false AND LOWER(c.nom) LIKE LOWER(CONCAT('%', :q, '%'))")
     Page<Client> search(@Param("q") String q, Pageable pageable);
+
 }

@@ -16,6 +16,7 @@ import com.dxc.dxc_platform.repository.ProjectRepository;
 import com.dxc.dxc_platform.repository.TeamRepository;
 import com.dxc.dxc_platform.repository.UserRepository;
 import com.dxc.dxc_platform.repository.TaskRepository;
+import com.dxc.dxc_platform.service.AuditService;
 import com.dxc.dxc_platform.service.ProjectService;
 import com.dxc.dxc_platform.shared.exception.BusinessException;
 import com.dxc.dxc_platform.shared.exception.ConflictException;
@@ -41,6 +42,7 @@ public class ProjectServiceImpl implements ProjectService {
     private final ManagerProjectMapper managerProjectMapper;
     private final UserMapper userMapper;
     private final TaskRepository taskRepository;
+    private final AuditService auditService;
 
     public ProjectServiceImpl(ProjectRepository projectRepository,
                               TeamRepository teamRepository,
@@ -48,7 +50,7 @@ public class ProjectServiceImpl implements ProjectService {
                               ProjectMapper projectMapper,
                               ManagerProjectMapper managerProjectMapper,
                               UserMapper userMapper,
-    TaskRepository taskRepository) {
+                              TaskRepository taskRepository, AuditService auditService) {
         this.projectRepository = projectRepository;
         this.teamRepository = teamRepository;
         this.userRepository = userRepository;
@@ -56,7 +58,13 @@ public class ProjectServiceImpl implements ProjectService {
         this.managerProjectMapper = managerProjectMapper;
         this.userMapper = userMapper;
         this.taskRepository = taskRepository;
+        this.auditService = auditService;
     }
+    private String getCurrentUserEmail() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        return auth != null ? auth.getName() : "system";
+    }
+
 
     @Override
     public ProjectDto createProject(ProjectDto request) {
@@ -120,7 +128,11 @@ public class ProjectServiceImpl implements ProjectService {
         }
 
         Project savedProject = projectRepository.save(project);
+        auditService.log("CREATE_PROJECT", "PROJECT", savedProject.getId(),
+                "Création du projet " + savedProject.getName(),
+                getCurrentUserEmail(), null);
         return projectMapper.toDto(savedProject);
+
     }
     @Override
     public ProjectDto updateProject(Long projectId, ProjectDto request) {
@@ -134,7 +146,7 @@ public class ProjectServiceImpl implements ProjectService {
                 && projectRepository.existsByNameIgnoreCaseAndDeletedFalse(newName)) {
             throw new ConflictException("PROJECT_ALREADY_EXISTS", "Un projet avec ce nom existe déjà");
         }
-
+        String oldName = project.getName();
         project.setName(newName);
         project.setDescription(request.getDescription());
         project.setClient(request.getClient().trim());
@@ -167,6 +179,9 @@ public class ProjectServiceImpl implements ProjectService {
         }
 
         Project updatedProject = projectRepository.save(project);
+        auditService.log("UPDATE_PROJECT", "PROJECT", projectId,
+                "Modification du projet " + oldName + " → " + newName,
+                getCurrentUserEmail(), null);
         return projectMapper.toDto(updatedProject);
     }
 
@@ -281,7 +296,6 @@ public class ProjectServiceImpl implements ProjectService {
                 .map(userMapper::toSummary)
                 .collect(Collectors.toList());
     }
-
     @Override
     public ProjectDto reviewProjectByManager(ManagerProjectReviewDto request) {
         User currentUser = getAuthenticatedUser();
@@ -322,8 +336,23 @@ public class ProjectServiceImpl implements ProjectService {
             assignChefProjetToProject(project, chefProjet);
             project.setStatus(ProjectStatus.PRE_VALIDE);
 
+            // ✅ AUDIT 1: Validation du projet par le manager
+            auditService.log("VALIDATE_PROJECT", "PROJECT", project.getId(),
+                    "Validation du projet '" + project.getName() + "' par le manager. Commentaire: " + request.getCommentaire(),
+                    getCurrentUserEmail(), null);
+
+            // ✅ AUDIT 2: Assignation du chef de projet
+            auditService.log("ASSIGN_CHEF", "PROJECT", project.getId(),
+                    "Chef de projet '" + chefProjet.getEmail() + "' assigné au projet '" + project.getName() + "'",
+                    getCurrentUserEmail(), null);
+
         } else if (request.getDecision() == ManagerProjectReviewDto.Decision.REJETER) {
             project.setStatus(ProjectStatus.REJETE);
+
+            // ✅ AUDIT: Rejet du projet par le manager
+            auditService.log("REJECT_PROJECT", "PROJECT", project.getId(),
+                    "Rejet du projet '" + project.getName() + "' par le manager. Motif: " + request.getCommentaire(),
+                    getCurrentUserEmail(), null);
         }
 
         Project saved = projectRepository.save(project);
@@ -363,6 +392,9 @@ public class ProjectServiceImpl implements ProjectService {
         project.setStatus(ProjectStatus.EN_COURS);
 
         Project saved = projectRepository.save(project);
+        auditService.log("ASSIGN_TEAM_TO_PROJECT", "PROJECT", projectId,
+                "Assignation de l'équipe " + team.getName() + " au projet " + project.getName(),
+                getCurrentUserEmail(), null);
         return projectMapper.toDto(saved);
     }
 
