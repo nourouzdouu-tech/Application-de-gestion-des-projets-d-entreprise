@@ -1,5 +1,4 @@
 <div class="calendar-container">
-  <!-- Calendar Header -->
   <div class="calendar-header">
     <div class="calendar-nav">
       <button class="nav-btn" (click)="previousMonth()">
@@ -7,14 +6,18 @@
           <polyline points="15 18 9 12 15 6"></polyline>
         </svg>
       </button>
+
       <h2 class="month-title">{{ getMonthName() }}</h2>
+
       <button class="nav-btn" (click)="nextMonth()">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <polyline points="9 18 15 12 9 6"></polyline>
         </svg>
       </button>
+
       <button class="today-btn" (click)="goToToday()">Aujourd'hui</button>
     </div>
+
     <button class="add-event-btn" (click)="openAddEventModal()">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
         <line x1="12" y1="5" x2="12" y2="19" />
@@ -24,7 +27,6 @@
     </button>
   </div>
 
-  <!-- Calendar Grid -->
   <div class="calendar-grid">
     <div class="calendar-weekdays">
       <div class="weekday">LUN</div>
@@ -38,21 +40,27 @@
 
     <div class="calendar-days">
       @for (day of getDaysInMonth(); track day.toISOString()) {
-        <div class="calendar-day" 
-             [class.other-month]="!isCurrentMonth(day)"
-             [class.today]="isToday(day)"
-             [class.selected]="isSelected(day)"
-             (click)="selectDate(day)">
+        <div
+          class="calendar-day"
+          [class.other-month]="!isCurrentMonth(day)"
+          [class.today]="isToday(day)"
+          [class.selected]="isSelected(day)"
+          (click)="selectDate(day)"
+        >
           <span class="day-number">{{ day.getDate() }}</span>
+
           <div class="day-events">
             @for (event of getEventsForDate(day).slice(0, 2); track event.id) {
-              <div class="event-badge" 
-                   [style.background]="getEventColor(event)"
-                   (click)="$event.stopPropagation(); openEditEventModal(event)">
+              <div
+                class="event-badge"
+                [style.background]="getEventColor(event)"
+                (click)="$event.stopPropagation(); openEditEventModal(event)"
+              >
                 <span class="event-time">{{ event.time || '00:00' }}</span>
                 {{ event.title.length > 18 ? event.title.substring(0, 18) + '...' : event.title }}
               </div>
             }
+
             @if (getEventsForDate(day).length > 2) {
               <div class="event-more">
                 +{{ getEventsForDate(day).length - 2 }} more
@@ -64,12 +72,12 @@
     </div>
   </div>
 
-  <!-- Events List Sidebar -->
   <div class="events-sidebar" *ngIf="selectedDate()">
     <div class="sidebar-header">
       <h3>{{ formatFullDate(selectedDate()!) }}</h3>
       <button class="close-sidebar" (click)="selectedDate.set(null)">×</button>
     </div>
+
     <div class="sidebar-events">
       @if (getEventsForDate(selectedDate()!).length === 0) {
         <div class="no-events">
@@ -79,20 +87,32 @@
           </button>
         </div>
       }
+
       @for (event of getEventsForDate(selectedDate()!); track event.id) {
         <div class="sidebar-event">
           <div class="event-color" [style.background]="getEventColor(event)"></div>
+
           <div class="event-content">
             <h4>
               <span class="event-time-sidebar">{{ event.time || '00:00' }}</span>
               {{ event.title }}
             </h4>
+
             <p>{{ event.description }}</p>
-            <span class="event-project" *ngIf="event.projectName">
-              {{ event.projectName }}
-            </span>
+
+            <p *ngIf="event.projectName">
+              <span class="event-project">{{ event.projectName }}</span>
+            </p>
+
+            <p><strong>Créé par :</strong> {{ event.ownerName }}</p>
+            <p><strong>Type :</strong> {{ getVisibilityLabel(event) }}</p>
+
+            <p *ngIf="event.invitedUserNames.length > 0">
+              <strong>Invités :</strong> {{ event.invitedUserNames.join(', ') }}
+            </p>
           </div>
-          <div class="event-actions">
+
+          <div class="event-actions" *ngIf="canEditEvent(event)">
             <button class="edit-event" (click)="openEditEventModal(event)">✏️</button>
             <button class="delete-event" (click)="deleteEvent(event.id)">🗑️</button>
           </div>
@@ -101,7 +121,6 @@
     </div>
   </div>
 
-  <!-- Modal Ajouter/Modifier Événement -->
   @if (showEventModal) {
     <div class="modal-overlay" (click)="closeEventModal()">
       <div class="modal-container" (click)="$event.stopPropagation()">
@@ -109,38 +128,93 @@
           <h2>{{ isEditing ? 'Modifier' : 'Ajouter' }} un événement</h2>
           <button class="btn-close" (click)="closeEventModal()">×</button>
         </div>
+
         <div class="modal-body">
           <div class="form-group">
             <label>Titre *</label>
-            <input type="text" class="form-control" 
-                   [(ngModel)]="eventForm.title" 
-                   placeholder="Titre de l'événement">
+            <input
+              type="text"
+              class="form-control"
+              [(ngModel)]="eventForm.title"
+              placeholder="Titre de l'événement"
+            >
           </div>
+
           <div class="form-group">
             <label>Date *</label>
-            <input type="date" class="form-control" 
-                   [(ngModel)]="eventForm.date">
+            <input
+              type="date"
+              class="form-control"
+              [(ngModel)]="eventForm.date"
+            >
           </div>
+
           <div class="form-group">
-            <label>Heure *</label>
-            <input type="time" class="form-control" 
-                   [(ngModel)]="eventForm.time">
-            <small class="form-hint">Optionnel (par défaut 00:00)</small>
+            <label>Heure</label>
+            <input
+              type="time"
+              class="form-control"
+              [(ngModel)]="eventForm.time"
+            >
           </div>
+
           <div class="form-group">
             <label>Description</label>
-            <textarea class="form-control" 
-                      [(ngModel)]="eventForm.description" 
-                      rows="3"
-                      placeholder="Description de l'événement"></textarea>
+            <textarea
+              class="form-control"
+              [(ngModel)]="eventForm.description"
+              rows="3"
+              placeholder="Description de l'événement"
+            ></textarea>
           </div>
-          <div class="form-group">
-            <label>Projet</label>
-            <input type="text" class="form-control" 
-                   [(ngModel)]="eventForm.projectName" 
-                   placeholder="Nom du projet (optionnel)">
-          </div>
+
+      <div class="form-group">
+  <label>Projet</label>
+  <select class="form-control" [(ngModel)]="eventForm.projectId">
+    <option [ngValue]="null">-- Aucun projet --</option>
+    <option *ngFor="let project of myProjects" [ngValue]="project.id">
+      {{ project.name }}
+    </option>
+  </select>
+</div>
+
+<div class="form-group">
+  <label>Inviter des utilisateurs (optionnel)</label>
+
+  <input
+    type="text"
+    class="form-control"
+    [(ngModel)]="inviteSearch"
+    (input)="onInviteSearch()"
+    placeholder="Rechercher un utilisateur par nom ou email"
+  >
+
+  <div class="selected-users-preview" *ngIf="eventForm.invitedUserIds.length > 0">
+    <strong>Sélectionnés :</strong> {{ getSelectedUsersLabel() }}
+  </div>
+
+  <div class="invite-results">
+    <div class="invite-empty" *ngIf="filteredUsers.length === 0">
+      Aucun utilisateur trouvé
+    </div>
+
+    <div
+      class="invite-user-item"
+      *ngFor="let user of filteredUsers"
+      [class.selected]="isUserSelected(user.id)"
+      (click)="toggleInvitedUser(user.id)"
+    >
+      <div class="invite-user-meta">
+        <span class="invite-user-name">{{ user.prenom }} {{ user.nom }}</span>
+        <span class="invite-user-email">{{ user.email }}</span>
+      </div>
+
+      <span class="invite-user-check" *ngIf="isUserSelected(user.id)">✓</span>
+    </div>
+  </div>
+</div>
         </div>
+
         <div class="modal-footer">
           <button class="btn-cancel" (click)="closeEventModal()">Annuler</button>
           <button class="btn-submit" (click)="saveEvent()">
@@ -151,11 +225,13 @@
     </div>
   }
 
-  <!-- Toast -->
   @if (showToast) {
     <div class="toast-container">
-      <div class="toast" [class.toast-success]="toastType === 'success'" 
-                         [class.toast-error]="toastType === 'error'">
+      <div
+        class="toast"
+        [class.toast-success]="toastType === 'success'"
+        [class.toast-error]="toastType === 'error'"
+      >
         {{ toastMessage }}
       </div>
     </div>

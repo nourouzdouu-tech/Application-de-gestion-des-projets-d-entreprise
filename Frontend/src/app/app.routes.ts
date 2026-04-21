@@ -1,4 +1,5 @@
 import { Routes } from '@angular/router';
+
 import { Login } from './auth/login/login';
 import { Admin } from './features/admin/admin';
 import { Dashboard } from './shared/components/dashboard/dashboard';
@@ -10,20 +11,22 @@ import { Profiles } from './features/admin/profile/profile';
 import { ChefProjet } from './features/chef-projet/chef-projet';
 import { Projets } from './features/chef-projet/projets/projets';
 import { Equipes } from './features/chef-projet/equipes/equipes';
-import { CalendarComponent } from './features/chef-projet/calendar/calendar';
 import { TachesComponent } from './features/chef-projet/taches/taches';
-import { MessagesComponent } from './features/chef-projet/messages/messages';
 
 import { ResponsableContract } from './features/responsable-contract/responsable-contract';
 import { Projets as ResponsableProjets } from './features/responsable-contract/projets/projets';
 import { TjmCalculatorComponent } from './features/responsable-contract/tjm-calculator/tjm-calculator';
 import { Reporting } from './features/responsable-contract/reporting/reporting';
+
 import { ManagerLayoutComponent } from './features/manager/manager';
 import { ReviewProjetsComponent } from './features/manager/projets/projets';
 
 import { MembreEquipe } from './features/membre-equipe/membre-equipe';
 import { MembreEquipeProjets } from './features/membre-equipe/projets/projets';
 import { MembreEquipeTaches } from './features/membre-equipe/taches/taches';
+
+import { SharedMessagesComponent } from './shared/components/messages/messages';
+import { SharedCalendarComponent } from './shared/components/calendar/calendar';
 
 export const routes: Routes = [
   {
@@ -33,10 +36,10 @@ export const routes: Routes = [
   {
     path: 'change-password',
     loadComponent: () =>
-      import('./auth/change-password/change-password')
-        .then(m => m.ChangePassword)
+      import('./auth/change-password/change-password').then(
+        m => m.ChangePassword
+      )
   },
-
   {
     path: 'admin',
     component: Admin,
@@ -49,7 +52,6 @@ export const routes: Routes = [
       { path: '', redirectTo: 'dashboard', pathMatch: 'full' }
     ]
   },
-
   {
     path: 'chef-projet',
     component: ChefProjet,
@@ -58,12 +60,11 @@ export const routes: Routes = [
       { path: 'projets', component: Projets },
       { path: 'taches', component: TachesComponent },
       { path: 'equipes', component: Equipes },
-      { path: 'calendrier', component: CalendarComponent },
-      { path: 'messages', component: MessagesComponent },
+      { path: 'calendrier', component: SharedCalendarComponent },
+      { path: 'messages', component: SharedMessagesComponent },
       { path: '', redirectTo: 'dashboard', pathMatch: 'full' }
     ]
   },
-
   {
     path: 'responsable-contrat',
     component: ResponsableContract,
@@ -76,17 +77,17 @@ export const routes: Routes = [
       { path: '', redirectTo: 'dashboard', pathMatch: 'full' }
     ]
   },
-
   {
     path: 'manager',
     component: ManagerLayoutComponent,
     children: [
       { path: 'dashboard', component: Dashboard },
       { path: 'projets', component: ReviewProjetsComponent },
+      { path: 'calendrier', component: SharedCalendarComponent },
+      { path: 'messages', component: SharedMessagesComponent },
       { path: '', redirectTo: 'dashboard', pathMatch: 'full' }
     ]
   },
-
   {
     path: 'membre-equipe',
     component: MembreEquipe,
@@ -94,16 +95,16 @@ export const routes: Routes = [
       { path: 'dashboard', component: Dashboard },
       { path: 'projets', component: MembreEquipeProjets },
       { path: 'taches', component: MembreEquipeTaches },
+      { path: 'calendrier', component: SharedCalendarComponent },
+      { path: 'messages', component: SharedMessagesComponent },
       { path: '', redirectTo: 'dashboard', pathMatch: 'full' }
     ]
   },
-
   {
     path: '',
     redirectTo: '/login',
     pathMatch: 'full'
   },
-
   {
     path: '**',
     redirectTo: '/login'

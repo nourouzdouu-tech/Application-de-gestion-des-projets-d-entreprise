@@ -4,58 +4,82 @@ import SockJS from 'sockjs-client';
 import { AuthService } from './auth.service';
 import { Subject } from 'rxjs';
 
-export interface ChatMessage {
+export interface WebSocketMessage {
+  type?: 'message' | 'reaction' | 'file';
+
   id?: number;
-  content: string;
+  clientTempId?: string;
+  content?: string;
+
   senderId: number;
   senderName: string;
+
   receiverId: number;
   receiverName?: string;
+
   sentAt?: string;
   read?: boolean;
+
+  replyToMessageId?: number | null;
+
+  messageId?: number;
+  emoji?: string;
+  isAdd?: boolean;
+
+  fileName?: string;
+  fileType?: string;
+  fileSize?: number;
+  fileData?: string;
 }
 
 @Injectable({ providedIn: 'root' })
 export class WebSocketService {
   private stompClient: Client | null = null;
-  private messageSubject = new Subject<ChatMessage>();
+  private messageSubject = new Subject<WebSocketMessage>();
 
   constructor(private authService: AuthService) {}
 
   connect(): void {
+    if (this.stompClient?.active || this.stompClient?.connected) {
+      return;
+    }
+
     const token = this.authService.getToken();
     if (!token) {
       console.error('❌ Pas de token JWT');
       return;
     }
 
+    const user = this.authService.getUser();
     const socket = new SockJS('http://localhost:8080/ws-messages');
+
     this.stompClient = new Client({
       webSocketFactory: () => socket,
       connectHeaders: { Authorization: `Bearer ${token}` },
       reconnectDelay: 5000,
-      debug: (str) => console.log('[STOMP]', str)  // ✅ log STOMP
+      debug: (str) => console.log('[STOMP]', str)
     });
 
     this.stompClient.onConnect = () => {
       console.log('✅ WebSocket connecté');
-      const user = this.authService.getUser();
-      console.log('👤 User connecté:', user);
 
       const userEmail = user?.email;
-      if (userEmail) {
-        const destination = `/user/${userEmail}/queue/messages`;
-        console.log('📡 Abonnement à:', destination);
-
-        this.stompClient?.subscribe(destination, (message: StompMessage) => {
-          console.log('📨 Message brut reçu:', message.body);
-          const msg: ChatMessage = JSON.parse(message.body);
-          console.log('📨 Message parsé:', msg);
-          this.messageSubject.next(msg);
-        });
-      } else {
+      if (!userEmail) {
         console.error('❌ Email utilisateur introuvable, abonnement impossible');
+        return;
       }
+
+      const destination = `/user/${userEmail}/queue/messages`;
+      console.log('📡 Abonnement à:', destination);
+
+      this.stompClient?.subscribe(destination, (message: StompMessage) => {
+        try {
+          const parsed = JSON.parse(message.body) as WebSocketMessage;
+          this.messageSubject.next(parsed);
+        } catch (error) {
+          console.error('Erreur parsing message:', error);
+        }
+      });
     };
 
     this.stompClient.onStompError = (frame) => {
@@ -76,25 +100,101 @@ export class WebSocketService {
     }
   }
 
-  sendMessage(receiverId: number, content: string): void {
+  sendMessage(
+    receiverId: number,
+    content: string,
+    clientTempId?: string,
+    messageId?: number,
+    replyToMessageId?: number | null
+  ): void {
     const user = this.authService.getUser();
     if (!user || !this.stompClient?.connected) {
-        console.error('WebSocket non connecté ou utilisateur non trouvé');
-        return;
+      console.error('WebSocket non connecté ou utilisateur non trouvé');
+      return;
     }
 
-    const message: ChatMessage = {
-        content,
-        receiverId,
-        senderId: 0, // valeur factice (non utilisée par le backend)
-        senderName: `${user.prenom} ${user.nom}`
+    const message: WebSocketMessage = {
+      type: 'message',
+      id: messageId,
+      clientTempId,
+      content,
+      receiverId,
+      senderId: user.id ?? 0,
+      senderName: `${user.prenom} ${user.nom}`.trim(),
+      receiverName: '',
+      sentAt: new Date().toISOString(),
+      read: false,
+      replyToMessageId: replyToMessageId ?? null
     };
+
     this.stompClient.publish({
-        destination: '/app/chat.send',
-        body: JSON.stringify(message)
+      destination: '/app/chat.send',
+      body: JSON.stringify(message)
     });
-}
-getMessages(): Subject<ChatMessage> {
-  return this.messageSubject;
-}
+  }
+
+  sendReaction(receiverId: number, messageId: number, emoji: string, isAdd: boolean): void {
+    const user = this.authService.getUser();
+    if (!user || !this.stompClient?.connected) {
+      console.error('WebSocket non connecté ou utilisateur non trouvé');
+      return;
+    }
+
+    const reaction: WebSocketMessage = {
+      type: 'reaction',
+      messageId,
+      emoji,
+      isAdd,
+      receiverId,
+      senderId: user.id ?? 0,
+      senderName: `${user.prenom} ${user.nom}`.trim(),
+      receiverName: '',
+      sentAt: new Date().toISOString()
+    };
+
+    this.stompClient.publish({
+      destination: '/app/chat.reaction',
+      body: JSON.stringify(reaction)
+    });
+  }
+
+  sendFile(
+    receiverId: number,
+    messageId: number,
+    file: { fileName: string; fileType: string; fileSize: number; fileData: string },
+    clientTempId?: string,
+    replyToMessageId?: number | null
+  ): void {
+    const user = this.authService.getUser();
+    if (!user || !this.stompClient?.connected) {
+      console.error('WebSocket non connecté ou utilisateur non trouvé');
+      return;
+    }
+
+    const fileMessage: WebSocketMessage = {
+      type: 'file',
+      id: messageId,
+      messageId,
+      clientTempId,
+      fileName: file.fileName,
+      fileType: file.fileType,
+      fileSize: file.fileSize,
+      fileData: file.fileData,
+      receiverId,
+      senderId: user.id ?? 0,
+      senderName: `${user.prenom} ${user.nom}`.trim(),
+      receiverName: '',
+      sentAt: new Date().toISOString(),
+      replyToMessageId: replyToMessageId ?? null
+    };
+
+    this.stompClient.publish({
+      destination: '/app/chat.file',
+      body: JSON.stringify(fileMessage)
+    });
+  }
+
+  getMessages(): Subject<WebSocketMessage> {
+    return this.messageSubject;
+  }
 }

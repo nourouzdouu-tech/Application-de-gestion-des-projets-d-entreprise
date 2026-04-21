@@ -12,9 +12,9 @@ import com.dxc.dxc_platform.service.MessageService;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import com.dxc.dxc_platform.dto.WebSocketMessageDto;
 
 import java.time.LocalDateTime;
+import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -43,91 +43,154 @@ public class MessageServiceImpl implements MessageService {
     @Transactional
     public ConversationDto getOrCreateConversation(Long otherUserId) {
         Long currentUserId = getCurrentUser().getId();
-        // Chercher une conversation existante
+
         Conversation conv = conversationRepository.findByUser1IdAndUser2Id(currentUserId, otherUserId)
                 .orElseGet(() -> conversationRepository.findByUser2IdAndUser1Id(currentUserId, otherUserId)
                         .orElse(null));
+
         if (conv == null) {
             User u1 = userRepository.findById(currentUserId).orElseThrow();
             User u2 = userRepository.findById(otherUserId).orElseThrow();
+
             conv = new Conversation();
             conv.setUser1(u1);
             conv.setUser2(u2);
             conv = conversationRepository.save(conv);
         }
+
         return toConversationDto(conv, currentUserId);
     }
 
     @Override
     @Transactional
-    public MessageDto sendMessage(Long receiverId, String content) {
+    public MessageDto sendMessage(Long receiverId, String content, String clientTempId, Long replyToMessageId) {
         User sender = getCurrentUser();
-        User receiver = userRepository.findById(receiverId).orElseThrow();
-        // Trouver ou créer la conversation
-        Conversation conv = conversationRepository.findByUser1IdAndUser2Id(sender.getId(), receiverId)
-                .orElseGet(() -> conversationRepository.findByUser2IdAndUser1Id(sender.getId(), receiverId)
+        User receiver = userRepository.findById(receiverId)
+                .orElseThrow(() -> new RuntimeException("Destinataire non trouvé"));
+
+        Message msg = buildAndSaveMessage(sender, receiver, content, clientTempId, replyToMessageId);
+        return toMessageDto(msg);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<ConversationDto> getUserConversations() {
+        Long userId = getCurrentUser().getId();
+
+        List<Conversation> conversations = conversationRepository.findByUser1IdOrUser2Id(userId, userId);
+
+        return conversations.stream()
+                .map(c -> toConversationDto(c, userId))
+                .sorted(Comparator.comparing(
+                        ConversationDto::getLastMessageTime,
+                        Comparator.nullsLast(Comparator.reverseOrder())
+                ))
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional
+    public List<MessageDto> getConversationMessages(Long conversationId) {
+        Long userId = getCurrentUser().getId();
+
+        Conversation conv = conversationRepository.findById(conversationId)
+                .orElseThrow(() -> new RuntimeException("Conversation non trouvée"));
+
+        if (!conv.getUser1().getId().equals(userId) && !conv.getUser2().getId().equals(userId)) {
+            throw new RuntimeException("Accès non autorisé");
+        }
+
+        List<Message> messages = messageRepository.findByConversationIdOrderBySentAtAscIdAsc(conversationId);
+
+        List<Message> unreadReceivedMessages = messages.stream()
+                .filter(m -> m.getReceiver().getId().equals(userId) && !m.isRead())
+                .peek(m -> m.setRead(true))
+                .collect(Collectors.toList());
+
+        if (!unreadReceivedMessages.isEmpty()) {
+            messageRepository.saveAll(unreadReceivedMessages);
+        }
+
+        return messages.stream()
+                .map(this::toMessageDto)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional
+    public Message saveWebSocketMessage(User sender, User receiver, String content, String clientTempId, Long replyToMessageId) {
+        return buildAndSaveMessage(sender, receiver, content, clientTempId, replyToMessageId);
+    }
+
+    @Override
+    @Transactional
+    public Message saveWebSocketFileMessage(User sender, User receiver, String clientTempId, Long replyToMessageId) {
+        return buildAndSaveMessage(sender, receiver, "", clientTempId, replyToMessageId);
+    }
+
+    private Message buildAndSaveMessage(User sender,
+                                        User receiver,
+                                        String content,
+                                        String clientTempId,
+                                        Long replyToMessageId) {
+        Conversation conv = conversationRepository.findByUser1IdAndUser2Id(sender.getId(), receiver.getId())
+                .orElseGet(() -> conversationRepository.findByUser2IdAndUser1Id(sender.getId(), receiver.getId())
                         .orElse(null));
+
         if (conv == null) {
             conv = new Conversation();
             conv.setUser1(sender);
             conv.setUser2(receiver);
             conv = conversationRepository.save(conv);
         }
+
+        Message replyTo = null;
+        if (replyToMessageId != null) {
+            replyTo = messageRepository.findById(replyToMessageId).orElse(null);
+        }
+
         Message msg = new Message();
-        msg.setContent(content);
+        msg.setContent(content == null ? "" : content.trim());
         msg.setSender(sender);
         msg.setReceiver(receiver);
         msg.setConversation(conv);
-        msg = messageRepository.save(msg);
-        return toMessageDto(msg);
-    }
+        msg.setSentAt(LocalDateTime.now());
+        msg.setRead(false);
+        msg.setClientTempId(clientTempId);
+        msg.setReplyToMessage(replyTo);
 
-    @Override
-    public List<ConversationDto> getUserConversations() {
-        Long userId = getCurrentUser().getId();
-        List<Conversation> conversations = conversationRepository.findByUser1IdOrUser2IdOrderByCreatedAtDesc(userId, userId);
-        return conversations.stream()
-                .map(c -> toConversationDto(c, userId))
-                .collect(Collectors.toList());
-    }
-
-    @Override
-    public List<MessageDto> getConversationMessages(Long conversationId) {
-        Long userId = getCurrentUser().getId();
-        Conversation conv = conversationRepository.findById(conversationId)
-                .orElseThrow(() -> new RuntimeException("Conversation non trouvée"));
-        if (!conv.getUser1().getId().equals(userId) && !conv.getUser2().getId().equals(userId)) {
-            throw new RuntimeException("Accès non autorisé");
-        }
-        List<Message> messages = messageRepository.findByConversationIdOrderBySentAtAsc(conversationId);
-        // Marquer les messages reçus comme lus
-        messages.stream()
-                .filter(m -> m.getReceiver().getId().equals(userId) && !m.isRead())
-                .forEach(m -> m.setRead(true));
-        return messages.stream().map(this::toMessageDto).collect(Collectors.toList());
+        return messageRepository.save(msg);
     }
 
     private ConversationDto toConversationDto(Conversation conv, Long currentUserId) {
         ConversationDto dto = new ConversationDto();
         dto.setId(conv.getId());
+
         boolean isUser1 = conv.getUser1().getId().equals(currentUserId);
         User other = isUser1 ? conv.getUser2() : conv.getUser1();
+
         dto.setOtherParticipantId(other.getId());
         dto.setOtherParticipantName(other.getPrenom() + " " + other.getNom());
 
-        if (!conv.getMessages().isEmpty()) {
-            Message last = conv.getMessages().get(conv.getMessages().size() - 1);
-            dto.setLastMessage(last.getContent());
-            dto.setLastMessageTime(last.getSentAt());
+        Message lastMessage = messageRepository
+                .findTopByConversationIdOrderBySentAtDescIdDesc(conv.getId())
+                .orElse(null);
+
+        if (lastMessage != null) {
+            String preview = lastMessage.getContent() == null ? "" : lastMessage.getContent().trim();
+            dto.setLastMessage(preview.isEmpty() ? "[Pièce jointe]" : preview);
+            dto.setLastMessageTime(lastMessage.getSentAt());
         } else {
             dto.setLastMessage("");
             dto.setLastMessageTime(conv.getCreatedAt());
         }
 
-        int unread = (int) conv.getMessages().stream()
-                .filter(m -> m.getReceiver().getId().equals(currentUserId) && !m.isRead())
-                .count();
-        dto.setUnreadCount(unread);
+        long unread = messageRepository.countByConversationIdAndReceiverIdAndReadFalse(
+                conv.getId(),
+                currentUserId
+        );
+        dto.setUnreadCount((int) unread);
+
         return dto;
     }
 
@@ -141,28 +204,8 @@ public class MessageServiceImpl implements MessageService {
         dto.setReceiverName(msg.getReceiver().getPrenom() + " " + msg.getReceiver().getNom());
         dto.setSentAt(msg.getSentAt());
         dto.setRead(msg.isRead());
+        dto.setClientTempId(msg.getClientTempId());
+        dto.setReplyToMessageId(msg.getReplyToMessage() != null ? msg.getReplyToMessage().getId() : null);
         return dto;
-    }
-    @Override
-    public Message saveWebSocketMessage(User sender, User receiver, String content) {
-        // Trouver ou créer la conversation
-        Conversation conv = conversationRepository.findByUser1IdAndUser2Id(sender.getId(), receiver.getId())
-                .orElseGet(() -> conversationRepository.findByUser2IdAndUser1Id(sender.getId(), receiver.getId())
-                        .orElse(null));
-        if (conv == null) {
-            conv = new Conversation();
-            conv.setUser1(sender);
-            conv.setUser2(receiver);
-            conv = conversationRepository.save(conv);
-        }
-
-        Message msg = new Message();
-        msg.setContent(content);
-        msg.setSender(sender);
-        msg.setReceiver(receiver);
-        msg.setConversation(conv);
-        msg.setSentAt(LocalDateTime.now());
-        msg.setRead(false);
-        return messageRepository.save(msg);
     }
 }

@@ -1,23 +1,29 @@
 package com.dxc.dxc_platform.entity;
 
 import jakarta.persistence.*;
+
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
 @Entity
-@Table(name = "conversations")
+@Table(
+        name = "conversations",
+        uniqueConstraints = {
+                @UniqueConstraint(columnNames = {"user1_id", "user2_id"})
+        }
+)
 public class Conversation {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user1_id", nullable = false)
     private User user1;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user2_id", nullable = false)
     private User user2;
 
@@ -27,22 +33,46 @@ public class Conversation {
     @OneToMany(mappedBy = "conversation", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Message> messages = new ArrayList<>();
 
-    // Constructeurs
-    public Conversation() {}
+    public Conversation() {
+    }
 
-    // Getters et setters
-    public Long getId() { return id; }
-    public void setId(Long id) { this.id = id; }
+    public Long getId() {
+        return id;
+    }
 
-    public User getUser1() { return user1; }
-    public void setUser1(User user1) { this.user1 = user1; }
+    public void setId(Long id) {
+        this.id = id;
+    }
 
-    public User getUser2() { return user2; }
-    public void setUser2(User user2) { this.user2 = user2; }
+    public User getUser1() {
+        return user1;
+    }
 
-    public LocalDateTime getCreatedAt() { return createdAt; }
-    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+    public void setUser1(User user1) {
+        this.user1 = user1;
+    }
 
-    public List<Message> getMessages() { return messages; }
-    public void setMessages(List<Message> messages) { this.messages = messages; }
+    public User getUser2() {
+        return user2;
+    }
+
+    public void setUser2(User user2) {
+        this.user2 = user2;
+    }
+
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(LocalDateTime createdAt) {
+        this.createdAt = createdAt;
+    }
+
+    public List<Message> getMessages() {
+        return messages;
+    }
+
+    public void setMessages(List<Message> messages) {
+        this.messages = messages;
+    }
 }

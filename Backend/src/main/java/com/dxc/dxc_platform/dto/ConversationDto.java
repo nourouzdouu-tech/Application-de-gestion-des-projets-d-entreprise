@@ -10,25 +10,54 @@ public class ConversationDto {
     private LocalDateTime lastMessageTime;
     private int unreadCount;
 
-    // Constructeurs
-    public ConversationDto() {}
+    public ConversationDto() {
+    }
 
-    // Getters et setters
-    public Long getId() { return id; }
-    public void setId(Long id) { this.id = id; }
+    public Long getId() {
+        return id;
+    }
 
-    public Long getOtherParticipantId() { return otherParticipantId; }
-    public void setOtherParticipantId(Long otherParticipantId) { this.otherParticipantId = otherParticipantId; }
+    public void setId(Long id) {
+        this.id = id;
+    }
 
-    public String getOtherParticipantName() { return otherParticipantName; }
-    public void setOtherParticipantName(String otherParticipantName) { this.otherParticipantName = otherParticipantName; }
+    public Long getOtherParticipantId() {
+        return otherParticipantId;
+    }
 
-    public String getLastMessage() { return lastMessage; }
-    public void setLastMessage(String lastMessage) { this.lastMessage = lastMessage; }
+    public void setOtherParticipantId(Long otherParticipantId) {
+        this.otherParticipantId = otherParticipantId;
+    }
 
-    public LocalDateTime getLastMessageTime() { return lastMessageTime; }
-    public void setLastMessageTime(LocalDateTime lastMessageTime) { this.lastMessageTime = lastMessageTime; }
+    public String getOtherParticipantName() {
+        return otherParticipantName;
+    }
 
-    public int getUnreadCount() { return unreadCount; }
-    public void setUnreadCount(int unreadCount) { this.unreadCount = unreadCount; }
+    public void setOtherParticipantName(String otherParticipantName) {
+        this.otherParticipantName = otherParticipantName;
+    }
+
+    public String getLastMessage() {
+        return lastMessage;
+    }
+
+    public void setLastMessage(String lastMessage) {
+        this.lastMessage = lastMessage;
+    }
+
+    public LocalDateTime getLastMessageTime() {
+        return lastMessageTime;
+    }
+
+    public void setLastMessageTime(LocalDateTime lastMessageTime) {
+        this.lastMessageTime = lastMessageTime;
+    }
+
+    public int getUnreadCount() {
+        return unreadCount;
+    }
+
+    public void setUnreadCount(int unreadCount) {
+        this.unreadCount = unreadCount;
+    }
 }

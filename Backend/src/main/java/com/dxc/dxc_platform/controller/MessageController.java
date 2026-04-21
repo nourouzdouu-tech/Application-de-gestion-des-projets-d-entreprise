@@ -38,8 +38,22 @@ public class MessageController {
 
     @PostMapping("/send/{receiverId}")
     public ResponseEntity<MessageDto> sendMessage(@PathVariable Long receiverId,
-                                                  @RequestBody Map<String, String> payload) {
-        String content = payload.get("content");
-        return ResponseEntity.ok(messageService.sendMessage(receiverId, content));
+                                                  @RequestBody Map<String, Object> payload) {
+        String content = payload.get("content") != null ? String.valueOf(payload.get("content")) : "";
+        String clientTempId = payload.get("clientTempId") != null ? String.valueOf(payload.get("clientTempId")) : null;
+
+        Long replyToMessageId = null;
+        if (payload.get("replyToMessageId") != null) {
+            Object raw = payload.get("replyToMessageId");
+            if (raw instanceof Number) {
+                replyToMessageId = ((Number) raw).longValue();
+            } else {
+                replyToMessageId = Long.parseLong(String.valueOf(raw));
+            }
+        }
+
+        return ResponseEntity.ok(
+                messageService.sendMessage(receiverId, content, clientTempId, replyToMessageId)
+        );
     }
 }

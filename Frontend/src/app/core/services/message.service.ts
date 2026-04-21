@@ -11,6 +11,20 @@ export interface Conversation {
   unreadCount: number;
 }
 
+export interface MessageReaction {
+  emoji: string;
+  userId: number;
+  userName: string;
+}
+
+export interface MessageAttachment {
+  id: string;
+  fileName: string;
+  fileType: string;
+  fileSize: number;
+  fileDataUrl: string;
+}
+
 export interface Message {
   id: number;
   content: string;
@@ -20,11 +34,15 @@ export interface Message {
   receiverName: string;
   sentAt: string;
   read: boolean;
+  clientTempId?: string;
+  replyToMessageId?: number | null;
+  reactions?: MessageReaction[];
+  attachments?: MessageAttachment[];
 }
 
 @Injectable({ providedIn: 'root' })
 export class MessageService {
-  private apiUrl = 'http://localhost:8080/api/messages';
+  private readonly apiUrl = 'http://localhost:8080/api/messages';
 
   constructor(private http: HttpClient) {}
 
@@ -36,8 +54,17 @@ export class MessageService {
     return this.http.get<Message[]>(`${this.apiUrl}/conversation/${conversationId}/messages`);
   }
 
-  sendMessage(receiverId: number, content: string): Observable<Message> {
-    return this.http.post<Message>(`${this.apiUrl}/send/${receiverId}`, { content });
+  sendMessage(
+    receiverId: number,
+    content: string,
+    clientTempId?: string,
+    replyToMessageId?: number | null
+  ): Observable<Message> {
+    return this.http.post<Message>(`${this.apiUrl}/send/${receiverId}`, {
+      content,
+      clientTempId: clientTempId ?? null,
+      replyToMessageId: replyToMessageId ?? null
+    });
   }
 
   getOrCreateConversation(otherUserId: number): Observable<Conversation> {

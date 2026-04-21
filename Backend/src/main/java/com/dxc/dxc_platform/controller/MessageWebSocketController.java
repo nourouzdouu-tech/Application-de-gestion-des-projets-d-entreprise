@@ -8,10 +8,10 @@ import com.dxc.dxc_platform.service.MessageService;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
 
 import java.security.Principal;
+import java.time.LocalDateTime;
 
 @Controller
 public class MessageWebSocketController {
@@ -30,22 +30,96 @@ public class MessageWebSocketController {
 
     @MessageMapping("/chat.send")
     public void sendMessage(@Payload WebSocketMessageDto chatMessage, Principal principal) {
-        // Récupérer l'expéditeur à partir du token (email)
         String senderEmail = principal.getName();
+
         User sender = userRepository.findByEmailAndDeletedFalse(senderEmail)
                 .orElseThrow(() -> new RuntimeException("Expéditeur non trouvé"));
+
         User receiver = userRepository.findById(chatMessage.getReceiverId())
                 .orElseThrow(() -> new RuntimeException("Destinataire non trouvé"));
 
-        Message saved = messageService.saveWebSocketMessage(sender, receiver, chatMessage.getContent());
-        WebSocketMessageDto response = toDto(saved);
+        Message saved = messageService.saveWebSocketMessage(
+                sender,
+                receiver,
+                chatMessage.getContent(),
+                chatMessage.getClientTempId(),
+                chatMessage.getReplyToMessageId()
+        );
 
-        // Envoyer aux deux participants (via leur email)
+        WebSocketMessageDto response = toMessageDto(saved);
+        response.setClientTempId(chatMessage.getClientTempId());
+        response.setReplyToMessageId(chatMessage.getReplyToMessageId());
+
         messagingTemplate.convertAndSendToUser(sender.getEmail(), "/queue/messages", response);
         messagingTemplate.convertAndSendToUser(receiver.getEmail(), "/queue/messages", response);
     }
-    private WebSocketMessageDto toDto(Message msg) {
+
+    @MessageMapping("/chat.reaction")
+    public void sendReaction(@Payload WebSocketMessageDto reactionDto, Principal principal) {
+        String senderEmail = principal.getName();
+
+        User sender = userRepository.findByEmailAndDeletedFalse(senderEmail)
+                .orElseThrow(() -> new RuntimeException("Expéditeur non trouvé"));
+
+        User receiver = userRepository.findById(reactionDto.getReceiverId())
+                .orElseThrow(() -> new RuntimeException("Destinataire non trouvé"));
+
+        WebSocketMessageDto response = new WebSocketMessageDto();
+        response.setType("reaction");
+        response.setMessageId(reactionDto.getMessageId());
+        response.setEmoji(reactionDto.getEmoji());
+        response.setAdd(reactionDto.isAdd());
+        response.setSenderId(sender.getId());
+        response.setSenderName(sender.getPrenom() + " " + sender.getNom());
+        response.setReceiverId(receiver.getId());
+        response.setReceiverName(receiver.getPrenom() + " " + receiver.getNom());
+        response.setSentAt(LocalDateTime.now());
+
+        messagingTemplate.convertAndSendToUser(sender.getEmail(), "/queue/messages", response);
+        messagingTemplate.convertAndSendToUser(receiver.getEmail(), "/queue/messages", response);
+    }
+
+    @MessageMapping("/chat.file")
+    public void sendFile(@Payload WebSocketMessageDto fileDto, Principal principal) {
+        String senderEmail = principal.getName();
+
+        User sender = userRepository.findByEmailAndDeletedFalse(senderEmail)
+                .orElseThrow(() -> new RuntimeException("Expéditeur non trouvé"));
+
+        User receiver = userRepository.findById(fileDto.getReceiverId())
+                .orElseThrow(() -> new RuntimeException("Destinataire non trouvé"));
+
+        Message saved = messageService.saveWebSocketFileMessage(
+                sender,
+                receiver,
+                fileDto.getClientTempId(),
+                fileDto.getReplyToMessageId()
+        );
+
+        WebSocketMessageDto response = new WebSocketMessageDto();
+        response.setType("file");
+        response.setId(saved.getId());
+        response.setMessageId(saved.getId());
+        response.setClientTempId(fileDto.getClientTempId());
+        response.setReplyToMessageId(fileDto.getReplyToMessageId());
+        response.setFileName(fileDto.getFileName());
+        response.setFileType(fileDto.getFileType());
+        response.setFileSize(fileDto.getFileSize());
+        response.setFileData(fileDto.getFileData());
+        response.setSenderId(sender.getId());
+        response.setSenderName(sender.getPrenom() + " " + sender.getNom());
+        response.setReceiverId(receiver.getId());
+        response.setReceiverName(receiver.getPrenom() + " " + receiver.getNom());
+        response.setSentAt(saved.getSentAt());
+        response.setRead(saved.isRead());
+
+        messagingTemplate.convertAndSendToUser(sender.getEmail(), "/queue/messages", response);
+        messagingTemplate.convertAndSendToUser(receiver.getEmail(), "/queue/messages", response);
+    }
+
+    private WebSocketMessageDto toMessageDto(Message msg) {
         WebSocketMessageDto dto = new WebSocketMessageDto();
+        dto.setType("message");
         dto.setId(msg.getId());
         dto.setContent(msg.getContent());
         dto.setSenderId(msg.getSender().getId());
@@ -54,6 +128,8 @@ public class MessageWebSocketController {
         dto.setReceiverName(msg.getReceiver().getPrenom() + " " + msg.getReceiver().getNom());
         dto.setSentAt(msg.getSentAt());
         dto.setRead(msg.isRead());
+        dto.setClientTempId(msg.getClientTempId());
+        dto.setReplyToMessageId(msg.getReplyToMessage() != null ? msg.getReplyToMessage().getId() : null);
         return dto;
     }
 }

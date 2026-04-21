@@ -11,11 +11,11 @@ public class MessageDto {
     private String receiverName;
     private LocalDateTime sentAt;
     private boolean read;
+    private String clientTempId;
+    private Long replyToMessageId;
 
-    // Constructeurs
     public MessageDto() {}
 
-    // Getters et setters
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 
@@ -39,4 +39,10 @@ public class MessageDto {
 
     public boolean isRead() { return read; }
     public void setRead(boolean read) { this.read = read; }
+
+    public String getClientTempId() { return clientTempId; }
+    public void setClientTempId(String clientTempId) { this.clientTempId = clientTempId; }
+
+    public Long getReplyToMessageId() { return replyToMessageId; }
+    public void setReplyToMessageId(Long replyToMessageId) { this.replyToMessageId = replyToMessageId; }
 }

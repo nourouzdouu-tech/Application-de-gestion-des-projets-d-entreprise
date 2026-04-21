@@ -1,0 +1,382 @@
+<div class="msg-container">
+
+  <!-- ══════════════════════════════════
+       PANNEAU GAUCHE — conversations
+  ══════════════════════════════════ -->
+  <div class="msg-sidebar">
+    <div class="msg-sidebar-header">
+      <h2 class="msg-sidebar-title">Messages</h2>
+      <button class="msg-new-btn" (click)="openNewMessageModal()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <path d="M12 5v14M5 12h14"/>
+        </svg>
+        Nouveau
+      </button>
+    </div>
+
+    <div class="msg-conv-list">
+      <div
+        *ngFor="let conv of conversations"
+        class="msg-conv-item"
+        [class.active]="selectedConv?.id === conv.id"
+        (click)="selectConversation(conv)"
+      >
+        <div class="msg-conv-avatar" [style.backgroundColor]="getAvatarColor(conv.otherParticipantName)">
+          {{ conv.otherParticipantName | slice:0:2 | uppercase }}
+        </div>
+
+        <div class="msg-conv-body">
+          <div class="msg-conv-top">
+            <span class="msg-conv-name">{{ conv.otherParticipantName }}</span>
+            <span class="msg-conv-time">{{ conv.lastMessageTime | date:'dd/MM HH:mm' }}</span>
+          </div>
+          <div class="msg-conv-preview">
+            <span class="msg-conv-text">{{ conv.lastMessage | slice:0:38 }}</span>
+            <span class="msg-unread-badge" *ngIf="conv.unreadCount > 0">{{ conv.unreadCount }}</span>
+          </div>
+        </div>
+      </div>
+
+      <div *ngIf="conversations.length === 0" class="msg-empty-list">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#ccc" stroke-width="1.5">
+          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+        </svg>
+        <p>Aucune conversation.<br>Cliquez sur "Nouveau".</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════
+       PANNEAU DROIT — chat
+  ══════════════════════════════════ -->
+  <div class="msg-chat-panel" *ngIf="selectedConv; else emptyChatTpl">
+
+    <!-- Header -->
+    <div class="msg-chat-header">
+      <div class="msg-chat-header-user">
+        <div class="msg-chat-avatar" [style.backgroundColor]="getAvatarColor(selectedConv.otherParticipantName)">
+          {{ selectedConv.otherParticipantName | slice:0:2 | uppercase }}
+        </div>
+        <div>
+          <div class="msg-chat-name">{{ selectedConv.otherParticipantName }}</div>
+          <div class="msg-chat-status">
+            <span class="msg-status-dot"></span> En ligne
+          </div>
+        </div>
+      </div>
+      <button class="msg-close-btn" (click)="closeChat()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M18 6L6 18M6 6l12 12"/>
+        </svg>
+      </button>
+    </div>
+
+    <!-- Messages -->
+    <div class="msg-messages" #chatMessages>
+      <div
+        *ngFor="let msg of messages; let i = index"
+        class="msg-row"
+        [class.msg-row-sent]="msg.senderId === currentUserId"
+        [class.msg-row-received]="msg.senderId !== currentUserId"
+      >
+        <!-- Avatar pour messages reçus -->
+        <div
+          class="msg-row-avatar"
+          *ngIf="msg.senderId !== currentUserId"
+          [style.backgroundColor]="getAvatarColor(msg.senderName)"
+        >
+          {{ msg.senderName | slice:0:2 | uppercase }}
+        </div>
+
+        <div class="msg-row-content">
+
+          <!-- Reply preview -->
+          <div class="msg-reply-preview" *ngIf="findMessageById(msg.replyToMessageId) as replied">
+            <span class="msg-reply-author">{{ replied.senderName }}</span>
+            <span class="msg-reply-text">{{ replied.content || '[Pièce jointe]' | slice:0:60 }}</span>
+          </div>
+
+          <!-- Bulle -->
+          <div class="msg-bubble" [class.msg-bubble-sent]="msg.senderId === currentUserId" [class.msg-bubble-error]="msg.error">
+
+            <!-- Texte avec rendu markdown -->
+            <div
+              *ngIf="msg.content"
+              class="msg-text"
+              [innerHTML]="renderMarkdown(msg.content)"
+            ></div>
+
+            <!-- Pièces jointes -->
+            <div class="msg-attachments" *ngIf="msg.attachments && msg.attachments.length > 0">
+              <div class="msg-attachment" *ngFor="let file of msg.attachments">
+                <!-- Image -->
+                <div *ngIf="isImage(file.fileType)" class="msg-attachment-image-wrapper">
+                  <img
+                    class="msg-attachment-image"
+                    [src]="file.fileDataUrl"
+                    [alt]="file.fileName"
+                    (click)="openImageFullscreen(file.fileDataUrl)"
+                  />
+                </div>
+                <!-- Autre fichier -->
+                <div
+                  *ngIf="!isImage(file.fileType)"
+                  class="msg-attachment-file"
+                  (click)="downloadFile(file)"
+                >
+                  <span class="msg-file-icon">{{ getFileIcon(file.fileType) }}</span>
+                  <div class="msg-file-info">
+                    <span class="msg-file-name">{{ file.fileName }}</span>
+                    <span class="msg-file-size">{{ formatFileSize(file.fileSize) }}</span>
+                  </div>
+                  <svg class="msg-file-download" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/>
+                  </svg>
+                </div>
+              </div>
+            </div>
+
+            <!-- Heure + statut -->
+            <div class="msg-meta">
+              {{ msg.sentAt | date:'HH:mm' }}
+              <span class="msg-pending" *ngIf="msg.pending">· envoi...</span>
+              <span class="msg-error" *ngIf="msg.error">· échec</span>
+              <span class="msg-read-tick" *ngIf="msg.senderId === currentUserId && !msg.pending && !msg.error">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                  <polyline points="20 6 9 17 4 12"/>
+                </svg>
+              </span>
+            </div>
+          </div>
+
+          <!-- Reactions affichées -->
+          <div class="msg-reactions" *ngIf="getReactionGroups(msg).length > 0">
+            <button
+              type="button"
+              class="msg-reaction-chip"
+              *ngFor="let r of getReactionGroups(msg)"
+              (click)="addReaction(msg, r.emoji)"
+            >
+              {{ r.emoji }} <span>{{ r.count }}</span>
+            </button>
+          </div>
+
+          <!-- Actions sous la bulle -->
+          <div class="msg-actions">
+            <button type="button" class="msg-action" (click)="startReply(msg)" title="Répondre">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="9 17 4 12 9 7"/><path d="M20 18v-2a4 4 0 0 0-4-4H4"/>
+              </svg>
+              Répondre
+            </button>
+            <button type="button" class="msg-action msg-action-emoji" (click)="addReaction(msg, '🔥')">🔥</button>
+            <button type="button" class="msg-action msg-action-emoji" (click)="addReaction(msg, '❤️')">❤️</button>
+            <button type="button" class="msg-action msg-action-emoji" (click)="addReaction(msg, '😂')">😂</button>
+            <button type="button" class="msg-action msg-action-emoji" (click)="addReaction(msg, '😮')">😮</button>
+          </div>
+
+        </div>
+      </div>
+
+      <div *ngIf="messages.length === 0" class="msg-empty-chat">
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#ddd" stroke-width="1.5">
+          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+        </svg>
+        <p>Aucun message. Commencez la conversation !</p>
+      </div>
+    </div>
+
+    <!-- ── Zone de saisie ── -->
+    <div class="msg-input-area">
+
+      <!-- Reply box -->
+      <div class="msg-reply-box" *ngIf="replyingToMessage">
+        <div class="msg-reply-box-bar"></div>
+        <div class="msg-reply-box-content">
+          <strong>{{ replyingToMessage.senderName }}</strong>
+          <span>{{ replyingToMessage.content || '[Pièce jointe]' | slice:0:80 }}</span>
+        </div>
+        <button type="button" class="msg-reply-cancel" (click)="cancelReply()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M18 6L6 18M6 6l12 12"/>
+          </svg>
+        </button>
+      </div>
+
+      <!-- Fichiers en attente -->
+      <div class="msg-pending-files" *ngIf="selectedFiles.length > 0">
+        <div class="msg-pending-file" *ngFor="let file of selectedFiles; let i = index">
+          <span class="msg-pending-file-icon">{{ getFileIcon(file.fileType) }}</span>
+          <div class="msg-pending-file-info">
+            <span class="msg-pending-file-name">{{ file.fileName }}</span>
+            <span class="msg-pending-file-size">{{ formatFileSize(file.fileSize) }}</span>
+          </div>
+          <button type="button" class="msg-pending-file-remove" (click)="removeSelectedFile(i)">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <path d="M18 6L6 18M6 6l12 12"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Toolbar de formatage -->
+      <div class="msg-toolbar">
+        <button
+          type="button"
+          class="msg-tb-btn"
+          title="Gras (Ctrl+B)"
+          (click)="applyFormat('bold')"
+        >
+          <strong>B</strong>
+        </button>
+        <button
+          type="button"
+          class="msg-tb-btn msg-tb-italic"
+          title="Italique (Ctrl+I)"
+          (click)="applyFormat('italic')"
+        >
+          <em>I</em>
+        </button>
+        <button
+          type="button"
+          class="msg-tb-btn"
+          title="Lien"
+          (click)="applyFormat('link')"
+        >
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+            <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+          </svg>
+        </button>
+        <button
+          type="button"
+          class="msg-tb-btn"
+          title="Liste"
+          (click)="applyFormat('list')"
+        >
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="8" y1="6" x2="21" y2="6"/>
+            <line x1="8" y1="12" x2="21" y2="12"/>
+            <line x1="8" y1="18" x2="21" y2="18"/>
+            <line x1="3" y1="6" x2="3.01" y2="6"/>
+            <line x1="3" y1="12" x2="3.01" y2="12"/>
+            <line x1="3" y1="18" x2="3.01" y2="18"/>
+          </svg>
+        </button>
+
+        <!-- Emoji picker -->
+        <div class="emoji-picker-wrapper">
+          <button
+            type="button"
+            class="msg-tb-btn msg-tb-emoji"
+            title="Emoji"
+            (click)="toggleEmojiPicker()"
+          >
+            😊
+          </button>
+          <div class="msg-emoji-picker" *ngIf="showEmojiPicker">
+            <span
+              *ngFor="let e of emojiList"
+              (click)="insertEmoji(e)"
+              class="msg-emoji-option"
+            >{{ e }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Textarea + boutons -->
+      <div class="msg-input-row">
+        <textarea
+          #messageTextarea
+          [(ngModel)]="newMessage"
+          placeholder="Écrivez votre message ici..."
+          (keydown)="onKeydown($event)"
+          (input)="autoResize($event)"
+          rows="1"
+          class="msg-textarea"
+        ></textarea>
+
+        <!-- Pièce jointe -->
+        <label class="msg-attach-btn" title="Joindre un fichier">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66L9.41 17.41a2 2 0 0 1-2.83-2.83l8.49-8.48"/>
+          </svg>
+          <input type="file" multiple hidden (change)="onFileSelected($event)">
+        </label>
+
+        <!-- Envoyer -->
+        <button
+          class="msg-send-btn"
+          (click)="sendMessage()"
+          [disabled]="(!newMessage.trim() && selectedFiles.length === 0) || isSending"
+        >
+          <span *ngIf="!isSending">Envoyer</span>
+          <span *ngIf="isSending" class="msg-sending-spinner"></span>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M22 2L11 13M22 2L15 22l-4-9-9-4 20-7z"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Empty state -->
+  <ng-template #emptyChatTpl>
+    <div class="msg-empty-panel">
+      <div class="msg-empty-icon">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#c4b5fd" stroke-width="1.5">
+          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+        </svg>
+      </div>
+      <h3>Aucune conversation sélectionnée</h3>
+      <p>Choisissez une conversation à gauche ou créez-en une nouvelle.</p>
+    </div>
+  </ng-template>
+
+</div>
+
+<!-- ══════════════════════════════════
+     Lightbox image
+══════════════════════════════════ -->
+<div class="msg-lightbox" *ngIf="lightboxUrl" (click)="closeLightbox()">
+  <img [src]="lightboxUrl" alt="Aperçu" (click)="$event.stopPropagation()">
+  <button class="msg-lightbox-close" (click)="closeLightbox()">×</button>
+</div>
+
+<!-- ══════════════════════════════════
+     Modal nouvelle conversation
+══════════════════════════════════ -->
+<div class="msg-modal-overlay" *ngIf="showNewMessageModal" (click)="closeNewMessageModal()">
+  <div class="msg-modal" (click)="$event.stopPropagation()">
+    <div class="msg-modal-header">
+      <h3>Nouvelle conversation</h3>
+      <button class="msg-modal-close" (click)="closeNewMessageModal()">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M18 6L6 18M6 6l12 12"/>
+        </svg>
+      </button>
+    </div>
+
+    <div class="msg-modal-body">
+      <label class="msg-modal-label">Choisir un destinataire</label>
+      <select [(ngModel)]="newMessageReceiverId" class="msg-modal-select">
+        <option [ngValue]="null" disabled>-- Sélectionnez un membre --</option>
+        <option *ngFor="let user of usersList" [ngValue]="user.id">
+          {{ user.prenom }} {{ user.nom }}
+        </option>
+      </select>
+    </div>
+
+    <div class="msg-modal-footer">
+      <button class="msg-modal-cancel" (click)="closeNewMessageModal()">Annuler</button>
+      <button
+        class="msg-modal-confirm"
+        (click)="createNewConversation()"
+        [disabled]="!newMessageReceiverId"
+      >
+        Démarrer la conversation
+      </button>
+    </div>
+  </div>
+</div>
