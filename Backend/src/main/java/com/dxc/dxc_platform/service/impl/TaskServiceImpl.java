@@ -18,7 +18,9 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -48,6 +50,29 @@ public class TaskServiceImpl implements TaskService {
     private boolean isChefProjet(User user) {
         return user.getRoles().stream()
                 .anyMatch(r -> r.getNom().equalsIgnoreCase("CHEF_PROJET"));
+    }
+
+    private int calculerDureeDepuisCriticite(Integer criticite) {
+        if (criticite == null) {
+            return 3;
+        }
+
+        Set<Integer> valeursAutorisees = Set.of(1, 2, 3, 5, 8, 13);
+        if (!valeursAutorisees.contains(criticite)) {
+            throw new BusinessException(
+                    "INVALID_CRITICITE",
+                    "La criticité doit être une valeur Fibonacci parmi : 1, 2, 3, 5, 8, 13"
+            );
+        }
+
+        return criticite;
+    }
+
+    private LocalDate calculerDateFin(LocalDate startDate, Integer dureeEstimee) {
+        if (startDate == null || dureeEstimee == null) {
+            return null;
+        }
+        return startDate.plusDays(dureeEstimee);
     }
 
     @Override
@@ -83,11 +108,18 @@ public class TaskServiceImpl implements TaskService {
             );
         }
 
+        LocalDate startDate = dto.getStartDate() != null ? dto.getStartDate() : LocalDate.now();
+        int dureeEstimee = calculerDureeDepuisCriticite(dto.getCriticite());
+        LocalDate estimatedEndDate = calculerDateFin(startDate, dureeEstimee);
+
         Task task = new Task();
         task.setTitle(dto.getTitle());
         task.setDescription(dto.getDescription());
         task.setStatus(dto.getStatus() != null ? dto.getStatus() : Status.A_faire);
-        task.setDueDate(dto.getDueDate());
+        task.setStartDate(startDate);
+        task.setCriticite(dto.getCriticite() != null ? dto.getCriticite() : 3);
+        task.setDureeEstimee(dureeEstimee);
+        task.setEstimatedEndDate(estimatedEndDate);
         task.setAssignedTo(assignedUser);
         task.setProject(project);
         task.setPriority(dto.getPriority() != null ? dto.getPriority() : Priority.MOYENNE);
@@ -112,7 +144,16 @@ public class TaskServiceImpl implements TaskService {
 
         task.setTitle(dto.getTitle());
         task.setDescription(dto.getDescription());
-        task.setDueDate(dto.getDueDate());
+
+        LocalDate startDate = dto.getStartDate() != null ? dto.getStartDate() : task.getStartDate();
+        Integer criticite = dto.getCriticite() != null ? dto.getCriticite() : task.getCriticite();
+        int dureeEstimee = calculerDureeDepuisCriticite(criticite);
+        LocalDate estimatedEndDate = calculerDateFin(startDate, dureeEstimee);
+
+        task.setStartDate(startDate);
+        task.setCriticite(criticite);
+        task.setDureeEstimee(dureeEstimee);
+        task.setEstimatedEndDate(estimatedEndDate);
 
         if (dto.getStatus() != null) {
             task.setStatus(dto.getStatus());
@@ -269,7 +310,12 @@ public class TaskServiceImpl implements TaskService {
         dto.setDescription(task.getDescription());
         dto.setStatus(task.getStatus());
         dto.setCreatedAt(task.getCreatedAt());
-        dto.setDueDate(task.getDueDate());
+
+        dto.setStartDate(task.getStartDate());
+        dto.setCriticite(task.getCriticite());
+        dto.setDureeEstimee(task.getDureeEstimee());
+        dto.setEstimatedEndDate(task.getEstimatedEndDate());
+
         dto.setPriority(task.getPriority());
 
         if (task.getAssignedTo() != null) {

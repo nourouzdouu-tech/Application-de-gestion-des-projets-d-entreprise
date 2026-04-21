@@ -8,6 +8,9 @@ export interface MemberInfo {
   email: string;
   enabled: boolean;
   roleName: string;
+  profileId?: number;
+  profileLibelle?: string;
+  tjm?: number;
 }
 export interface UserSearchResult {
   id: number;

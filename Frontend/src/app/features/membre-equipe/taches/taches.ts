@@ -92,7 +92,7 @@ export class MembreEquipeTaches implements OnInit {
       id: task.id ?? 0,
       titre: task.title,
       projet: task.projectName || 'Sans projet',
-      date: this.formatDate(task.dueDate || task.createdAt || ''),
+      date: this.formatDate(task.estimatedEndDate || task.createdAt || ''),
       priorite: this.mapPriority(task.priority),
       statut: this.mapStatusToColumn(task.status),
       commentaire: task.description || '',

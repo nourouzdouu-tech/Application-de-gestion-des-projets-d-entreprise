@@ -16,6 +16,7 @@ export class SidebarComponent {
   authService = inject(AuthService);
 
   currentUser = signal<any>(this.authService.getUser());
+  showProfileModal = signal(false);
 
   logout(): void {
     this.authService.removeUser();
@@ -28,5 +29,19 @@ export class SidebarComponent {
     if (!user) return 'U';
 
     return `${user.prenom?.[0] || ''}${user.nom?.[0] || ''}`.toUpperCase();
+  }
+
+  openProfileModal(): void {
+    this.showProfileModal.set(true);
+  }
+
+  closeProfileModal(): void {
+    this.showProfileModal.set(false);
+  }
+
+  getRoleLabel(): string {
+    const roles = this.authService.getRoles();
+    if (!roles || roles.length === 0) return 'Utilisateur';
+    return roles.join(', ');
   }
 }

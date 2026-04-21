@@ -6,6 +6,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 
+import java.math.BigDecimal;
 import java.util.Set;
 
 public class UserDto {
@@ -50,7 +51,8 @@ public class UserDto {
             boolean mustChangePassword,
             Set<RoleDto.Summary> roles,
             Long profileId,
-            String profileLibelle
+            String profileLibelle,
+            BigDecimal tjm  // ← ajoute ça
     ) {}
 
     public record Summary(

@@ -2,6 +2,7 @@ package com.dxc.dxc_platform.dto;
 
 import com.dxc.dxc_platform.enums.Priority;
 import com.dxc.dxc_platform.enums.Status;
+
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
@@ -12,7 +13,13 @@ public class TaskDto {
     private String description;
     private Status status;
     private LocalDateTime createdAt;
-    private LocalDate dueDate;
+
+    // Nouveau modèle
+    private LocalDate startDate;
+    private Integer criticite;
+    private Integer dureeEstimee;
+    private LocalDate estimatedEndDate;
+
     private Long assignedToId;
     private String assignedToName;
     private Long projectId;
@@ -20,11 +27,8 @@ public class TaskDto {
     private boolean deleted;
     private Priority priority;
 
-
-    // Constructeurs
     public TaskDto() {}
 
-    // Getters et setters
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 
@@ -40,8 +44,17 @@ public class TaskDto {
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
 
-    public LocalDate getDueDate() { return dueDate; }
-    public void setDueDate(LocalDate dueDate) { this.dueDate = dueDate; }
+    public LocalDate getStartDate() { return startDate; }
+    public void setStartDate(LocalDate startDate) { this.startDate = startDate; }
+
+    public Integer getCriticite() { return criticite; }
+    public void setCriticite(Integer criticite) { this.criticite = criticite; }
+
+    public Integer getDureeEstimee() { return dureeEstimee; }
+    public void setDureeEstimee(Integer dureeEstimee) { this.dureeEstimee = dureeEstimee; }
+
+    public LocalDate getEstimatedEndDate() { return estimatedEndDate; }
+    public void setEstimatedEndDate(LocalDate estimatedEndDate) { this.estimatedEndDate = estimatedEndDate; }
 
     public Long getAssignedToId() { return assignedToId; }
     public void setAssignedToId(Long assignedToId) { this.assignedToId = assignedToId; }
@@ -57,6 +70,7 @@ public class TaskDto {
 
     public boolean isDeleted() { return deleted; }
     public void setDeleted(boolean deleted) { this.deleted = deleted; }
+
     public Priority getPriority() { return priority; }
     public void setPriority(Priority priority) { this.priority = priority; }
 }

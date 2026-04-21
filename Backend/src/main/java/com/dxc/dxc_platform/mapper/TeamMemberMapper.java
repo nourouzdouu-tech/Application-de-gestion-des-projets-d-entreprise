@@ -16,6 +16,9 @@ public interface TeamMemberMapper {
     @Mapping(target = "fullName", expression = "java(buildFullName(user))")
     @Mapping(target = "enabled", expression = "java(isEnabled(user))")
     @Mapping(target = "roleName", expression = "java(extractRoles(user.getRoles()))")
+    @Mapping(source = "profile.id", target = "profileId")
+    @Mapping(source = "profile.libelle", target = "profileLibelle")
+    @Mapping(source = "profile.tjm", target = "tjm")
     TeamDto.MemberInfo toMemberInfo(User user);
 
     @Named("buildFullName")

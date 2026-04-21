@@ -436,7 +436,7 @@
                   <line x1="8" y1="2" x2="8" y2="6"/>
                   <line x1="3" y1="10" x2="21" y2="10"/>
                 </svg>
-                {{ task.dueDate | date:'dd MMM yyyy' }}
+{{ task.estimatedEndDate | date:'dd MMM yyyy' }}
               </div>
             </td>
 
@@ -533,10 +533,18 @@
           <textarea [(ngModel)]="editingTask.description" rows="3"></textarea>
         </div>
 
-        <div class="form-group">
-          <label>Date limite *</label>
-          <input type="date" [(ngModel)]="editingTask.dueDate">
-        </div>
+        <label>Date début *</label>
+<input type="date" [(ngModel)]="editingTask.startDate">
+
+<label>Criticité *</label>
+<select [(ngModel)]="editingTask.criticite">
+  <option [ngValue]="1">1 (Très simple)</option>
+  <option [ngValue]="2">2</option>
+  <option [ngValue]="3">3</option>
+  <option [ngValue]="5">5</option>
+  <option [ngValue]="8">8</option>
+  <option [ngValue]="13">13 (Très complexe)</option>
+</select>
 
         <div class="form-group">
           <label>Priorité</label>
@@ -619,11 +627,18 @@
           <textarea [(ngModel)]="taskForm.description" rows="3"></textarea>
         </div>
 
-        <div class="form-group">
-          <label>Date limite *</label>
-          <input type="date" [(ngModel)]="taskForm.dueDate">
-        </div>
+       <label>Date début *</label>
+<input type="date" [(ngModel)]="taskForm.startDate">
 
+<label>Criticité *</label>
+<select [(ngModel)]="taskForm.criticite">
+  <option [ngValue]="1">1</option>
+  <option [ngValue]="2">2</option>
+  <option [ngValue]="3">3</option>
+  <option [ngValue]="5">5</option>
+  <option [ngValue]="8">8</option>
+  <option [ngValue]="13">13</option>
+</select>
         <div class="form-group">
           <label>Priorité</label>
           <select [(ngModel)]="taskForm.priority">

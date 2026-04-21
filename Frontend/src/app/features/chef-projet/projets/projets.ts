@@ -41,7 +41,7 @@ export class Projets implements OnInit {
 
   showTaskModal = false;
   currentProjectForTask: ProjectDto | null = null;
-  taskForm: Partial<TaskDto> = { title: '', description: '', dueDate: '', assignedToId: undefined };
+  taskForm: Partial<TaskDto> = { title: '', description: '', startDate: '', criticite: 3, assignedToId: undefined };
 
   showTasksModal = false;
   currentProjectTasks: ProjectDto | null = null;
@@ -318,17 +318,17 @@ export class Projets implements OnInit {
     this.fetchProjects();
   }
 
-  getStatusLabel(status?: string): string {
-    const m: Record<string, string> = {
-      PRE_VALIDE: 'Pré validé',
-      EN_COURS: 'En cours',
-      EN_VALIDATION: 'En validation',
-      VALIDE: 'Validé',
-      REJETE: 'Rejeté',
-      CLOTURE: 'Clôturé'
-    };
-    return status ? (m[status] ?? status) : '-';
-  }
+ getStatusLabel(status?: string): string {
+  const m: Record<string, string> = {
+    PRE_VALIDE: 'En cours',
+    EN_COURS: 'En cours',
+    EN_VALIDATION: 'En validation',
+    VALIDE: 'Validé',
+    REJETE: 'Rejeté',
+    CLOTURE: 'Clôturé'
+  };
+  return status ? (m[status] ?? status) : '-';
+}
 
   getRiskLabel(risk?: string): string {
     const m: Record<string, string> = { FAIBLE: 'Faible', MOYEN: 'Moyen', ELEVE: 'Élevé' };
@@ -427,7 +427,8 @@ export class Projets implements OnInit {
     this.taskForm = {
       title: '',
       description: '',
-      dueDate: '',
+      startDate: '',
+      criticite: 3,
       assignedToId: undefined,
       projectId: project.id
     };
@@ -449,12 +450,12 @@ export class Projets implements OnInit {
   closeTaskModal(): void {
     this.showTaskModal = false;
     this.currentProjectForTask = null;
-    this.taskForm = { title: '', description: '', dueDate: '', assignedToId: undefined };
+    this.taskForm = { title: '', description: '', startDate: '',criticite: 3, assignedToId: undefined };
     this.cdr.detectChanges();
   }
 
   saveTask(): void {
-    if (!this.taskForm.title || !this.taskForm.assignedToId || !this.taskForm.dueDate) {
+    if (!this.taskForm.title || !this.taskForm.assignedToId || !this.taskForm.criticite) {
       alert('Veuillez remplir tous les champs obligatoires.');
       return;
     }
@@ -588,7 +589,7 @@ export class Projets implements OnInit {
   confirmValidation(): void {
     if (!this.taskToValidate?.id) return;
 
-    const newStatus = this.validationAction === 'valider' ? 'Terminé' : 'A_faire';
+    const newStatus = this.validationAction === 'valider' ? 'Terminé' : 'En_cours';
     const payload: TaskDto = { ...this.taskToValidate, status: newStatus };
 
     this.taskService.updateTask(this.taskToValidate.id, payload).subscribe({

@@ -8,6 +8,9 @@ export interface User {
   prenom: string;
   nom: string;
   roles: string[];
+  profileId?: number;
+  profileLibelle?: string;
+  tjm?: number;
 }
 
 @Injectable({ providedIn: 'root' })

@@ -3,9 +3,12 @@ package com.dxc.dxc_platform.controller;
 import com.dxc.dxc_platform.dto.UserDto;
 import com.dxc.dxc_platform.entity.User;
 import com.dxc.dxc_platform.repository.UserRepository;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -27,6 +30,14 @@ public class UserController {
                 .collect(Collectors.toList());
     }
 
+    @GetMapping("/{id}")
+    public ResponseEntity<UserDto.Response> getById(@PathVariable Long id) {
+        return userRepository.findById(id)
+                .map(this::toResponse)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
+    }
+
     private UserDto.Response toResponse(User user) {
         return new UserDto.Response(
                 user.getId(),
@@ -37,9 +48,10 @@ public class UserController {
                 user.getFailedAttempts(),
                 user.isLocked(),
                 user.isMustChangePassword(),
-                null, // vous pouvez mapper les rôles si nécessaire
+                null,
                 user.getProfile() != null ? user.getProfile().getId() : null,
-                user.getProfile() != null ? user.getProfile().getLibelle() : null
+                user.getProfile() != null ? user.getProfile().getLibelle() : null,
+                user.getProfile() != null ? user.getProfile().getTjm() : null  // ← ajoute ça
         );
     }
 }

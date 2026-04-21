@@ -1,0 +1,209 @@
+<div class="reporting-page">
+  <main class="main-content">
+    <div class="breadcrumb">
+      <span class="breadcrumb-parent">Tableau de bord</span>
+      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+        <polyline points="9 18 15 12 9 6" />
+      </svg>
+      <span class="breadcrumb-current">Reporting</span>
+    </div>
+
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">Reporting</h1>
+        <p class="page-subtitle">
+          Consultez l’historique des projets, validations, statuts et indicateurs globaux.
+        </p>
+      </div>
+
+      <div class="header-actions">
+        <button class="btn-export" type="button">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+            <polyline points="7 10 12 15 17 10" />
+            <line x1="12" y1="15" x2="12" y2="3" />
+          </svg>
+          Exporter
+        </button>
+      </div>
+    </div>
+
+    <div class="stats-grid">
+      <div class="stat-card stat-card-blue">
+        <div class="stat-top-line"></div>
+        <div class="stat-label">Total projets</div>
+        <div class="stat-value">{{ totalProjects() }}</div>
+        <div class="stat-note">Tous statuts confondus</div>
+      </div>
+
+      <div class="stat-card stat-card-green">
+        <div class="stat-top-line"></div>
+        <div class="stat-label">Clients actifs</div>
+        <div class="stat-value">{{ activeClients() }}</div>
+        <div class="stat-note">Clients distincts</div>
+      </div>
+
+      <div class="stat-card stat-card-red">
+        <div class="stat-top-line"></div>
+        <div class="stat-label">Projets en validation</div>
+        <div class="stat-value">{{ validationProjects() }}</div>
+        <div class="stat-note">À suivre de près</div>
+      </div>
+
+      <div class="stat-card stat-card-orange">
+        <div class="stat-top-line"></div>
+        <div class="stat-label">Projets rejetés</div>
+        <div class="stat-value">{{ rejectedProjects() }}</div>
+        <div class="stat-note">Nécessitent attention</div>
+      </div>
+
+      <div class="stat-card stat-card-purple">
+        <div class="stat-top-line"></div>
+        <div class="stat-label">Progression moyenne</div>
+        <div class="stat-value">{{ averageProgress() }}%</div>
+        <div class="stat-note">Tous projets</div>
+      </div>
+    </div>
+
+    <div class="filters-card">
+      <div class="search-wrapper">
+        <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="11" cy="11" r="8" />
+          <line x1="21" y1="21" x2="16.65" y2="16.65" />
+        </svg>
+
+        <input
+          type="text"
+          class="search-input"
+          placeholder="Rechercher par nom projet, client, équipe..."
+          [value]="searchTerm()"
+          (input)="onSearch($any($event.target).value)"
+        />
+      </div>
+
+      <div class="tabs-row">
+        <button class="tab-btn" [class.active]="activeTab() === 'all'" (click)="setTab('all')">
+          Tous les projets
+          <span class="tab-count">{{ totalProjects() }}</span>
+        </button>
+
+        <button class="tab-btn" [class.active]="activeTab() === 'validation'" (click)="setTab('validation')">
+          En validation
+          <span class="tab-count">{{ validationProjects() }}</span>
+        </button>
+
+        <button class="tab-btn" [class.active]="activeTab() === 'prevalide'" (click)="setTab('prevalide')">
+          Pré-validés
+          <span class="tab-count">{{ preValideProjects() }}</span>
+        </button>
+
+        <button class="tab-btn" [class.active]="activeTab() === 'encours'" (click)="setTab('encours')">
+          En cours
+          <span class="tab-count">{{ enCoursProjects() }}</span>
+        </button>
+
+        <button class="tab-btn" [class.active]="activeTab() === 'rejete'" (click)="setTab('rejete')">
+          Rejetés
+          <span class="tab-count">{{ rejectedProjects() }}</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="summary-row">
+      <div class="summary-chip">
+        <span class="summary-label">Sans équipe</span>
+        <strong>{{ projectsWithoutTeam() }}</strong>
+      </div>
+
+      <div class="summary-chip">
+        <span class="summary-label">Sans manager</span>
+        <strong>{{ projectsWithoutManager() }}</strong>
+      </div>
+
+      <div class="summary-chip">
+        <span class="summary-label">Pré-validés</span>
+        <strong>{{ preValideProjects() }}</strong>
+      </div>
+
+      <div class="summary-chip">
+        <span class="summary-label">En cours</span>
+        <strong>{{ enCoursProjects() }}</strong>
+      </div>
+    </div>
+
+    <div class="table-card">
+      <div class="table-head">
+        <h2 class="table-title">{{ filteredProjects().length }} projet(s) trouvé(s)</h2>
+      </div>
+
+      @if (loading()) {
+        <div class="state-box">Chargement des projets...</div>
+      } @else if (error()) {
+        <div class="state-box error">{{ error() }}</div>
+      } @else if (filteredProjects().length === 0) {
+        <div class="state-box">Aucun projet trouvé.</div>
+      } @else {
+        <div class="reporting-table">
+          <div class="table-header">
+            <div>Projet</div>
+            <div>Client</div>
+            <div>Progression</div>
+            <div>Statut</div>
+            <div>Risque</div>
+            <div>Équipe</div>
+            <div>Période</div>
+          </div>
+
+          @for (project of filteredProjects(); track project.id) {
+            <div class="table-row">
+              <div class="project-cell">
+                <div class="project-icon">📁</div>
+                <div>
+                  <div class="project-name">{{ project.name }}</div>
+                  <div class="project-description">
+                    {{ project.description || 'Aucune description' }}
+                  </div>
+                </div>
+              </div>
+
+              <div class="muted-text">{{ project.client || '—' }}</div>
+
+              <div class="progress-cell">
+                <div class="progress-top">
+                  <span>{{ project.progressPercentage }}%</span>
+                </div>
+                <div class="progress-bar">
+                  <div
+                    [class]="getProgressBarClass(project.progressPercentage)"
+                    [style.width.%]="project.progressPercentage">
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <span [class]="getStatusClass(project.status)">
+                  {{ formatStatus(project.status) }}
+                </span>
+              </div>
+
+              <div>
+                <span [class]="getRiskClass(project.riskLevel)">
+                  {{ formatRisk(project.riskLevel) }}
+                </span>
+              </div>
+
+              <div class="muted-text">
+                {{ project.teamName || 'Non affectée' }}
+              </div>
+
+              <div class="date-cell">
+                <div>{{ project.startDate || '—' }}</div>
+                <div class="date-muted">{{ project.endDate || '—' }}</div>
+              </div>
+            </div>
+          }
+        </div>
+      }
+    </div>
+  </main>
+</div>

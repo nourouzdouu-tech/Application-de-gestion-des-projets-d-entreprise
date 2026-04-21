@@ -306,7 +306,7 @@
 
 .taches-table {
   width: 100%;
-  min-width: 1020px;
+  min-width: 1180px;
   border-collapse: collapse;
 }
 
@@ -444,21 +444,78 @@
   color: #16a34a;
 }
 
-/* Deadline */
-.echeance-wrapper {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  color: var(--text-soft);
-  font-size: 14px;
-  font-weight: 500;
+/* Criticité / durée / fin estimée */
+.td-criticite,
+.td-duree,
+.td-echeance {
+  white-space: nowrap;
 }
 
-.echeance-wrapper svg {
-  width: 16px;
-  height: 16px;
+.badge-criticite {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 32px;
+  min-width: 42px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 800;
+  background: #f5f3ff;
+  color: var(--primary-dark);
+  border: 1px solid #ddd6fe;
+}
+
+.badge-criticite.criticite-1,
+.badge-criticite.criticite-2 {
+  background: #f0fdf4;
+  color: #15803d;
+  border-color: #bbf7d0;
+}
+
+.badge-criticite.criticite-3,
+.badge-criticite.criticite-5 {
+  background: #fff7ed;
+  color: #c2410c;
+  border-color: #fdba74;
+}
+
+.badge-criticite.criticite-8,
+.badge-criticite.criticite-13 {
+  background: #fef2f2;
+  color: #dc2626;
+  border-color: #fecaca;
+}
+
+.badge-duree {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 32px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 700;
+  background: #eff6ff;
+  color: #1d4ed8;
+  border: 1px solid #bfdbfe;
+}
+
+.estimation-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.estimation-main {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.estimation-sub {
+  font-size: 12px;
   color: var(--text-light);
-  flex-shrink: 0;
 }
 
 /* Status */
@@ -612,5 +669,11 @@
 
   .filter-select {
     width: 100%;
+  }
+}
+
+@media (max-width: 1200px) {
+  .taches-table {
+    min-width: 1220px;
   }
 }

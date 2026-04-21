@@ -10,7 +10,12 @@ export interface TaskDto {
   description?: string;
   status: TaskStatus;
   createdAt?: string;
-  dueDate?: string;
+
+  startDate?: string;
+  criticite?: number;
+  dureeEstimee?: number;
+  estimatedEndDate?: string;
+
   assignedToId: number;
   assignedToName?: string;
   projectId: number;
@@ -33,28 +38,28 @@ export class TaskService {
     return this.http.get<TaskDto[]>(`${this.apiUrl}/project/${projectId}`);
   }
 
- getMyTasks(query?: string, priority?: string, assignedToId?: number): Observable<TaskDto[]> {
-  let params = new HttpParams();
+  getMyTasks(query?: string, priority?: string, assignedToId?: number): Observable<TaskDto[]> {
+    let params = new HttpParams();
 
-  if (query) {
-    params = params.set('query', query);
+    if (query) {
+      params = params.set('query', query);
+    }
+
+    if (priority && priority !== 'Toutes') {
+      const backendPriorityMap: Record<string, string> = {
+        Haute: 'HAUTE',
+        Moyenne: 'MOYENNE',
+        Basse: 'BASSE'
+      };
+      params = params.set('priority', backendPriorityMap[priority] ?? priority);
+    }
+
+    if (assignedToId) {
+      params = params.set('assignedToId', assignedToId);
+    }
+
+    return this.http.get<TaskDto[]>(`${this.apiUrl}/my-tasks`, { params });
   }
-
-  if (priority && priority !== 'Toutes') {
-    const backendPriorityMap: Record<string, string> = {
-      Haute: 'HAUTE',
-      Moyenne: 'MOYENNE',
-      Basse: 'BASSE'
-    };
-    params = params.set('priority', backendPriorityMap[priority] ?? priority);
-  }
-
-  if (assignedToId) {
-    params = params.set('assignedToId', assignedToId);
-  }
-
-  return this.http.get<TaskDto[]>(`${this.apiUrl}/my-tasks`, { params });
-}
 
   updateMyTaskStatus(id: number, status: TaskStatus): Observable<TaskDto> {
     const params = new HttpParams().set('status', status);

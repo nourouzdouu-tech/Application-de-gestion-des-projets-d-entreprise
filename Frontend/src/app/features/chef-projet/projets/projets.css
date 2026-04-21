@@ -8,6 +8,7 @@
   background: #f8f8fc;
   color: #0f172a;
 }
+
 * { box-sizing: border-box; }
 
 /* ══════════════════════════════════
@@ -103,6 +104,18 @@
 .btn-primary { min-width:150px; height:46px; border-radius:16px; border:none; background:#6930d3; color:#fff; font-size:15px; font-weight:700; cursor:pointer; transition:background .15s; }
 .btn-primary:hover { background:#1e293b; }
 
+/* Alignement date début + criticité */
+.form-row {
+  display: flex;
+  gap: 16px;
+  margin-top: 4px;
+}
+
+.form-row .form-group {
+  flex: 1;
+  min-width: 0;
+}
+
 /* Toast */
 .toast-notification { position:fixed; bottom:24px; right:24px; z-index:1100; display:flex; align-items:center; gap:12px; background:white; border-radius:16px; padding:12px 20px; box-shadow:0 10px 25px -5px rgba(0,0,0,.1); font-size:14px; font-weight:500; border-left:4px solid; animation:slideInToast .3s ease; }
 .toast-notification.success { border-left-color:#10b981; color:#065f46; background:#ecfdf5; }
@@ -112,7 +125,6 @@
 
 /* ══════════════════════════════════
    PAGE TÂCHES (full page, préfixe t-)
-   Copie exacte du design image 1
 ══════════════════════════════════ */
 .taches-page {
   padding: 20px 24px 30px;
@@ -146,7 +158,7 @@
 .t-btn-back:hover { transform:translateY(-1px); box-shadow:0 14px 26px rgba(124,58,237,.22); }
 .t-btn-back svg { width:18px; height:18px; }
 
-/* Stats — 3 cartes comme image 1 */
+/* Stats */
 .t-stats-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:18px; margin-bottom:22px; }
 .t-stat-box { background:#fff; border:1px solid #e9eaf3; border-radius:20px; padding:24px 26px; display:flex; align-items:center; gap:18px; box-shadow:0 8px 24px rgba(15,23,42,.05); }
 .t-stat-icon { width:52px; height:52px; border-radius:16px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
@@ -206,7 +218,7 @@
 .t-echeance-wrapper { display:flex; align-items:center; gap:8px; color:#64748b; font-size:14px; font-weight:500; }
 .t-echeance-wrapper svg { width:16px; height:16px; color:#94a3b8; flex-shrink:0; }
 
-/* Statut avec point */
+/* Statut */
 .t-badge-statut { display:inline-flex; align-items:center; gap:8px; font-size:13px; font-weight:700; white-space:nowrap; }
 .t-statut-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
 
@@ -228,7 +240,6 @@
 .t-delete { border:1px solid #fecaca; color:#ef4444; background:#fffafa; }
 .t-delete:hover { background:#fee2e2; }
 
-/* Boutons Valider / Rejeter — identiques image 1 */
 .t-btn-action { height:38px; padding:0 16px; border:none; border-radius:999px; display:inline-flex; align-items:center; gap:7px; font-size:13px; font-weight:700; cursor:pointer; transition:all .15s; white-space:nowrap; font-family:'Inter',sans-serif; }
 .t-btn-action svg { width:14px; height:14px; }
 .t-btn-valider { background:#ede9fe; color:#7c3aed; }
@@ -239,17 +250,7 @@
 /* Empty */
 .t-empty-state { text-align:center; padding:36px !important; color:#94a3b8; font-size:14px; }
 
-/* Responsive */
-@media (max-width:900px) {
-  .t-stats-grid { grid-template-columns:1fr; }
-  .t-page-title { font-size:28px; }
-  .t-btn-back { width:100%; justify-content:center; }
-}
-@media (max-width:768px) {
-  .form-grid { grid-template-columns:1fr; }
-  .taches-page { padding:18px 16px 24px; }
-}
-/* Pagination - version mauve */
+/* Pagination */
 .pagination-container {
   display: flex;
   justify-content: center;
@@ -257,15 +258,15 @@
   gap: 16px;
   padding: 20px 16px;
   background: #fff;
-  border-top: 1px solid #ede9fe; /* bordure mauve clair */
+  border-top: 1px solid #ede9fe;
 }
 
 .pagination-btn {
   padding: 8px 16px;
-  border: 1px solid #c4b5fd; /* mauve doux */
+  border: 1px solid #c4b5fd;
   border-radius: 12px;
-  background: #faf7ff; /* fond très clair mauve */
-  color: #6d28d9; /* mauve foncé */
+  background: #faf7ff;
+  color: #6d28d9;
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
@@ -273,7 +274,7 @@
 }
 
 .pagination-btn:hover:not(:disabled) {
-  background: #ede9fe; /* mauve plus soutenu au survol */
+  background: #ede9fe;
   border-color: #8b5cf6;
   color: #5b21b6;
 }
@@ -287,6 +288,42 @@
 
 .pagination-info {
   font-size: 14px;
-  color: #7c3aed; /* mauve vif */
+  color: #7c3aed;
   font-weight: 500;
+}
+
+/* Responsive */
+@media (max-width:900px) {
+  .t-stats-grid { grid-template-columns:1fr; }
+  .t-page-title { font-size:28px; }
+  .t-btn-back { width:100%; justify-content:center; }
+}
+
+@media (max-width:768px) {
+  .form-grid { grid-template-columns:1fr; }
+  .taches-page { padding:18px 16px 24px; }
+}
+
+@media (max-width:640px) {
+  .form-row {
+    flex-direction: column;
+    gap: 12px;
+  }
+}
+.form-row {
+  display: flex;
+  gap: 16px;
+  margin-top: 4px;
+}
+
+.form-row .form-group {
+  flex: 1;
+  min-width: 0;
+}
+
+@media (max-width: 640px) {
+  .form-row {
+    flex-direction: column;
+    gap: 12px;
+  }
 }

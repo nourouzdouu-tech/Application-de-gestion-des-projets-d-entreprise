@@ -20,8 +20,12 @@ export interface Tache {
   membreNom: string;
   membreId?: number;
   priorite: Priorite;
-  echeance: string;
   statut: Statut;
+
+  dateDebut?: string;
+  criticite?: number;
+  dureeEstimee?: number;
+  echeance: string;
 }
 
 @Component({
@@ -92,8 +96,11 @@ export class TachesComponent implements OnInit {
         }
       ],
       priorite: this.mapPriority(task.priority),
-      echeance: task.dueDate || '',
-      statut: this.mapStatus(task.status)
+      statut: this.mapStatus(task.status),
+      dateDebut: task.startDate || '',
+      criticite: task.criticite,
+      dureeEstimee: task.dureeEstimee,
+      echeance: task.estimatedEndDate || ''
     };
   }
 

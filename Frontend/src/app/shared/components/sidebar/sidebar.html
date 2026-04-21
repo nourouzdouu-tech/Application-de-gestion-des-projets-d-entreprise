@@ -249,11 +249,19 @@
           </svg>
           <span>Facturation</span>
         </a>
+        <a class="nav-item" routerLink="/responsable-contrat/reporting" routerLinkActive="active">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+    <line x1="12" y1="20" x2="12" y2="10" />
+    <line x1="18" y1="20" x2="18" y2="4" />
+    <line x1="6" y1="20" x2="6" y2="16" />
+  </svg>
+  Reporting
+</a>
       </div>
     </nav>
   </div>
 
-  <div class="sidebar-profile">
+  <div class="sidebar-profile" (click)="openProfileModal()">
     <div class="profile-avatar">{{ getInitials() }}</div>
 
     <div class="profile-info">
@@ -263,7 +271,11 @@
       <span class="profile-email">{{ currentUser()?.email }}</span>
     </div>
 
-    <button class="logout-btn" type="button" (click)="logout()" title="Déconnexion">
+    <button
+      class="logout-btn"
+      type="button"
+      (click)="logout(); $event.stopPropagation()"
+      title="Déconnexion">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
         <polyline points="16 17 21 12 16 7" />
@@ -272,3 +284,61 @@
     </button>
   </div>
 </aside>
+
+@if (showProfileModal()) {
+  <div class="modal-overlay" (click)="closeProfileModal()">
+    <div class="profile-modal" (click)="$event.stopPropagation()">
+
+      <div class="profile-modal-header">
+        <div class="profile-modal-title-wrap">
+          <div class="profile-modal-avatar">{{ getInitials() }}</div>
+          <div>
+            <h3 class="profile-modal-title">Mon profil</h3>
+            <p class="profile-modal-subtitle">Informations de l'utilisateur connecté</p>
+          </div>
+        </div>
+
+        <button class="modal-close-btn" type="button" (click)="closeProfileModal()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <line x1="18" y1="6" x2="6" y2="18" />
+            <line x1="6" y1="6" x2="18" y2="18" />
+          </svg>
+        </button>
+      </div>
+
+      <div class="profile-modal-body">
+        <div class="profile-row">
+          <span class="profile-label">Prénom</span>
+          <span class="profile-value">{{ currentUser()?.prenom || '-' }}</span>
+        </div>
+
+        <div class="profile-row">
+          <span class="profile-label">Nom</span>
+          <span class="profile-value">{{ currentUser()?.nom || '-' }}</span>
+        </div>
+
+        <div class="profile-row">
+          <span class="profile-label">Email</span>
+          <span class="profile-value">{{ currentUser()?.email || '-' }}</span>
+        </div>
+
+        <div class="profile-row">
+          <span class="profile-label">Rôle(s)</span>
+          <span class="profile-value">{{ getRoleLabel() }}</span>
+        </div>
+
+        <div class="profile-row">
+          <span class="profile-label">ID utilisateur</span>
+          <span class="profile-value">{{ currentUser()?.id || '-' }}</span>
+        </div>
+      </div>
+
+      <div class="profile-modal-footer">
+        <button class="profile-btn-secondary" type="button" (click)="closeProfileModal()">
+          Fermer
+        </button>
+      </div>
+
+    </div>
+  </div>
+}

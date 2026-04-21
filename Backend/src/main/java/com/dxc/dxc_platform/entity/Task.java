@@ -3,6 +3,7 @@ package com.dxc.dxc_platform.entity;
 import com.dxc.dxc_platform.enums.Priority;
 import com.dxc.dxc_platform.enums.Status;
 import jakarta.persistence.*;
+
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 
@@ -27,8 +28,19 @@ public class Task {
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
-    @Column(name = "due_date")
-    private LocalDate dueDate;
+    // Nouveau modèle
+    @Column(name = "start_date")
+    private LocalDate startDate;
+
+    @Column(name = "criticite")
+    private Integer criticite;
+
+    @Column(name = "duree_estimee")
+    private Integer dureeEstimee;
+
+    @Column(name = "estimated_end_date")
+    private LocalDate estimatedEndDate;
+
     @Enumerated(EnumType.STRING)
     @Column(length = 20)
     private Priority priority = Priority.MOYENNE;
@@ -60,7 +72,6 @@ public class Task {
         updatedAt = LocalDateTime.now();
     }
 
-    // Getters et setters
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 
@@ -76,8 +87,17 @@ public class Task {
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
 
-    public LocalDate getDueDate() { return dueDate; }
-    public void setDueDate(LocalDate dueDate) { this.dueDate = dueDate; }
+    public LocalDate getStartDate() { return startDate; }
+    public void setStartDate(LocalDate startDate) { this.startDate = startDate; }
+
+    public Integer getCriticite() { return criticite; }
+    public void setCriticite(Integer criticite) { this.criticite = criticite; }
+
+    public Integer getDureeEstimee() { return dureeEstimee; }
+    public void setDureeEstimee(Integer dureeEstimee) { this.dureeEstimee = dureeEstimee; }
+
+    public LocalDate getEstimatedEndDate() { return estimatedEndDate; }
+    public void setEstimatedEndDate(LocalDate estimatedEndDate) { this.estimatedEndDate = estimatedEndDate; }
 
     public User getAssignedTo() { return assignedTo; }
     public void setAssignedTo(User assignedTo) { this.assignedTo = assignedTo; }
@@ -90,6 +110,7 @@ public class Task {
 
     public LocalDateTime getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
+
     public Priority getPriority() { return priority; }
     public void setPriority(Priority priority) { this.priority = priority; }
 }

@@ -3,6 +3,7 @@ package com.dxc.dxc_platform.dto;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -111,15 +112,31 @@ public class TeamDto {
         private Boolean enabled;
         private String roleName;
 
+        private Long profileId;
+        private String profileLibelle;
+        private BigDecimal tjm;
+
         public MemberInfo() {
         }
 
-        public MemberInfo(Long id, String fullName, String email, Boolean enabled, String roleName) {
+        public MemberInfo(
+                Long id,
+                String fullName,
+                String email,
+                Boolean enabled,
+                String roleName,
+                Long profileId,
+                String profileLibelle,
+                BigDecimal tjm
+        ) {
             this.id = id;
             this.fullName = fullName;
             this.email = email;
             this.enabled = enabled;
             this.roleName = roleName;
+            this.profileId = profileId;
+            this.profileLibelle = profileLibelle;
+            this.tjm = tjm;
         }
 
         public Long getId() {
@@ -142,6 +159,18 @@ public class TeamDto {
             return roleName;
         }
 
+        public Long getProfileId() {
+            return profileId;
+        }
+
+        public String getProfileLibelle() {
+            return profileLibelle;
+        }
+
+        public BigDecimal getTjm() {
+            return tjm;
+        }
+
         public void setId(Long id) {
             this.id = id;
         }
@@ -160,6 +189,18 @@ public class TeamDto {
 
         public void setRoleName(String roleName) {
             this.roleName = roleName;
+        }
+
+        public void setProfileId(Long profileId) {
+            this.profileId = profileId;
+        }
+
+        public void setProfileLibelle(String profileLibelle) {
+            this.profileLibelle = profileLibelle;
+        }
+
+        public void setTjm(BigDecimal tjm) {
+            this.tjm = tjm;
         }
     }
 }
