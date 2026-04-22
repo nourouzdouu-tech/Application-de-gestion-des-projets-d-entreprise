@@ -3,7 +3,7 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { RouterModule } from '@angular/router';
+import { Router, RouterModule } from '@angular/router';
 import { ProjectService, ProjectDto } from '../../../core/services/project.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { TeamService, TeamDto } from '../../../core/services/team.service';
@@ -81,7 +81,8 @@ export class Projets implements OnInit {
     private taskService: TaskService,
     public authService: AuthService,
     private cdr: ChangeDetectorRef,
-    private ngZone: NgZone
+    private ngZone: NgZone,
+     private router: Router 
   ) {}
 
   ngOnInit(): void {
@@ -660,4 +661,88 @@ export class Projets implements OnInit {
     this.currentPageTaches = 1;
     this.updatePaginatedTasks();
   }
+  goToDashboard(): void {
+    const roles = this.authService.getRoles();
+    
+    if (roles.includes('ADMIN')) {
+      this.router.navigate(['/admin/dashboard']);
+    } else if (roles.includes('CHEF_PROJET')) {
+      this.router.navigate(['/chef-projet/dashboard']);
+    } else if (roles.includes('MANAGER')) {
+      this.router.navigate(['/manager/dashboard']);
+    } else if (roles.includes('RESPONSABLE_CONTRAT')) {
+      this.router.navigate(['/responsable-contrat/dashboard']);
+    } else if (roles.includes('MEMBRE_EQUIPE')) {
+      this.router.navigate(['/membre-equipe/dashboard']);
+    } else {
+      this.router.navigate(['/admin/dashboard']);
+    }
+  }
+  // ══════════════════════════════════════════════════
+// PAGINATION PROJETS (avec numéros de page)
+// ══════════════════════════════════════════════════
+
+getProjetsTotalPages(): number {
+  return Math.ceil(this.totalProjets / this.itemsPerPageProjets);
+}
+
+getProjetsRangeStart(): number {
+  if (this.totalProjets === 0) return 0;
+  return (this.currentPageProjets - 1) * this.itemsPerPageProjets + 1;
+}
+
+getProjetsRangeEnd(): number {
+  return Math.min(this.currentPageProjets * this.itemsPerPageProjets, this.totalProjets);
+}
+
+getProjetsPageNumbers(): number[] {
+  const total = this.getProjetsTotalPages();
+  const current = this.currentPageProjets;
+  const pages: number[] = [];
+
+  if (total <= 7) {
+    for (let i = 1; i <= total; i++) pages.push(i);
+  } else if (current <= 4) {
+    pages.push(1, 2, 3, 4, 5, -1, total);
+  } else if (current >= total - 3) {
+    pages.push(1, -1, total - 4, total - 3, total - 2, total - 1, total);
+  } else {
+    pages.push(1, -1, current - 1, current, current + 1, -1, total);
+  }
+  return pages;
+}
+
+// ══════════════════════════════════════════════════
+// PAGINATION TÂCHES (avec numéros de page)
+// ══════════════════════════════════════════════════
+
+getTachesTotalPages(): number {
+  return Math.ceil(this.totalTaches / this.itemsPerPageTaches);
+}
+
+getTachesRangeStart(): number {
+  if (this.totalTaches === 0) return 0;
+  return (this.currentPageTaches - 1) * this.itemsPerPageTaches + 1;
+}
+
+getTachesRangeEnd(): number {
+  return Math.min(this.currentPageTaches * this.itemsPerPageTaches, this.totalTaches);
+}
+
+getTachesPageNumbers(): number[] {
+  const total = this.getTachesTotalPages();
+  const current = this.currentPageTaches;
+  const pages: number[] = [];
+
+  if (total <= 7) {
+    for (let i = 1; i <= total; i++) pages.push(i);
+  } else if (current <= 4) {
+    pages.push(1, 2, 3, 4, 5, -1, total);
+  } else if (current >= total - 3) {
+    pages.push(1, -1, total - 4, total - 3, total - 2, total - 1, total);
+  } else {
+    pages.push(1, -1, current - 1, current, current + 1, -1, total);
+  }
+  return pages;
+}
 }

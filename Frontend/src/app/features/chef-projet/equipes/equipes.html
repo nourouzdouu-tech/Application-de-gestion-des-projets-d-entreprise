@@ -2,6 +2,14 @@
 
   <main class="main-content">
      <router-outlet></router-outlet>
+     <div class="breadcrumb">
+    <span class="breadcrumb-parent" (click)="goToDashboard()" style="cursor: pointer;">Tableau de bord</span>
+    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+      <polyline points="9 18 15 12 9 6" />
+    </svg>
+    <span class="breadcrumb-current">Gestion des Équipes</span>
+  </div>
+
     <div class="page-header">
       <div>
         <h1 class="page-title">Gestion des Équipes</h1>
@@ -482,7 +490,7 @@
               @if (isLoading) {
                 <span class="spinner"></span>
               }
-              {{ editMode ? 'Enregistrer' : 'Créer' }}
+              {{ editMode ? 'Modifier' : 'Créer' }}
             </button>
           </div>
         </div>

@@ -728,3 +728,12 @@
 .dropdown-menu svg {
   flex-shrink: 0;
 }
+.breadcrumb-parent {
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+.breadcrumb-parent:hover {
+  color: #7c3aed;
+  text-decoration: underline;
+}

@@ -70,7 +70,7 @@ export class Login {
         console.log('Roles utilisateur :', roles);
 
         if (roles.includes('CHEF_PROJET') || roles.includes('ROLE_CHEF_PROJET')) {
-          this.router.navigateByUrl('/chef-projet/projets');
+          this.router.navigateByUrl('/chef-projet');
         } else if (
           roles.includes('RESPONSABLE_CONTRAT') ||
           roles.includes('ROLE_RESPONSABLE_CONTRAT')
@@ -79,12 +79,12 @@ export class Login {
         } else if (roles.includes('ADMIN') || roles.includes('ROLE_ADMIN')) {
           this.router.navigateByUrl('/admin');
         } else if (roles.includes('MANAGER') || roles.includes('ROLE_MANAGER')) {
-          this.router.navigateByUrl('/manager/projets');
+          this.router.navigateByUrl('/manager');
         } else if (
           roles.includes('MEMBRE_EQUIPE') ||
           roles.includes('ROLE_MEMBRE_EQUIPE')
         ) {
-          this.router.navigateByUrl('/membre-equipe/projets');
+          this.router.navigateByUrl('/membre-equipe');
         } else {
           this.router.navigateByUrl('/login');
         }

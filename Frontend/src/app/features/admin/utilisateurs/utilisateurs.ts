@@ -4,7 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { AdminService, UserResponse, RoleResponse } from '../../../core/services/admin.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { ProfileDto, ProfileService } from '../../../core/services/profile.service';
-
+import { Router } from '@angular/router';
 @Component({
   selector: 'app-utilisateurs',
   standalone: true,
@@ -16,6 +16,7 @@ export class Utilisateurs implements OnInit {
   private adminService = inject(AdminService);
   private profileService = inject(ProfileService);
   authService = inject(AuthService);
+  private router = inject(Router);
 
   currentUser = signal(this.authService.getUser());
 
@@ -52,7 +53,8 @@ export class Utilisateurs implements OnInit {
   newEmail = signal('');
   newPassword = signal('');
 newRoles = signal<string[]>([]);
-  newGenre = signal('FEMME');
+ newGenre = signal<'HOMME' | 'FEMME'>('FEMME');
+editGenre = signal<'HOMME' | 'FEMME'>('FEMME');
   newProfileId = signal<number | null>(null);
 
   showEditModal = signal(false);
@@ -61,7 +63,7 @@ newRoles = signal<string[]>([]);
   editPrenom = signal('');
   editEmail = signal('');
   editRoles = signal<string[]>([]);
-  editGenre = signal('FEMME');
+  
   editProfileId = signal<number | null>(null);
 
   showConfirmModal = signal(false);
@@ -250,8 +252,10 @@ submitModal() {
   this.editNom.set(user.nom);
   this.editPrenom.set(user.prenom);
   this.editEmail.set(user.email);
-  this.editGenre.set(user.genre === 'M' ? 'HOMME' : 'FEMME');
-  // Récupérer les noms des rôles existants
+  
+  // Maintenant user.genre est déjà 'HOMME' ou 'FEMME'
+  this.editGenre.set(user.genre);  // ← Direct, sans conversion
+  
   this.editRoles.set(user.roles.map(r => r.nom));
   this.editProfileId.set(user.profileId ?? null);
   this.showEditModal.set(true);
@@ -266,19 +270,19 @@ closeEditModal() {
   this.editRoles.set([]);       // ← réinitialisation
   this.editGenre.set('FEMME');
   this.editProfileId.set(null);
-}
-submitEditModal() {
+}submitEditModal() {
   if (!this.editNom() || !this.editPrenom() || !this.editEmail() ||
       this.editRoles().length === 0 || !this.editGenre() || !this.editProfileId()) {
     this.showError('Veuillez remplir tous les champs (au moins un rôle)');
     return;
   }
 
+  // editGenre() est déjà 'HOMME' ou 'FEMME' - parfait pour le backend
   this.adminService.updateUser(this.editId()!, {
     nom: this.editNom(),
     prenom: this.editPrenom(),
     email: this.editEmail(),
-    genre: this.editGenre(),
+    genre: this.editGenre(),  // ← Envoie 'HOMME' ou 'FEMME'
     roleCodes: this.editRoles(),
     profileId: this.editProfileId()!
   }).subscribe({
@@ -407,4 +411,23 @@ toggleEditRoleSelection(roleNom: string, event: Event) {
     this.editRoles.set(this.editRoles().filter(r => r !== roleNom));
   }
 }
+
+  goToDashboard(): void {
+    const roles = this.authService.getRoles();
+    
+    if (roles.includes('ADMIN')) {
+      this.router.navigate(['/admin/dashboard']);
+    } else if (roles.includes('CHEF_PROJET')) {
+      this.router.navigate(['/chef-projet/dashboard']);
+    } else if (roles.includes('MANAGER')) {
+      this.router.navigate(['/manager/dashboard']);
+    } else if (roles.includes('RESPONSABLE_CONTRAT')) {
+      this.router.navigate(['/responsable-contrat/dashboard']);
+    } else if (roles.includes('MEMBRE_EQUIPE')) {
+      this.router.navigate(['/membre-equipe/dashboard']);
+    } else {
+      this.router.navigate(['/admin/dashboard']);
+    }
+  }
+
 }
