@@ -1,9 +1,10 @@
-import { Component, OnInit, signal, WritableSignal, HostListener } from '@angular/core';
+import { Component, OnInit, signal, WritableSignal, HostListener , inject} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import * as XLSX from 'xlsx';
-
+import { Router } from '@angular/router';
+import { AuthService } from '../../../core/services/auth.service'; 
 interface AuditLogDto {
   id: number;
   action: string;
@@ -126,7 +127,8 @@ export class ManagerAuditComponent implements OnInit {
   toastType: 'success' | 'error' = 'success';
 
   private colors = ['#7c3aed', '#2563eb', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#ec4899'];
-
+  private router = inject(Router);      // ← AJOUTER CETTE LIGNE
+  private authService = inject(AuthService); 
   constructor(private http: HttpClient) { }
 
   ngOnInit(): void { this.loadAll(); }
@@ -508,5 +510,22 @@ exportLogs(format: 'csv' | 'excel'): void {
     setTimeout(() => {
       this.showToast = false;
     }, 3000);
+  }
+  goToDashboard(): void {
+    const roles = this.authService.getRoles();
+    
+    if (roles.includes('ADMIN')) {
+      this.router.navigate(['/admin/dashboard']);
+    } else if (roles.includes('CHEF_PROJET')) {
+      this.router.navigate(['/chef-projet/dashboard']);
+    } else if (roles.includes('MANAGER')) {
+      this.router.navigate(['/manager/dashboard']);
+    } else if (roles.includes('RESPONSABLE_CONTRAT')) {
+      this.router.navigate(['/responsable-contrat/dashboard']);
+    } else if (roles.includes('MEMBRE_EQUIPE')) {
+      this.router.navigate(['/membre-equipe/dashboard']);
+    } else {
+      this.router.navigate(['/manager/dashboard']);
+    }
   }
 }

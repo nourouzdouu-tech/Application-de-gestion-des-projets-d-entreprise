@@ -1,6 +1,6 @@
 <main class="projects-page" *ngIf="!showTasksModal">
   <div class="breadcrumb">
-    <span class="breadcrumb-parent">Tableau de bord</span>
+    <span class="breadcrumb-parent" (click)="goToDashboard()" style="cursor: pointer;">Tableau de bord</span>
     <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
       <polyline points="9 18 15 12 9 6" />
     </svg>
@@ -137,28 +137,31 @@
         </tbody>
       </table>
     </div>
-
-    <div class="pagination-container">
-      <button
-        class="pagination-btn"
-        [disabled]="currentPageProjets === 1"
-        (click)="goToPageProjets(currentPageProjets - 1)"
-      >
-        ‹ Précédent
-      </button>
-
-      <span class="pagination-info">
-        Page {{ currentPageProjets }} sur {{ Math.ceil(totalProjets / itemsPerPageProjets) || 1 }}
-      </span>
-
-      <button
-        class="pagination-btn"
-        [disabled]="currentPageProjets === Math.ceil(totalProjets / itemsPerPageProjets) || totalProjets === 0"
-        (click)="goToPageProjets(currentPageProjets + 1)"
-      >
-        Suivant ›
-      </button>
-    </div>
+<div class="pagination-bar" *ngIf="totalProjets > 0 && !loading">
+  <span class="pagination-info">
+    Affichage de {{ getProjetsRangeStart() }} à {{ getProjetsRangeEnd() }} sur {{ totalProjets }} projets
+  </span>
+  <div class="pagination-controls">
+    <button class="page-btn page-nav" [disabled]="currentPageProjets === 1" (click)="goToPageProjets(currentPageProjets - 1)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+        <polyline points="15 18 9 12 15 6" />
+      </svg>
+    </button>
+    
+    <button *ngFor="let page of getProjetsPageNumbers()" 
+            class="page-btn" 
+            [class.page-active]="page === currentPageProjets" 
+            (click)="goToPageProjets(page)">
+      {{ page }}
+    </button>
+    
+    <button class="page-btn page-nav" [disabled]="currentPageProjets === getProjetsTotalPages()" (click)="goToPageProjets(currentPageProjets + 1)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+        <polyline points="9 18 15 12 9 6" />
+      </svg>
+    </button>
+  </div>
+</div>
   </div>
 
   <!-- MODAL CRÉER / MODIFIER PROJET -->
@@ -189,19 +192,9 @@
             <input type="text" name="projectClient" [(ngModel)]="projectForm.client" placeholder="Ex: Orange" />
           </div>
 
-          <div class="form-group">
-            <label>Progression (%)</label>
-            <input type="number" name="projectProgress" min="0" max="100" [(ngModel)]="projectForm.progressPercentage" />
-          </div>
+          
 
-          <div class="form-group">
-            <label>Niveau de risque</label>
-            <select name="projectRisk" [(ngModel)]="projectForm.riskLevel">
-              <option value="FAIBLE">Faible</option>
-              <option value="MOYEN">Moyen</option>
-              <option value="ELEVE">Élevé</option>
-            </select>
-          </div>
+          
 
           <div class="form-group">
             <label>Date début</label>
@@ -218,7 +211,7 @@
       <div class="modal-footer">
         <button class="btn-secondary" type="button" (click)="closeForm()">Annuler</button>
         <button class="btn-primary" type="button" (click)="submitForm()">
-          {{ isEditMode ? 'Enregistrer' : 'Créer' }}
+          {{ isEditMode ? 'Modifier' : 'Créer' }}
         </button>
       </div>
     </div>
@@ -448,7 +441,7 @@
             </td>
 
             <td class="t-td-actions">
-              <button class="t-icon-action t-edit" (click)="editTask(task)" title="Modifier">
+              <button class="t-icon-action t-edit" (click)="editTask(task)" title="Enregister">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <path d="M12 20h9" />
                   <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4 12.5-12.5z" />
@@ -490,28 +483,31 @@
         </tbody>
       </table>
     </div>
-
-    <div class="pagination-container">
-      <button
-        class="pagination-btn"
-        [disabled]="currentPageTaches === 1"
-        (click)="goToPageTaches(currentPageTaches - 1)"
-      >
-        ‹ Précédent
-      </button>
-
-      <span class="pagination-info">
-        Page {{ currentPageTaches }} sur {{ Math.ceil(totalTaches / itemsPerPageTaches) || 1 }}
-      </span>
-
-      <button
-        class="pagination-btn"
-        [disabled]="currentPageTaches === Math.ceil(totalTaches / itemsPerPageTaches) || totalTaches === 0"
-        (click)="goToPageTaches(currentPageTaches + 1)"
-      >
-        Suivant ›
-      </button>
-    </div>
+<div class="pagination-bar" *ngIf="totalTaches > 0">
+  <span class="pagination-info">
+    Affichage de {{ getTachesRangeStart() }} à {{ getTachesRangeEnd() }} sur {{ totalTaches }} tâches
+  </span>
+  <div class="pagination-controls">
+    <button class="page-btn page-nav" [disabled]="currentPageTaches === 1" (click)="goToPageTaches(currentPageTaches - 1)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+        <polyline points="15 18 9 12 15 6" />
+      </svg>
+    </button>
+    
+    <button *ngFor="let page of getTachesPageNumbers()" 
+            class="page-btn" 
+            [class.page-active]="page === currentPageTaches" 
+            (click)="goToPageTaches(page)">
+      {{ page }}
+    </button>
+    
+    <button class="page-btn page-nav" [disabled]="currentPageTaches === getTachesTotalPages()" (click)="goToPageTaches(currentPageTaches + 1)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+        <polyline points="9 18 15 12 9 6" />
+      </svg>
+    </button>
+  </div>
+</div>
   </div>
 
   <!-- MODAL MODIFIER TÂCHE -->
@@ -533,18 +529,24 @@
           <textarea [(ngModel)]="editingTask.description" rows="3"></textarea>
         </div>
 
-        <label>Date début *</label>
-<input type="date" [(ngModel)]="editingTask.startDate">
+      <div class="form-row">
+  <div class="form-group">
+    <label>Date début *</label>
+    <input type="date" [(ngModel)]="taskForm.startDate">
+  </div>
 
-<label>Criticité *</label>
-<select [(ngModel)]="editingTask.criticite">
-  <option [ngValue]="1">1 (Très simple)</option>
-  <option [ngValue]="2">2</option>
-  <option [ngValue]="3">3</option>
-  <option [ngValue]="5">5</option>
-  <option [ngValue]="8">8</option>
-  <option [ngValue]="13">13 (Très complexe)</option>
-</select>
+  <div class="form-group">
+    <label>Criticité *</label>
+    <select [(ngModel)]="taskForm.criticite">
+      <option [ngValue]="1">1</option>
+      <option [ngValue]="2">2</option>
+      <option [ngValue]="3">3</option>
+      <option [ngValue]="5">5</option>
+      <option [ngValue]="8">8</option>
+      <option [ngValue]="13">13</option>
+    </select>
+  </div>
+</div>
 
         <div class="form-group">
           <label>Priorité</label>
@@ -568,7 +570,7 @@
 
       <div class="modal-footer">
         <button class="btn-secondary" (click)="closeTaskFormModal()">Annuler</button>
-        <button class="btn-primary" (click)="saveTaskEdit()">Enregistrer</button>
+        <button class="btn-primary" (click)="saveTaskEdit()">Modifier</button>
       </div>
     </div>
   </div>
@@ -627,18 +629,24 @@
           <textarea [(ngModel)]="taskForm.description" rows="3"></textarea>
         </div>
 
-       <label>Date début *</label>
-<input type="date" [(ngModel)]="taskForm.startDate">
+<div class="form-row">
+  <div class="form-group">
+    <label>Date début *</label>
+    <input type="date" [(ngModel)]="taskForm.startDate">
+  </div>
 
-<label>Criticité *</label>
-<select [(ngModel)]="taskForm.criticite">
-  <option [ngValue]="1">1</option>
-  <option [ngValue]="2">2</option>
-  <option [ngValue]="3">3</option>
-  <option [ngValue]="5">5</option>
-  <option [ngValue]="8">8</option>
-  <option [ngValue]="13">13</option>
-</select>
+  <div class="form-group">
+    <label>Criticité *</label>
+    <select [(ngModel)]="taskForm.criticite">
+      <option [ngValue]="1">1</option>
+      <option [ngValue]="2">2</option>
+      <option [ngValue]="3">3</option>
+      <option [ngValue]="5">5</option>
+      <option [ngValue]="8">8</option>
+      <option [ngValue]="13">13</option>
+    </select>
+  </div>
+</div>
         <div class="form-group">
           <label>Priorité</label>
           <select [(ngModel)]="taskForm.priority">

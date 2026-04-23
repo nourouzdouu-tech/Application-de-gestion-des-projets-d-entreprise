@@ -14,7 +14,7 @@
     <div class="header-actions">
       <button class="btn btn-light" type="button" (click)="goBack()">Retour</button>
       <button class="btn btn-success" type="button" (click)="saveBilling()">Sauvegarder</button>
-      <button class="btn btn-primary" type="button" (click)="printPage()">Générer fichier</button>
+      <button class="btn btn-primary" type="button" (click)="generatePdf()">Télécharger PDF</button>
     </div>
   </div>
 
@@ -82,7 +82,7 @@
               <th>Profil</th>
               <th>TJM</th>
               <th>Nombre de jours</th>
-              <th>Montant</th>
+              <th>Montant HT</th>
             </tr>
           </thead>
 
@@ -186,23 +186,21 @@
     </div>
 
     <div class="summary-grid">
-      <div class="summary-card">
-        <span class="summary-label">Total membres</span>
-        <span class="summary-value">{{ formatMoney(totalMembres) }} MAD</span>
-      </div>
-      <div class="summary-card">
-        <span class="summary-label">Total manager</span>
-        <span class="summary-value">{{ formatMoney(totalManager) }} MAD</span>
-      </div>
-      <div class="summary-card">
-        <span class="summary-label">Total chef de projet</span>
-        <span class="summary-value">{{ formatMoney(totalChefProjet) }} MAD</span>
-      </div>
-      <div class="summary-card summary-card-main">
-        <span class="summary-label">Total général</span>
-        <span class="summary-value">{{ formatMoney(totalGeneral) }} MAD</span>
-      </div>
-    </div>
+  <div class="summary-card" *ngFor="let item of profileTotals">
+    <span class="summary-label">Total {{ item.profile }}</span>
+    <span class="summary-value">{{ formatMoney(item.total) }} MAD</span>
+  </div>
+
+  <div class="summary-card">
+    <span class="summary-label">Total HT</span>
+    <span class="summary-value">{{ formatMoney(totalGeneral) }} MAD</span>
+  </div>
+
+  <div class="summary-card summary-card-main">
+    <span class="summary-label">Total TTC</span>
+    <span class="summary-value">{{ formatMoney(totalTTC) }} MAD</span>
+  </div>
+</div>
 
   </ng-container>
 </div>

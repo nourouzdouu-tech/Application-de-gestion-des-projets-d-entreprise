@@ -1,12 +1,14 @@
 import { Component, computed, signal, inject, OnInit } from '@angular/core';
 import { CommonModule, DatePipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
 import {
   ManagerService,
   ManagerProjectItemDto,
   ManagerProjectReviewDto,
   ChefProjetSummary
 } from '../../../core/services/manager.service';
+import { AuthService } from '../../../core/services/auth.service';
 
 interface ReviewProject {
   id: number;
@@ -55,6 +57,8 @@ export class ReviewProjetsComponent implements OnInit {
 
   readonly isRejectModalOpen = signal(false);
   readonly selectedRejectProject = signal<ReviewProject | null>(null);
+   private router = inject(Router);           // ← AJOUTER CETTE LIGNE
+  private authService = inject(AuthService); 
 
   rejectComment = '';
 
@@ -380,4 +384,23 @@ export class ReviewProjetsComponent implements OnInit {
         return status || 'À valider';
     }
   }
+
+  goToDashboard(): void {
+    const roles = this.authService.getRoles();
+    
+    if (roles.includes('ADMIN')) {
+      this.router.navigate(['/admin/dashboard']);
+    } else if (roles.includes('CHEF_PROJET')) {
+      this.router.navigate(['/chef-projet/dashboard']);
+    } else if (roles.includes('MANAGER')) {
+      this.router.navigate(['/manager/dashboard']);
+    } else if (roles.includes('RESPONSABLE_CONTRAT')) {
+      this.router.navigate(['/responsable-contrat/dashboard']);
+    } else if (roles.includes('MEMBRE_EQUIPE')) {
+      this.router.navigate(['/membre-equipe/dashboard']);
+    } else {
+      this.router.navigate(['/manager/dashboard']);
+    }
+  }
+
 }

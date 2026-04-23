@@ -207,7 +207,7 @@ public class ProjectServiceImpl implements ProjectService {
                 .collect(Collectors.toList());
     }
 
-    
+
     @Override
     public List<ProjectDto> getMyProjects(String query, ProjectStatus status) {
         User currentUser = getAuthenticatedUser();
@@ -216,29 +216,26 @@ public class ProjectServiceImpl implements ProjectService {
             throw new ForbiddenException("FORBIDDEN", "Accès réservé au chef de projet");
         }
 
-        List<Project> projects = projectRepository.findAllByChefProjetIdAndDeletedFalse(currentUser.getId());
+        List<Project> projects;
 
-        // Si un filtre de statut est demandé, on filtre en mémoire
         if (status != null) {
-            projects = projects.stream()
-                    .filter(project -> project.getStatus() == status)
-                    .collect(Collectors.toList());
+            projects = projectRepository.findAllByChefProjetIdAndDeletedFalseAndStatus(currentUser.getId(), status);
         } else {
-            // Sans filtre, on garde uniquement les projets utiles au chef de projet
-            projects = projects.stream()
+            projects = projectRepository.findAllByChefProjetIdAndDeletedFalse(currentUser.getId())
+                    .stream()
                     .filter(project ->
                             project.getStatus() == ProjectStatus.PRE_VALIDE
                                     || project.getStatus() == ProjectStatus.EN_COURS)
                     .collect(Collectors.toList());
         }
 
-        // Filtre textuel
         if (query != null && !query.isBlank()) {
             String normalized = query.trim().toLowerCase();
             projects = projects.stream()
-                    .filter(p ->
-                            p.getName().toLowerCase().contains(normalized)
-                                    || p.getClient().toLowerCase().contains(normalized))
+                    .filter(project ->
+                            (project.getName() != null && project.getName().toLowerCase().contains(normalized))
+                                    || (project.getClient() != null && project.getClient().toLowerCase().contains(normalized))
+                    )
                     .collect(Collectors.toList());
         }
 

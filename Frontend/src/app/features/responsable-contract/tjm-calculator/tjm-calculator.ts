@@ -4,6 +4,8 @@ import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { switchMap, retry, take, catchError } from 'rxjs/operators';
 import { of, forkJoin } from 'rxjs';
+import { jsPDF } from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import { ProjectService, ProjectDto } from '../../../core/services/project.service';
 import { TeamService, TeamDto } from '../../../core/services/team.service';
 import { UserService } from '../../../core/services/user.service';
@@ -26,10 +28,9 @@ interface SavedBillingData {
   projectId: number;
   savedAt: string;
   billingLines: BillingLine[];
-  totalMembres: number;
-  totalManager: number;
-  totalChefProjet: number;
   totalGeneral: number;
+  tvaAmount: number;
+  totalTTC: number;
 }
 
 @Component({
@@ -50,10 +51,10 @@ export class TjmCalculatorComponent implements OnInit {
 
   billingLines: BillingLine[] = [];
 
-  totalMembres = 0;
-  totalManager = 0;
-  totalChefProjet = 0;
-  totalGeneral = 0;
+  totalGeneral = 0; // HT
+  tvaRate = 0.2; // 20%
+  tvaAmount = 0;
+  totalTTC = 0;
 
   constructor(
     private route: ActivatedRoute,
@@ -184,19 +185,28 @@ export class TjmCalculatorComponent implements OnInit {
   }
 
   calculateTotals(): void {
-    this.totalMembres = this.billingLines
-      .filter(l => l.source === 'MEMBER')
-      .reduce((sum, l) => sum + Number(l.montant ?? 0), 0);
+    this.totalGeneral = this.billingLines.reduce(
+      (sum, line) => sum + Number(line.montant ?? 0),
+      0
+    );
 
-    this.totalManager = this.billingLines
-      .filter(l => l.source === 'MANAGER')
-      .reduce((sum, l) => sum + Number(l.montant ?? 0), 0);
+    this.tvaAmount = this.totalGeneral * this.tvaRate;
+    this.totalTTC = this.totalGeneral + this.tvaAmount;
+  }
 
-    this.totalChefProjet = this.billingLines
-      .filter(l => l.source === 'CHEF_PROJET')
-      .reduce((sum, l) => sum + Number(l.montant ?? 0), 0);
+  get profileTotals(): { profile: string; total: number }[] {
+    const totalsMap = new Map<string, number>();
 
-    this.totalGeneral = this.totalMembres + this.totalManager + this.totalChefProjet;
+    this.billingLines.forEach(line => {
+      const profile = line.profileLibelle || 'Profil non défini';
+      const current = totalsMap.get(profile) || 0;
+      totalsMap.set(profile, current + Number(line.montant ?? 0));
+    });
+
+    return Array.from(totalsMap.entries()).map(([profile, total]) => ({
+      profile,
+      total
+    }));
   }
 
   resetJours(): void {
@@ -218,10 +228,9 @@ export class TjmCalculatorComponent implements OnInit {
         nombreJours: Number(line.nombreJours ?? 0),
         montant: Number(line.montant ?? 0)
       })),
-      totalMembres: this.totalMembres,
-      totalManager: this.totalManager,
-      totalChefProjet: this.totalChefProjet,
-      totalGeneral: this.totalGeneral
+      totalGeneral: this.totalGeneral,
+      tvaAmount: this.tvaAmount,
+      totalTTC: this.totalTTC
     };
 
     localStorage.setItem(this.storageKey, JSON.stringify(payload));
@@ -258,184 +267,101 @@ export class TjmCalculatorComponent implements OnInit {
     }
   }
 
-  printPage(): void {
-    const printWindow = window.open('', '_blank', 'width=1200,height=800');
+  generatePdf(): void {
+    const doc = new jsPDF('p', 'mm', 'a4');
 
-    if (!printWindow) {
-      this.error = "Impossible d'ouvrir la fenêtre d'impression.";
-      return;
-    }
-
-    const html = this.buildInvoiceHtml();
-
-    printWindow.document.open();
-    printWindow.document.write(html);
-    printWindow.document.close();
-
-    printWindow.focus();
-
-    setTimeout(() => {
-      printWindow.print();
-    }, 500);
-  }
-
-  buildInvoiceHtml(): string {
-    const projectName = this.escapeHtml(this.project?.name || 'Projet');
-    const description = this.escapeHtml(this.project?.description || 'Aucune description disponible');
-    const client = this.escapeHtml(this.project?.client || '-');
-    const manager = this.escapeHtml((this.project as any)?.managerName || '-');
-    const chef = this.escapeHtml((this.project as any)?.chefProjetName || '-');
-    const teamName = this.escapeHtml(this.team?.name || (this.project as any)?.teamName || 'Non affectée');
-    const status = this.escapeHtml(this.project?.status || 'N/A');
+    const projectName = this.project?.name || 'Projet';
+    const description = this.project?.description || 'Aucune description disponible.';
+    const client = this.project?.client || '-';
+    const manager = (this.project as any)?.managerName || '-';
+    const chef = (this.project as any)?.chefProjetName || '-';
+    const teamName = this.team?.name || (this.project as any)?.teamName || 'Non affectée';
+    const status = this.project?.status || 'N/A';
     const generatedAt = new Date().toLocaleString('fr-FR');
 
-    const rows = this.billingLines.map(line => `
-      <tr>
-        <td>${this.escapeHtml(line.fullName)}</td>
-        <td>${this.escapeHtml(line.roleName)}</td>
-        <td>${this.escapeHtml(line.profileLibelle || '-')}</td>
-        <td>${this.formatMoney(line.tjm)} MAD</td>
-        <td>${Number(line.nombreJours ?? 0)}</td>
-        <td>${this.formatMoney(line.montant)} MAD</td>
-      </tr>
-    `).join('');
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(18);
+    doc.text('Facture du projet', 14, 18);
 
-    return `
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-  <meta charset="UTF-8">
-  <title>Facture - ${projectName}</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      margin: 32px;
-      color: #1f2937;
-      background: #ffffff;
-    }
-    h1, h2, h3 { margin: 0 0 12px; }
-    .top {
-      margin-bottom: 24px;
-      padding-bottom: 16px;
-      border-bottom: 2px solid #7c3aed;
-    }
-    .meta {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 12px 24px;
-      margin: 20px 0 28px;
-    }
-    .box {
-      background: #f9fafb;
-      border: 1px solid #e5e7eb;
-      border-radius: 10px;
-      padding: 12px 14px;
-    }
-    .label {
-      font-size: 12px;
-      color: #6b7280;
-      margin-bottom: 4px;
-      text-transform: uppercase;
-    }
-    .value {
-      font-size: 14px;
-      font-weight: 600;
-      color: #111827;
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 16px;
-    }
-    th, td {
-      border: 1px solid #e5e7eb;
-      padding: 10px 12px;
-      text-align: left;
-      font-size: 14px;
-    }
-    th {
-      background: #f3f4f6;
-      text-transform: uppercase;
-      font-size: 12px;
-      color: #6b7280;
-    }
-    .summary {
-      margin-top: 28px;
-      width: 420px;
-      margin-left: auto;
-    }
-    .summary-row {
-      display: flex;
-      justify-content: space-between;
-      padding: 10px 12px;
-      border: 1px solid #e5e7eb;
-      border-bottom: none;
-      background: #fff;
-    }
-    .summary-row:last-child {
-      border-bottom: 1px solid #e5e7eb;
-      background: #7c3aed;
-      color: white;
-      font-weight: bold;
-    }
-    .generated {
-      margin-top: 28px;
-      font-size: 12px;
-      color: #6b7280;
-      text-align: right;
-    }
-    @media print {
-      body {
-        margin: 16px;
+    doc.setFontSize(14);
+    doc.text(projectName, 14, 28);
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10);
+    doc.text(`Description : ${description}`, 14, 36);
+    doc.text(`Client : ${client}`, 14, 43);
+    doc.text(`Statut : ${status}`, 14, 50);
+    doc.text(`Manager : ${manager}`, 14, 57);
+    doc.text(`Chef de projet : ${chef}`, 14, 64);
+    doc.text(`Équipe : ${teamName}`, 14, 71);
+    doc.text(`Date de génération : ${generatedAt}`, 14, 78);
+
+    const body = this.billingLines.map(line => [
+      line.fullName,
+      line.roleName,
+      line.profileLibelle || '-',
+      `${this.formatMoney(line.tjm)} MAD`,
+      `${Number(line.nombreJours ?? 0)}`,
+      `${this.formatMoney(line.montant)} MAD`
+    ]);
+
+    autoTable(doc, {
+      startY: 88,
+      head: [[
+        'Ressource',
+        'Rôle',
+        'Profil',
+        'TJM',
+        'Nombre de jours',
+        'Montant HT'
+      ]],
+      body: body.length ? body : [[
+        'Aucune ressource', '-', '-', '0,00 MAD', '0', '0,00 MAD'
+      ]],
+      styles: {
+        fontSize: 9
+      },
+      headStyles: {
+        fillColor: [124, 58, 237]
       }
-    }
-  </style>
-</head>
-<body>
-  <div class="top">
-    <h1>Facture du projet</h1>
-    <h2>${projectName}</h2>
-    <p>${description}</p>
-  </div>
+    });
 
-  <div class="meta">
-    <div class="box"><div class="label">Client</div><div class="value">${client}</div></div>
-    <div class="box"><div class="label">Statut</div><div class="value">${status}</div></div>
-    <div class="box"><div class="label">Manager</div><div class="value">${manager}</div></div>
-    <div class="box"><div class="label">Chef de projet</div><div class="value">${chef}</div></div>
-    <div class="box"><div class="label">Équipe</div><div class="value">${teamName}</div></div>
-    <div class="box"><div class="label">Date de génération</div><div class="value">${generatedAt}</div></div>
-  </div>
+    const finalY = (doc as any).lastAutoTable.finalY || 100;
 
-  <h3>Lignes de facturation</h3>
+    const profileRows = this.profileTotals.map(item => [
+      `Total ${item.profile}`,
+      `${this.formatMoney(item.total)} MAD`
+    ]);
 
-  <table>
-    <thead>
-      <tr>
-        <th>Ressource</th>
-        <th>Rôle</th>
-        <th>Profil</th>
-        <th>TJM</th>
-        <th>Nombre de jours</th>
-        <th>Montant</th>
-      </tr>
-    </thead>
-    <tbody>
-      ${rows || `<tr><td colspan="6">Aucune ligne de facturation</td></tr>`}
-    </tbody>
-  </table>
+    autoTable(doc, {
+      startY: finalY + 10,
+      body: [
+        ...profileRows,
+        ['Total HT', `${this.formatMoney(this.totalGeneral)} MAD`],
+        ['TVA (20%)', `${this.formatMoney(this.tvaAmount)} MAD`],
+        ['Total TTC', `${this.formatMoney(this.totalTTC)} MAD`]
+      ],
+      theme: 'grid',
+      styles: {
+        fontSize: 10
+      },
+      columnStyles: {
+        0: { fontStyle: 'bold' },
+        1: { halign: 'right' }
+      }
+    });
 
-  <div class="summary">
-    <div class="summary-row"><span>Total membres</span><span>${this.formatMoney(this.totalMembres)} MAD</span></div>
-    <div class="summary-row"><span>Total manager</span><span>${this.formatMoney(this.totalManager)} MAD</span></div>
-    <div class="summary-row"><span>Total chef de projet</span><span>${this.formatMoney(this.totalChefProjet)} MAD</span></div>
-    <div class="summary-row"><span>Total général</span><span>${this.formatMoney(this.totalGeneral)} MAD</span></div>
-  </div>
+    doc.save(this.buildPdfFileName());
+  }
 
-  <div class="generated">Document généré le ${generatedAt}</div>
-</body>
-</html>
-    `;
+  buildPdfFileName(): string {
+    const safeName = (this.project?.name || 'projet')
+      .toLowerCase()
+      .trim()
+      .replace(/\s+/g, '-')
+      .replace(/[^a-z0-9-]/g, '');
+
+    return `facture-${safeName}.pdf`;
   }
 
   escapeHtml(value: string): string {
@@ -456,14 +382,6 @@ export class TjmCalculatorComponent implements OnInit {
 
   get storageKey(): string {
     return `billing_project_${this.projectId}`;
-  }
-
-  get projectTitle(): string {
-    return this.project?.name || 'Projet';
-  }
-
-  get projectDescription(): string {
-    return this.project?.description || 'Aucune description disponible.';
   }
 
   get memberLines(): BillingLine[] {

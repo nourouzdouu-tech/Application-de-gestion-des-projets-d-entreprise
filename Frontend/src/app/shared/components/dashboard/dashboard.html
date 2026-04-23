@@ -8,173 +8,253 @@
       <span>Chargement du dashboard...</span>
     </div>
   } @else {
+<!-- ================= ADMIN ================= -->
+@if (isAdmin()) {
+  <div class="main-content">
+    <div class="hero-section">
+      <div class="hero-left">
+        <span class="hero-badge">Dashboard Admin</span>
+        <h1 class="heading-title">Aperçu Analytique</h1>
+        <p class="title-description">
+          Visualisez rapidement l’activité des utilisateurs, les charges, les indicateurs clés
+          et les alertes du système.
+        </p>
+      </div>
+    </div>
 
-    <!-- ================= ADMIN ================= -->
-    @if (isAdmin()) {
-      <div class="main-content">
-        <div class="hero-section">
-          <div class="hero-left">
-            <span class="hero-badge">Dashboard Admin</span>
-            <h1 class="heading-title">Aperçu Analytique</h1>
-            <p class="title-description">
-              Visualisez rapidement l’activité des utilisateurs, les charges, les indicateurs clés
-              et les alertes du système.
-            </p>
-          </div>
+    <div class="kpi-grid">
+      <div class="kpi-card" *ngFor="let kpi of kpiData()">
+        <div class="kpi-top">
+          <div class="kpi-icon-wrap">{{ kpi.icon }}</div>
+        </div>
+        <div class="kpi-title">{{ kpi.title }}</div>
+        <div class="kpi-value">{{ kpi.value }}</div>
+      </div>
+    </div>
+
+    <div class="charts-container">
+      <div class="chart-card">
+        <div class="chart-header">
+          <h2 class="chart-title">Évolution Utilisateurs</h2>
+          <select class="options-select">
+            <option>Monthly</option>
+            <option>Weekly</option>
+            <option>Daily</option>
+          </select>
         </div>
 
-        <div class="kpi-grid">
-          <div class="kpi-card" *ngFor="let kpi of kpiData()">
-            <div class="kpi-top">
-              <div class="kpi-icon-wrap">{{ kpi.icon }}</div>
-            </div>
-            <div class="kpi-title">{{ kpi.title }}</div>
-            <div class="kpi-value">{{ kpi.value }}</div>
-          </div>
+        <div class="chart-placeholder">
+          <svg class="line-chart" viewBox="0 0 400 200" preserveAspectRatio="xMidYMid meet">
+            <polyline points="20,180 80,150 140,100 200,120 260,80 320,90 380,40"
+                      fill="none"
+                      stroke="#8f8b9d"
+                      stroke-width="3" />
+            <circle cx="20" cy="180" r="4" fill="#8f8b9d" />
+            <circle cx="80" cy="150" r="4" fill="#8f8b9d" />
+            <circle cx="140" cy="100" r="4" fill="#8f8b9d" />
+            <circle cx="200" cy="120" r="4" fill="#8f8b9d" />
+            <circle cx="260" cy="80" r="4" fill="#8f8b9d" />
+            <circle cx="320" cy="90" r="4" fill="#8f8b9d" />
+            <circle cx="380" cy="40" r="4" fill="#8f8b9d" />
+          </svg>
         </div>
 
-        <div class="charts-container">
-          <div class="chart-card">
-            <div class="chart-header">
-              <h2 class="chart-title">Évolution Utilisateurs</h2>
-              <select class="options-select">
-                <option>Monthly</option>
-                <option>Weekly</option>
-                <option>Daily</option>
-              </select>
-            </div>
-
-            <div class="chart-placeholder">
-              <svg class="line-chart" viewBox="0 0 400 200" preserveAspectRatio="xMidYMid meet">
-                <polyline points="20,180 80,150 140,100 200,120 260,80 320,90 380,40"
-                          fill="none"
-                          stroke="#8f8b9d"
-                          stroke-width="3" />
-                <circle cx="20" cy="180" r="4" fill="#8f8b9d" />
-                <circle cx="80" cy="150" r="4" fill="#8f8b9d" />
-                <circle cx="140" cy="100" r="4" fill="#8f8b9d" />
-                <circle cx="200" cy="120" r="4" fill="#8f8b9d" />
-                <circle cx="260" cy="80" r="4" fill="#8f8b9d" />
-                <circle cx="320" cy="90" r="4" fill="#8f8b9d" />
-                <circle cx="380" cy="40" r="4" fill="#8f8b9d" />
-              </svg>
-            </div>
-
-            <div class="chart-legend">
-              <div class="legend-item" *ngFor="let month of monthlyData">
-                <span class="legend-month">{{ month.month }}</span>
-              </div>
-            </div>
-          </div>
-
-          <div class="chart-card">
-            <div class="chart-header">
-              <h2 class="chart-title">Validation vs Rejet</h2>
-              <div class="chart-legend-inline">
-                <div class="legend-item">
-                  <span class="legend-dot valid"></span>
-                  <span class="legend-label">VALID</span>
-                </div>
-                <div class="legend-item">
-                  <span class="legend-dot reject"></span>
-                  <span class="legend-label">REJECT</span>
-                </div>
-              </div>
-            </div>
-
-            <div class="bar-chart">
-              <div class="chart-bars" *ngFor="let data of chartData">
-                <div class="bar-group">
-                  <div class="bar-container">
-                    <div class="bar valid" [style.height]="getChartHeight(data.valid)"></div>
-                  </div>
-                  <div class="bar-container">
-                    <div class="bar reject" [style.height]="getChartRejectHeight(data.reject)"></div>
-                  </div>
-                </div>
-                <span class="bar-label">{{ data.week }}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="load-section">
-          <div class="section-header">
-            <div>
-              <h2 class="section-title">Charge par Utilisateur</h2>
-              <p class="section-description">Utilisateurs récupérés depuis la base</p>
-            </div>
-            <span class="section-chip">{{ users().length }} utilisateurs</span>
-          </div>
-
-          <div class="user-load-list">
-            <div class="user-load-item" *ngFor="let user of users()">
-              <div class="user-load-header">
-                <div class="user-load-identity">
-                  <div class="user-avatar">{{ getUserInitials(user) }}</div>
-                  <div>
-                    <span class="user-name">{{ user.prenom }} {{ user.nom }}</span>
-                    <div class="user-role">{{ getRoleNames(user) }}</div>
-                  </div>
-                </div>
-                <span class="user-percentage">{{ getUserLoad(user) }}%</span>
-              </div>
-              <div class="progress-bar">
-                <div class="progress-fill" [style.width.%]="getUserLoad(user)"></div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="alerts-section">
-          <div class="alerts-header">
-            <div>
-              <h2 class="section-title">Moniteur Haute Charge & Alertes de Validation</h2>
-              <p class="section-description">Vue détaillée des utilisateurs et de leur statut</p>
-            </div>
-            <a href="#" class="view-all-alerts">Voir toutes les alertes</a>
-          </div>
-
-          <div class="alerts-table">
-            <div class="table-header">
-              <div class="col-utilisateur">UTILISATEUR</div>
-              <div class="col-email">EMAIL</div>
-              <div class="col-role">RÔLE</div>
-              <div class="col-status">STATUT</div>
-              <div class="col-charge">PROJET</div>
-            </div>
-
-            <div class="table-row" *ngFor="let user of users()">
-              <div class="col-utilisateur">
-                <div class="user-info">
-                  <div class="user-avatar">{{ getUserInitials(user) }}</div>
-                  <div class="user-details">
-                    <div class="user-name">{{ user.prenom }} {{ user.nom }}</div>
-                    <div class="user-role">{{ getRoleNames(user) }}</div>
-                  </div>
-                </div>
-              </div>
-
-              <div class="col-email">{{ user.email }}</div>
-              <div class="col-role">{{ getRoleNames(user) }}</div>
-
-              <div class="col-status">
-                <span class="status-badge" [ngClass]="getUserStatusClass(user)">
-                  {{ getUserStatus(user) }}
-                </span>
-              </div>
-
-              <div class="col-charge">
-                <div class="mini-progress">
-                  <div class="mini-progress-fill" [style.width.%]="getUserLoad(user)"></div>
-                </div>
-                <span>{{ getUserLoad(user) }}%</span>
-              </div>
-            </div>
+        <div class="chart-legend">
+          <div class="legend-item" *ngFor="let month of monthlyData">
+            <span class="legend-month">{{ month.month }}</span>
           </div>
         </div>
       </div>
-    }
+
+      <div class="chart-card">
+        <div class="chart-header">
+          <h2 class="chart-title">Validation vs Rejet</h2>
+          <div class="chart-legend-inline">
+            <div class="legend-item">
+              <span class="legend-dot valid"></span>
+              <span class="legend-label">VALID</span>
+            </div>
+            <div class="legend-item">
+              <span class="legend-dot reject"></span>
+              <span class="legend-label">REJECT</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="bar-chart">
+          <div class="chart-bars" *ngFor="let data of chartData">
+            <div class="bar-group">
+              <div class="bar-container">
+                <div class="bar valid" [style.height]="getChartHeight(data.valid)"></div>
+              </div>
+              <div class="bar-container">
+                <div class="bar reject" [style.height]="getChartRejectHeight(data.reject)"></div>
+              </div>
+            </div>
+            <span class="bar-label">{{ data.week }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SECTION CHARGE PAR UTILISATEUR AVEC PAGINATION -->
+    <div class="load-section">
+      <div class="section-header">
+        <div>
+          <h2 class="section-title">Charge par Utilisateur</h2>
+          <p class="section-description">Utilisateurs récupérés depuis la base</p>
+        </div>
+        <span class="section-chip">{{ users().length }} utilisateurs</span>
+      </div>
+
+      <div class="user-load-list">
+        @for (user of paginatedUserLoad; track user.id) {
+          <div class="user-load-item">
+            <div class="user-load-header">
+              <div class="user-load-identity">
+                <div class="user-avatar">{{ getUserInitials(user) }}</div>
+                <div>
+                  <span class="user-name">{{ user.prenom }} {{ user.nom }}</span>
+                  <div class="user-role">{{ getRoleNames(user) }}</div>
+                </div>
+              </div>
+              <span class="user-percentage">{{ getUserLoad(user) }}%</span>
+            </div>
+            <div class="progress-bar">
+              <div class="progress-fill" [style.width.%]="getUserLoad(user)"></div>
+            </div>
+          </div>
+        }
+      </div>
+
+      <!-- Pagination pour Charge par Utilisateur -->
+      @if (users().length > adminUserLoadItemsPerPage) {
+        <div class="performance-pagination">
+          <div class="pagination-info">
+            Affichage de {{ adminUserLoadRangeStart }} à {{ adminUserLoadRangeEnd }} sur {{ users().length }} utilisateurs
+          </div>
+          <div class="pagination-controls">
+            <button class="page-btn" 
+                    [disabled]="adminUserLoadCurrentPage === 1" 
+                    (click)="previousAdminUserLoadPage()">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+                <polyline points="15 18 9 12 15 6" />
+              </svg>
+            </button>
+            
+            @for (page of getAdminUserLoadPageNumbers(); track $index) {
+              @if (page === -1) {
+                <span class="page-dots">...</span>
+              } @else {
+                <button class="page-btn" 
+                        [class.active]="page === adminUserLoadCurrentPage" 
+                        (click)="goToAdminUserLoadPage(page)">
+                  {{ page }}
+                </button>
+              }
+            }
+            
+            <button class="page-btn" 
+                    [disabled]="adminUserLoadCurrentPage === adminUserLoadTotalPages" 
+                    (click)="nextAdminUserLoadPage()">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+                <polyline points="9 18 15 12 9 6" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      }
+    </div>
+
+    <!-- SECTION MONITEUR HAUTE CHARGE & ALERTES AVEC PAGINATION -->
+    <div class="alerts-section">
+      <div class="alerts-header">
+        <div>
+          <h2 class="section-title">Moniteur Haute Charge & Alertes de Validation</h2>
+          <p class="section-description">Vue détaillée des utilisateurs et de leur statut</p>
+        </div>
+      </div>
+
+      <div class="alerts-table">
+        <div class="table-header">
+          <div class="col-utilisateur">UTILISATEUR</div>
+          <div class="col-email">EMAIL</div>
+          <div class="col-role">RÔLE</div>
+          <div class="col-status">STATUT</div>
+          <div class="col-charge">CHARGE</div>
+        </div>
+
+        @for (user of paginatedAlerts; track user.id) {
+          <div class="table-row">
+            <div class="col-utilisateur">
+              <div class="user-info">
+                <div class="user-avatar">{{ getUserInitials(user) }}</div>
+                <div class="user-details">
+                  <div class="user-name">{{ user.prenom }} {{ user.nom }}</div>
+                  <div class="user-role">{{ getRoleNames(user) }}</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="col-email">{{ user.email }}</div>
+            <div class="col-role">{{ getRoleNames(user) }}</div>
+
+            <div class="col-status">
+              <span class="status-badge" [ngClass]="getUserStatusClass(user)">
+                {{ getUserStatus(user) }}
+              </span>
+            </div>
+
+            <div class="col-charge">
+              <div class="mini-progress">
+                <div class="mini-progress-fill" [style.width.%]="getUserLoad(user)"></div>
+              </div>
+              <span>{{ getUserLoad(user) }}%</span>
+            </div>
+          </div>
+        }
+      </div>
+
+      <!-- Pagination pour Alertes -->
+      @if (users().length > adminAlertsItemsPerPage) {
+        <div class="performance-pagination">
+          <div class="pagination-info">
+            Affichage de {{ adminAlertsRangeStart }} à {{ adminAlertsRangeEnd }} sur {{ users().length }} utilisateurs
+          </div>
+          <div class="pagination-controls">
+            <button class="page-btn" 
+                    [disabled]="adminAlertsCurrentPage === 1" 
+                    (click)="previousAdminAlertsPage()">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+                <polyline points="15 18 9 12 15 6" />
+              </svg>
+            </button>
+            
+            @for (page of getAdminAlertsPageNumbers(); track $index) {
+              @if (page === -1) {
+                <span class="page-dots">...</span>
+              } @else {
+                <button class="page-btn" 
+                        [class.active]="page === adminAlertsCurrentPage" 
+                        (click)="goToAdminAlertsPage(page)">
+                  {{ page }}
+                </button>
+              }
+            }
+            
+            <button class="page-btn" 
+                    [disabled]="adminAlertsCurrentPage === adminAlertsTotalPages" 
+                    (click)="nextAdminAlertsPage()">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+                <polyline points="9 18 15 12 9 6" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      }
+    </div>
+  </div>
+}
 <!-- ================= CHEF PROJET ================= -->
 @if (isChefProjet()) {
   <div class="main-content">
@@ -858,4 +938,3 @@
 
   }
   }
-  

@@ -125,9 +125,130 @@ export class Dashboard implements OnInit {
   tasks = signal<TaskDto[]>([]);
   allTeams = signal<TeamDto[]>([]);
 
+  // ================= PAGINATION ADMIN =================
+  // Pagination pour "Charge par Utilisateur"
+  adminUserLoadCurrentPage = 1;
+  adminUserLoadItemsPerPage = 5;
+
+  // Pagination pour "Moniteur Haute Charge & Alertes de Validation"
+  adminAlertsCurrentPage = 1;
+  adminAlertsItemsPerPage = 5;
+
   // ================= PERFORMANCES MEMBRES (PAGINATION) =================
   performanceCurrentPage = 1;
   performanceItemsPerPage = 5;
+
+  // ================= GETTERS PAGINATION ADMIN =================
+  
+  get paginatedUserLoad(): UserResponse[] {
+    const start = (this.adminUserLoadCurrentPage - 1) * this.adminUserLoadItemsPerPage;
+    const end = start + this.adminUserLoadItemsPerPage;
+    return this.users().slice(start, end);
+  }
+
+  get paginatedAlerts(): UserResponse[] {
+    const start = (this.adminAlertsCurrentPage - 1) * this.adminAlertsItemsPerPage;
+    const end = start + this.adminAlertsItemsPerPage;
+    return this.users().slice(start, end);
+  }
+
+  get adminUserLoadTotalPages(): number {
+    return Math.ceil(this.users().length / this.adminUserLoadItemsPerPage);
+  }
+
+  get adminAlertsTotalPages(): number {
+    return Math.ceil(this.users().length / this.adminAlertsItemsPerPage);
+  }
+
+  get adminUserLoadRangeStart(): number {
+    if (this.users().length === 0) return 0;
+    return (this.adminUserLoadCurrentPage - 1) * this.adminUserLoadItemsPerPage + 1;
+  }
+
+  get adminUserLoadRangeEnd(): number {
+    return Math.min(this.adminUserLoadCurrentPage * this.adminUserLoadItemsPerPage, this.users().length);
+  }
+
+  get adminAlertsRangeStart(): number {
+    if (this.users().length === 0) return 0;
+    return (this.adminAlertsCurrentPage - 1) * this.adminAlertsItemsPerPage + 1;
+  }
+
+  get adminAlertsRangeEnd(): number {
+    return Math.min(this.adminAlertsCurrentPage * this.adminAlertsItemsPerPage, this.users().length);
+  }
+
+  // ================= MÉTHODES NAVIGATION ADMIN =================
+  
+  goToAdminUserLoadPage(page: number): void {
+    if (page >= 1 && page <= this.adminUserLoadTotalPages) {
+      this.adminUserLoadCurrentPage = page;
+    }
+  }
+
+  previousAdminUserLoadPage(): void {
+    if (this.adminUserLoadCurrentPage > 1) {
+      this.adminUserLoadCurrentPage--;
+    }
+  }
+
+  nextAdminUserLoadPage(): void {
+    if (this.adminUserLoadCurrentPage < this.adminUserLoadTotalPages) {
+      this.adminUserLoadCurrentPage++;
+    }
+  }
+
+  goToAdminAlertsPage(page: number): void {
+    if (page >= 1 && page <= this.adminAlertsTotalPages) {
+      this.adminAlertsCurrentPage = page;
+    }
+  }
+
+  previousAdminAlertsPage(): void {
+    if (this.adminAlertsCurrentPage > 1) {
+      this.adminAlertsCurrentPage--;
+    }
+  }
+
+  nextAdminAlertsPage(): void {
+    if (this.adminAlertsCurrentPage < this.adminAlertsTotalPages) {
+      this.adminAlertsCurrentPage++;
+    }
+  }
+
+  getAdminUserLoadPageNumbers(): number[] {
+    const total = this.adminUserLoadTotalPages;
+    const current = this.adminUserLoadCurrentPage;
+    const pages: number[] = [];
+
+    if (total <= 7) {
+      for (let i = 1; i <= total; i++) pages.push(i);
+    } else if (current <= 4) {
+      pages.push(1, 2, 3, 4, 5, -1, total);
+    } else if (current >= total - 3) {
+      pages.push(1, -1, total - 4, total - 3, total - 2, total - 1, total);
+    } else {
+      pages.push(1, -1, current - 1, current, current + 1, -1, total);
+    }
+    return pages;
+  }
+
+  getAdminAlertsPageNumbers(): number[] {
+    const total = this.adminAlertsTotalPages;
+    const current = this.adminAlertsCurrentPage;
+    const pages: number[] = [];
+
+    if (total <= 7) {
+      for (let i = 1; i <= total; i++) pages.push(i);
+    } else if (current <= 4) {
+      pages.push(1, 2, 3, 4, 5, -1, total);
+    } else if (current >= total - 3) {
+      pages.push(1, -1, total - 4, total - 3, total - 2, total - 1, total);
+    } else {
+      pages.push(1, -1, current - 1, current, current + 1, -1, total);
+    }
+    return pages;
+  }
 
   ngOnInit() {
     const user = this.authService.getUser();
@@ -181,10 +302,8 @@ export class Dashboard implements OnInit {
       next: (response: PageResponse<UserResponse>) => {
         this.users.set(response.content);
         this.totalUsers.set(response.totalElements);
-
         const active = response.content.filter(u => !u.locked).length;
         const inactive = response.content.filter(u => u.locked).length;
-
         this.activeUsers.set(active);
         this.inactiveUsers.set(inactive);
         this.loading.set(false);
@@ -262,129 +381,128 @@ export class Dashboard implements OnInit {
           this.loading.set(false);
         }
       });
-  }loadResponsableContractDashboardData() {
-  this.loading.set(true);
-  console.log('🟢 Chargement dashboard RESPONSABLE CONTRAT...');
-  
-  forkJoin({
-    projects: this.projectService.getAllProjects().pipe(
-      catchError((err) => {
-        console.error('❌ Erreur projets RC:', err);
-        return of([]);
-      })
-    ),
-    teams: this.http.get<TeamDto[]>(this.teamsApiUrl).pipe(
-      catchError((err) => {
-        console.error('❌ Erreur équipes RC:', err);
-        return of([]);
-      })
-    )
-  }).subscribe({
-    next: ({ projects, teams }) => {
-      console.log('📁 Projets reçus:', projects);
-      console.log('👥 Équipes reçues:', teams);
-      
-      const mappedProjects: DashboardProject[] = (projects || []).map(p => ({
-        id: p.id ?? 0,
-        name: p.name ?? '',
-        client: p.client ?? '',
-        status: p.status ?? '',
-        description: p.description ?? '',
-        progressPercentage: p.progressPercentage ?? 0,
-        riskLevel: p.riskLevel ?? 'FAIBLE',
-        startDate: p.startDate ? new Date(p.startDate) : new Date(),
-        endDate: p.endDate ? new Date(p.endDate) : new Date(),
-        deleted: p.deleted ?? false,
-        teamId: p.teamId,
-        teamName: teams.find(t => t.id === p.teamId)?.name,
-        createdAt: p.createdAt,
-        updatedAt: p.updatedAt,
-        managerId: p.managerId,
-        managerName: p.managerName,
-        chefProjetId: p.chefProjetId,
-        chefProjetName: p.chefProjetName
-      }));
-      
-      this.projects.set(mappedProjects);
-      this.allTeams.set(teams ?? []);
-      this.tasks.set([]);
-      
-      console.log('✅ Projets chargés:', this.projects().length);
-      console.log('✅ Premiers projets:', this.projects().slice(0, 2));
-      
-      this.loading.set(false);
-    },
-    error: (err) => {
-      console.error('❌ Erreur dashboard RC:', err);
-      this.loading.set(false);
-    }
-  });
-}
-loadMembreEquipeDashboardData() {
-  this.loading.set(true);
-  console.log('🟢 Chargement dashboard Membre Équipe...');
-  
-  
-  this.projectService.getMyAssignedProjects().subscribe({
-    next: (projects: ProjectDto[]) => {
-      console.log('📁 Projets reçus:', projects);
-      
-      
-      const mappedProjects: DashboardProject[] = (projects || []).map(p => ({
-        id: p.id ?? 0,
-        name: p.name ?? '',
-        client: p.client ?? '',
-        status: p.status ?? '',
-        description: p.description ?? '',
-        progressPercentage: p.progressPercentage ?? 0,
-        riskLevel: p.riskLevel ?? 'FAIBLE',
-        startDate: p.startDate ? new Date(p.startDate) : new Date(),
-        endDate: p.endDate ? new Date(p.endDate) : new Date(),
-        deleted: p.deleted ?? false,
-        teamId: p.teamId,
-        teamName: p.teamName,
-        createdAt: p.createdAt,
-        updatedAt: p.updatedAt,
-        managerId: p.managerId,
-        managerName: p.managerName,
-        chefProjetId: p.chefProjetId,
-        chefProjetName: p.chefProjetName
-      }));
-      
-      this.projects.set(mappedProjects);
-      console.log('✅ Projets chargés:', this.projects().length);
-      
-      
-      this.loadMyTasks();
-      
-      this.loading.set(false);
-    },
-    error: (err) => {
-      console.error('❌ Erreur chargement projets membre:', err);
-      this.projects.set([]);
-      this.loading.set(false);
-    }
-  });
-}
-
-loadMyTasks() {
-  const currentUserId = this.currentUser()?.id;
-  if (!currentUserId) {
-    console.warn('⚠️ Pas d\'utilisateur connecté');
-    return;
   }
-  
-  this.taskService.getMyTasks().subscribe({
-    next: (tasks: TaskDto[]) => {
-      console.log('📋 Tâches reçues:', tasks.length);
-      this.tasks.set(tasks || []);
-    },
-    error: (err) => {
-      console.error('❌ Erreur chargement tâches:', err);
-      this.tasks.set([]);
+
+  loadResponsableContractDashboardData() {
+    this.loading.set(true);
+    console.log('🟢 Chargement dashboard RESPONSABLE CONTRAT...');
+    
+    forkJoin({
+      projects: this.projectService.getAllProjects().pipe(
+        catchError((err) => {
+          console.error('❌ Erreur projets RC:', err);
+          return of([]);
+        })
+      ),
+      teams: this.http.get<TeamDto[]>(this.teamsApiUrl).pipe(
+        catchError((err) => {
+          console.error('❌ Erreur équipes RC:', err);
+          return of([]);
+        })
+      )
+    }).subscribe({
+      next: ({ projects, teams }) => {
+        console.log('📁 Projets reçus:', projects);
+        console.log('👥 Équipes reçues:', teams);
+        
+        const mappedProjects: DashboardProject[] = (projects || []).map(p => ({
+          id: p.id ?? 0,
+          name: p.name ?? '',
+          client: p.client ?? '',
+          status: p.status ?? '',
+          description: p.description ?? '',
+          progressPercentage: p.progressPercentage ?? 0,
+          riskLevel: p.riskLevel ?? 'FAIBLE',
+          startDate: p.startDate ? new Date(p.startDate) : new Date(),
+          endDate: p.endDate ? new Date(p.endDate) : new Date(),
+          deleted: p.deleted ?? false,
+          teamId: p.teamId,
+          teamName: teams.find(t => t.id === p.teamId)?.name,
+          createdAt: p.createdAt,
+          updatedAt: p.updatedAt,
+          managerId: p.managerId,
+          managerName: p.managerName,
+          chefProjetId: p.chefProjetId,
+          chefProjetName: p.chefProjetName
+        }));
+        
+        this.projects.set(mappedProjects);
+        this.allTeams.set(teams ?? []);
+        this.tasks.set([]);
+        
+        console.log('✅ Projets chargés:', this.projects().length);
+        console.log('✅ Premiers projets:', this.projects().slice(0, 2));
+        
+        this.loading.set(false);
+      },
+      error: (err) => {
+        console.error('❌ Erreur dashboard RC:', err);
+        this.loading.set(false);
+      }
+    });
+  }
+
+  loadMembreEquipeDashboardData() {
+    this.loading.set(true);
+    console.log('🟢 Chargement dashboard Membre Équipe...');
+    
+    this.projectService.getMyAssignedProjects().subscribe({
+      next: (projects: ProjectDto[]) => {
+        console.log('📁 Projets reçus:', projects);
+        
+        const mappedProjects: DashboardProject[] = (projects || []).map(p => ({
+          id: p.id ?? 0,
+          name: p.name ?? '',
+          client: p.client ?? '',
+          status: p.status ?? '',
+          description: p.description ?? '',
+          progressPercentage: p.progressPercentage ?? 0,
+          riskLevel: p.riskLevel ?? 'FAIBLE',
+          startDate: p.startDate ? new Date(p.startDate) : new Date(),
+          endDate: p.endDate ? new Date(p.endDate) : new Date(),
+          deleted: p.deleted ?? false,
+          teamId: p.teamId,
+          teamName: p.teamName,
+          createdAt: p.createdAt,
+          updatedAt: p.updatedAt,
+          managerId: p.managerId,
+          managerName: p.managerName,
+          chefProjetId: p.chefProjetId,
+          chefProjetName: p.chefProjetName
+        }));
+        
+        this.projects.set(mappedProjects);
+        console.log('✅ Projets chargés:', this.projects().length);
+        
+        this.loadMyTasks();
+        this.loading.set(false);
+      },
+      error: (err) => {
+        console.error('❌ Erreur chargement projets membre:', err);
+        this.projects.set([]);
+        this.loading.set(false);
+      }
+    });
+  }
+
+  loadMyTasks() {
+    const currentUserId = this.currentUser()?.id;
+    if (!currentUserId) {
+      console.warn('⚠️ Pas d\'utilisateur connecté');
+      return;
     }
-  });
-}
+    
+    this.taskService.getMyTasks().subscribe({
+      next: (tasks: TaskDto[]) => {
+        console.log('📋 Tâches reçues:', tasks.length);
+        this.tasks.set(tasks || []);
+      },
+      error: (err) => {
+        console.error('❌ Erreur chargement tâches:', err);
+        this.tasks.set([]);
+      }
+    });
+  }
 
   loadManagerDashboardData() {
     this.loading.set(true);
@@ -566,7 +684,6 @@ loadMyTasks() {
     return performances.sort((a, b) => b.efficacite - a.efficacite);
   });
 
-  // Performances paginées
   paginatedTeamPerformance = computed(() => {
     const start = (this.performanceCurrentPage - 1) * this.performanceItemsPerPage;
     const end = start + this.performanceItemsPerPage;
@@ -736,115 +853,114 @@ loadMyTasks() {
     const count = this.getManagerProjectCount(status);
     return (count / total) * 100;
   }
-// ================= RESPONSABLE CONTRAT =================
-rcProjects = computed(() => this.projects());
 
-rcKpis = computed(() => [
-  {
-    title: 'Projets créés',
-    value: this.rcProjects().length
-  },
-  {
-    title: 'En validation',
-    value: this.rcProjects().filter(p => p.status === 'EN_VALIDATION').length
-  },
-  {
-    title: 'Pré-validés',
-    value: this.rcProjects().filter(p => p.status === 'PRE_VALIDE').length
-  },
-  {
-    title: 'Clients actifs',
-    value: new Set(this.rcProjects().map(p => p.client).filter(Boolean)).size
+  // ================= RESPONSABLE CONTRAT =================
+  rcProjects = computed(() => this.projects());
+
+  rcKpis = computed(() => [
+    {
+      title: 'Projets créés',
+      value: this.rcProjects().length
+    },
+    {
+      title: 'En validation',
+      value: this.rcProjects().filter(p => p.status === 'EN_VALIDATION').length
+    },
+    {
+      title: 'Pré-validés',
+      value: this.rcProjects().filter(p => p.status === 'PRE_VALIDE').length
+    },
+    {
+      title: 'Clients actifs',
+      value: new Set(this.rcProjects().map(p => p.client).filter(Boolean)).size
+    }
+  ]);
+
+  rcRecentProjects = computed(() =>
+    [...this.rcProjects()]
+      .sort((a, b) => (this.parseDate(b.createdAt)?.getTime() ?? 0) - (this.parseDate(a.createdAt)?.getTime() ?? 0))
+      .slice(0, 5)
+  );
+
+  getRCProjectCount(status: string): number {
+    return this.rcProjects().filter(p => p.status === status).length;
   }
-]);
 
-rcRecentProjects = computed(() =>
-  [...this.rcProjects()]
-    .sort((a, b) => (this.parseDate(b.createdAt)?.getTime() ?? 0) - (this.parseDate(a.createdAt)?.getTime() ?? 0))
-    .slice(0, 5)
-);
-
-getRCProjectCount(status: string): number {
-  return this.rcProjects().filter(p => p.status === status).length;
-}
-
-getRCProjectPercentage(status: string): number {
-  const total = this.rcProjects().length;
-  if (total === 0) return 0;
-  const count = this.getRCProjectCount(status);
-  return (count / total) * 100;
-}
-// ================= MEMBRE EQUIPE =================
-myTasks = computed(() => {
-  const currentUserId = this.currentUser()?.id;
-  if (!currentUserId) return [];
-  return this.tasks().filter(t => t.assignedToId === currentUserId);
-});
-
-myProjects = computed(() => {
-  const ids = new Set(this.myTasks().map(t => t.projectId).filter(Boolean));
-  return this.projects().filter(p => p.id != null && ids.has(p.id));
-});
-
-membreKpis = computed(() => [
-  {
-    title: 'Mes tâches',
-    value: this.myTasks().length
-  },
-  {
-    title: 'En cours',
-    value: this.myTasks().filter(t => t.status === 'En_cours').length
-  },
-  {
-    title: 'À valider',
-    value: this.myTasks().filter(t => t.status === 'Validation').length
-  },
-  {
-    title: 'En retard',
-    value: this.myTasks().filter(t => this.isTaskLate(t)).length
+  getRCProjectPercentage(status: string): number {
+    const total = this.rcProjects().length;
+    if (total === 0) return 0;
+    const count = this.getRCProjectCount(status);
+    return (count / total) * 100;
   }
-]);
 
-myRecentTasks = computed(() =>
-  [...this.myTasks()]
-    .sort((a, b) => {
-      // Trier par priorité d'abord
-      const priorityOrder = { 'HAUTE': 0, 'MOYENNE': 1, 'BASSE': 2 };
-      const aPriority = priorityOrder[a.priority as keyof typeof priorityOrder] ?? 1;
-      const bPriority = priorityOrder[b.priority as keyof typeof priorityOrder] ?? 1;
-      if (aPriority !== bPriority) return aPriority - bPriority;
-      // Puis par date d'échéance
-      const aDate = this.parseDate(a.estimatedEndDate)?.getTime() ?? Number.MAX_SAFE_INTEGER;
-      const bDate = this.parseDate(b.estimatedEndDate)?.getTime() ?? Number.MAX_SAFE_INTEGER;
-      return aDate - bDate;
-    })
-    .slice(0, 5)
-);
+  // ================= MEMBRE EQUIPE =================
+  myTasks = computed(() => {
+    const currentUserId = this.currentUser()?.id;
+    if (!currentUserId) return [];
+    return this.tasks().filter(t => t.assignedToId === currentUserId);
+  });
 
-getPriorityLabel(priority?: string): string {
-  switch (priority) {
-    case 'HAUTE': return 'Haute';
-    case 'MOYENNE': return 'Moyenne';
-    case 'BASSE': return 'Basse';
-    default: return 'Moyenne';
+  myProjects = computed(() => {
+    const ids = new Set(this.myTasks().map(t => t.projectId).filter(Boolean));
+    return this.projects().filter(p => p.id != null && ids.has(p.id));
+  });
+
+  membreKpis = computed(() => [
+    {
+      title: 'Mes tâches',
+      value: this.myTasks().length
+    },
+    {
+      title: 'En cours',
+      value: this.myTasks().filter(t => t.status === 'En_cours').length
+    },
+    {
+      title: 'À valider',
+      value: this.myTasks().filter(t => t.status === 'Validation').length
+    },
+    {
+      title: 'En retard',
+      value: this.myTasks().filter(t => this.isTaskLate(t)).length
+    }
+  ]);
+
+  myRecentTasks = computed(() =>
+    [...this.myTasks()]
+      .sort((a, b) => {
+        const priorityOrder = { 'HAUTE': 0, 'MOYENNE': 1, 'BASSE': 2 };
+        const aPriority = priorityOrder[a.priority as keyof typeof priorityOrder] ?? 1;
+        const bPriority = priorityOrder[b.priority as keyof typeof priorityOrder] ?? 1;
+        if (aPriority !== bPriority) return aPriority - bPriority;
+        const aDate = this.parseDate(a.estimatedEndDate)?.getTime() ?? Number.MAX_SAFE_INTEGER;
+        const bDate = this.parseDate(b.estimatedEndDate)?.getTime() ?? Number.MAX_SAFE_INTEGER;
+        return aDate - bDate;
+      })
+      .slice(0, 5)
+  );
+
+  getPriorityLabel(priority?: string): string {
+    switch (priority) {
+      case 'HAUTE': return 'Haute';
+      case 'MOYENNE': return 'Moyenne';
+      case 'BASSE': return 'Basse';
+      default: return 'Moyenne';
+    }
   }
-}
 
-getProjectStatusLabel(status?: string): string {
-  switch (status) {
-    case 'EN_COURS': return 'En cours';
-    case 'PRE_VALIDE': return 'Pré-validé';
-    case 'EN_VALIDATION': return 'En validation';
-    case 'REJETE': return 'Rejeté';
-    default: return status || 'Inconnu';
+  getProjectStatusLabel(status?: string): string {
+    switch (status) {
+      case 'EN_COURS': return 'En cours';
+      case 'PRE_VALIDE': return 'Pré-validé';
+      case 'EN_VALIDATION': return 'En validation';
+      case 'REJETE': return 'Rejeté';
+      default: return status || 'Inconnu';
+    }
   }
-}
 
-formatDate(dateStr?: string): string {
-  if (!dateStr) return 'Non définie';
-  const date = new Date(dateStr);
-  if (isNaN(date.getTime())) return 'Non définie';
-  return date.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' });
-}
-
+  formatDate(dateStr?: string): string {
+    if (!dateStr) return 'Non définie';
+    const date = new Date(dateStr);
+    if (isNaN(date.getTime())) return 'Non définie';
+    return date.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' });
+  }
 }
