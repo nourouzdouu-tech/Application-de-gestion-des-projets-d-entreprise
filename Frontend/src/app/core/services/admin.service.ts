@@ -25,7 +25,7 @@ export interface UserUpdateRequest {
   prenom: string;
   nom: string;
   email: string;
-  genre: string;
+  genre: 'HOMME' | 'FEMME';
   roleCodes: string[]; 
   profileId: number;
 }
@@ -35,7 +35,7 @@ export interface UserResponse {
   email: string;
   prenom: string;
   nom: string;
-  genre: 'M' | 'F';
+  genre: 'HOMME' | 'FEMME';
   failedAttempts: number;
   locked: boolean;
   mustChangePassword: boolean;
@@ -48,7 +48,7 @@ export interface UserCreateRequest {
   prenom: string;
   nom: string;
   email: string;
-  genre: string;
+   genre: 'HOMME' | 'FEMME';
   roleCodes: string[]; 
   password: string;
   profileId: number;

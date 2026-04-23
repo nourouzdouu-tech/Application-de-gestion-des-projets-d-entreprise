@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal, WritableSignal } from '@angular/core';
+import { Component, OnInit, inject, signal, WritableSignal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -18,20 +18,24 @@ export class Clients implements OnInit {
   authService = inject(AuthService);
 
   // ── Data ──────────────────────────────────────────
-  clients: ClientResponse[] = [];
+  allClients: ClientResponse[] = [];
+  filteredClients: ClientResponse[] = [];
   currentPage = 0;
   pageSize = 10;
   totalPages = 0;
   totalElements = 0;
   searchTerm = '';
   loading: WritableSignal<boolean> = signal(false);
+  isSearching = false;
+
+  // Cache pour la recherche (optimisation)
+  private searchCache = new Map<string, ClientResponse[]>();
 
   // ── Modal Créer / Modifier ────────────────────────
   showModal = false;
   isEditing = false;
   editingId: number | null = null;
 
-  /** Mirrors ClientDto.CreateRequest / UpdateRequest */
   formData: { nom: string; representants: Representant[] } = {
     nom: '',
     representants: []
@@ -55,24 +59,30 @@ export class Clients implements OnInit {
   activeNavItem = signal<string>('clients');
   currentUser = signal<any>(null);
 
+  private searchDebounce: ReturnType<typeof setTimeout> | null = null;
+
   // ── Lifecycle ─────────────────────────────────────
   ngOnInit(): void {
     this.loadCurrentUser();
-    this.loadClients();
+    this.loadAllClients();
   }
 
   loadCurrentUser(): void {
     this.currentUser.set(this.authService.getUser());
   }
 
-  // ── API calls ─────────────────────────────────────
-  loadClients(): void {
+  // ══════════════════════════════════════════════════
+  // CHARGEMENT DE TOUS LES CLIENTS (une seule fois)
+  // ══════════════════════════════════════════════════
+
+  loadAllClients(): void {
     this.loading.set(true);
-    this.adminService.getClients(this.currentPage, this.pageSize, this.searchTerm).subscribe({
+    this.adminService.getClients(0, 1000, '').subscribe({
       next: (response: PageResponse<ClientResponse>) => {
-        this.clients = response.content;
-        this.totalPages = response.totalPages;
-        this.totalElements = response.totalElements;
+        this.allClients = response.content;
+        // Pré-calculer les données de recherche pour chaque client
+        this.precomputeSearchData();
+        this.applySearchFilter();
         this.loading.set(false);
       },
       error: (err) => {
@@ -83,21 +93,134 @@ export class Clients implements OnInit {
     });
   }
 
-  private searchDebounce: ReturnType<typeof setTimeout> | null = null;
+  // ══════════════════════════════════════════════════
+  // PRÉ-CALCUL DES DONNÉES DE RECHERCHE (optimisation)
+  // ══════════════════════════════════════════════════
+
+  private precomputeSearchData(): void {
+    // Ajouter une propriété cachée pour la recherche rapide
+    this.allClients.forEach(client => {
+      (client as any)._searchText = this.buildSearchText(client);
+    });
+  }
+
+  private buildSearchText(client: ClientResponse): string {
+    const parts = [client.nom.toLowerCase()];
+    
+    if (client.representants) {
+      client.representants.forEach(rep => {
+        if (rep.nom) parts.push(rep.nom.toLowerCase());
+        if (rep.email) parts.push(rep.email.toLowerCase());
+        if (rep.telephone) parts.push(rep.telephone);
+      });
+    }
+    
+    return parts.join(' ');
+  }
+
+  // ══════════════════════════════════════════════════
+  // RECHERCHE OPTIMISÉE (avec cache)
+  // ══════════════════════════════════════════════════
+
+  applySearchFilter(): void {
+    const term = this.searchTerm.trim().toLowerCase();
+    
+    // Vérifier le cache
+    if (this.searchCache.has(term)) {
+      this.filteredClients = [...(this.searchCache.get(term) || [])];
+      this.updatePagination();
+      return;
+    }
+    
+    // Recherche optimisée
+    let results: ClientResponse[];
+    
+    if (!term) {
+      results = [...this.allClients];
+    } else {
+      // Utiliser le texte pré-calculé pour une recherche plus rapide
+      results = this.allClients.filter(client => 
+        (client as any)._searchText.includes(term)
+      );
+    }
+    
+    // Mettre en cache le résultat
+    this.searchCache.set(term, results);
+    
+    this.filteredClients = results;
+    this.updatePagination();
+  }
+
+  private updatePagination(): void {
+    this.totalElements = this.filteredClients.length;
+    this.totalPages = Math.ceil(this.totalElements / this.pageSize);
+    this.currentPage = 0;
+  }
 
   onSearch(value: string): void {
     this.searchTerm = value;
-    this.currentPage = 0;
+    this.isSearching = true;
+    
     if (this.searchDebounce) clearTimeout(this.searchDebounce);
-    this.searchDebounce = setTimeout(() => this.loadClients(), 300);
+    this.searchDebounce = setTimeout(() => {
+      this.applySearchFilter();
+      this.isSearching = false;
+    }, 200); // Réduit le délai à 200ms
+  }
+
+  // Recherche immédiate sans debounce (optionnel)
+  onSearchImmediate(value: string): void {
+    this.searchTerm = value;
+    this.applySearchFilter();
+  }
+
+  // ══════════════════════════════════════════════════
+  // PAGINATION
+  // ══════════════════════════════════════════════════
+
+  get paginatedClients(): ClientResponse[] {
+    const start = this.currentPage * this.pageSize;
+    const end = start + this.pageSize;
+    return this.filteredClients.slice(start, end);
   }
 
   changePage(page: number): void {
-    this.currentPage = page;
-    this.loadClients();
+    if (page >= 0 && page < this.totalPages) {
+      this.currentPage = page;
+    }
   }
 
-  // ── Representants helpers ─────────────────────────
+  getRangeStart(): number {
+    if (this.filteredClients.length === 0) return 0;
+    return this.currentPage * this.pageSize + 1;
+  }
+
+  getRangeEnd(): number {
+    const end = (this.currentPage + 1) * this.pageSize;
+    return Math.min(end, this.filteredClients.length);
+  }
+
+  getPages(): number[] {
+    const total = this.totalPages;
+    const current = this.currentPage + 1;
+    const pages: number[] = [];
+
+    if (total <= 5) {
+      for (let i = 1; i <= total; i++) pages.push(i);
+    } else if (current <= 3) {
+      pages.push(1, 2, 3, 4, -1, total);
+    } else if (current >= total - 2) {
+      pages.push(1, -1, total - 3, total - 2, total - 1, total);
+    } else {
+      pages.push(1, -1, current - 1, current, current + 1, -1, total);
+    }
+    return pages;
+  }
+
+  // ══════════════════════════════════════════════════
+  // REPRESENTANTS HELPERS
+  // ══════════════════════════════════════════════════
+
   addRepresentant(): void {
     this.formData.representants = [
       ...this.formData.representants,
@@ -115,7 +238,10 @@ export class Clients implements OnInit {
     this.formData.representants = updated;
   }
 
-  // ── Modal Créer / Modifier ────────────────────────
+  // ══════════════════════════════════════════════════
+  // MODAL CRÉER / MODIFIER
+  // ══════════════════════════════════════════════════
+
   openCreateModal(): void {
     this.isEditing = false;
     this.editingId = null;
@@ -132,7 +258,6 @@ export class Clients implements OnInit {
     this.editingId = client.id;
     this.formData = {
       nom: client.nom,
-      // Map RepresentantDto → Representant (same shape, id is optional)
       representants: client.representants?.length
         ? client.representants.map(r => ({ id: r.id, nom: r.nom, email: r.email, telephone: r.telephone }))
         : [{ nom: '', email: '', telephone: '' }]
@@ -161,11 +286,10 @@ export class Clients implements OnInit {
       return;
     }
 
-    // Build payload matching ClientDto.CreateRequest / UpdateRequest
     const payload = {
       nom: this.formData.nom.trim(),
       representants: validRepresentants.map(r => ({
-        ...(r.id !== undefined ? { id: r.id } : {}),  // include id only for update
+        ...(r.id !== undefined ? { id: r.id } : {}),
         nom: r.nom.trim(),
         email: r.email.trim(),
         telephone: r.telephone.trim()
@@ -176,7 +300,8 @@ export class Clients implements OnInit {
       this.adminService.updateClient(this.editingId, payload).subscribe({
         next: () => {
           this.closeModal();
-          this.loadClients();
+          this.clearSearchCache(); // Invalider le cache
+          this.loadAllClients();
           this.triggerToast('Client modifié avec succès', 'success');
         },
         error: (err) => {
@@ -187,7 +312,8 @@ export class Clients implements OnInit {
       this.adminService.createClient(payload).subscribe({
         next: () => {
           this.closeModal();
-          this.loadClients();
+          this.clearSearchCache(); // Invalider le cache
+          this.loadAllClients();
           this.triggerToast('Client créé avec succès', 'success');
         },
         error: (err) => {
@@ -197,7 +323,15 @@ export class Clients implements OnInit {
     }
   }
 
-  // ── Modal Voir Représentants ──────────────────────
+  // Invalider le cache de recherche
+  private clearSearchCache(): void {
+    this.searchCache.clear();
+  }
+
+  // ══════════════════════════════════════════════════
+  // MODAL VOIR REPRÉSENTANTS
+  // ══════════════════════════════════════════════════
+
   openRepresentantsModal(client: ClientResponse): void {
     this.selectedClient = client;
     this.showRepresentantsModal = true;
@@ -208,7 +342,10 @@ export class Clients implements OnInit {
     this.selectedClient = null;
   }
 
-  // ── Suppression avec confirmation ─────────────────
+  // ══════════════════════════════════════════════════
+  // SUPPRESSION AVEC CONFIRMATION
+  // ══════════════════════════════════════════════════
+
   confirmDeleteClient(id: number): void {
     this.pendingDeleteId = id;
     this.showConfirmModal = true;
@@ -218,7 +355,8 @@ export class Clients implements OnInit {
     if (this.pendingDeleteId !== null) {
       this.adminService.deleteClient(this.pendingDeleteId).subscribe({
         next: () => {
-          this.loadClients();
+          this.clearSearchCache(); // Invalider le cache
+          this.loadAllClients();
           this.triggerToast('Client supprimé avec succès', 'success');
         },
         error: () => {
@@ -235,7 +373,10 @@ export class Clients implements OnInit {
     this.pendingDeleteId = null;
   }
 
-  // ── Toast ─────────────────────────────────────────
+  // ══════════════════════════════════════════════════
+  // TOAST
+  // ══════════════════════════════════════════════════
+
   triggerToast(message: string, type: 'success' | 'error'): void {
     this.toastMessage = message;
     this.toastType = type;
@@ -243,16 +384,19 @@ export class Clients implements OnInit {
     setTimeout(() => { this.showToast = false; }, 3500);
   }
 
-  // ── Navigation ────────────────────────────────────
+  // ══════════════════════════════════════════════════
+  // NAVIGATION
+  // ══════════════════════════════════════════════════
+
   goToDashboard(): void {
-    this.router.navigate(['/admin']);
+    this.router.navigate(['/admin/dashboard']);
   }
 
   setNav(item: string): void {
     this.activeNavItem.set(item);
     const routes: Record<string, string> = {
-      dashboard: '/admin',
-      utilisateurs: '/admin',
+      dashboard: '/admin/dashboard',
+      utilisateurs: '/admin/utilisateurs',
       roles: '/admin/roles',
       clients: '/admin/clients'
     };
@@ -268,7 +412,10 @@ export class Clients implements OnInit {
     this.router.navigate(['/login']);
   }
 
-  // ── Helpers ───────────────────────────────────────
+  // ══════════════════════════════════════════════════
+  // HELPERS
+  // ══════════════════════════════════════════════════
+
   getInitials(nom: string): string {
     return nom ? nom.substring(0, 2).toUpperCase() : 'CL';
   }
@@ -283,31 +430,5 @@ export class Clients implements OnInit {
 
   getRepresentantsText(count: number): string {
     return count === 1 ? '1 représentant' : `${count} représentants`;
-  }
-
-  getPages(): number[] {
-    const total = this.totalPages;
-    const current = this.currentPage + 1;
-    const pages: number[] = [];
-
-    if (total <= 5) {
-      for (let i = 1; i <= total; i++) pages.push(i);
-    } else if (current <= 3) {
-      pages.push(1, 2, 3, 4, -1, total);
-    } else if (current >= total - 2) {
-      pages.push(1, -1, total - 3, total - 2, total - 1, total);
-    } else {
-      pages.push(1, -1, current - 1, current, current + 1, -1, total);
-    }
-    return pages;
-  }
-
-  getRangeStart(): number {
-    return this.currentPage * this.pageSize + 1;
-  }
-
-  getRangeEnd(): number {
-    const end = (this.currentPage + 1) * this.pageSize;
-    return Math.min(end, this.totalElements);
   }
 }

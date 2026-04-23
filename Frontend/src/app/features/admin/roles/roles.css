@@ -645,7 +645,7 @@
   padding: 0 20px;
   border: none;
   border-radius: 12px;
-  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+  background: linear-gradient(135deg, #7d4ecd 0%, #7d4ecd 100%);
   color: #fff;
   font-size: 14px;
   font-weight: 700;
@@ -791,7 +791,7 @@ textarea.form-control {
   padding: 0 22px;
   border: none;
   border-radius: 12px;
-  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+  background: linear-gradient(135deg, #7d4ecd 0%, #7d4ecd 100%);
   color: #fff;
   font-size: 14px;
   font-weight: 700;

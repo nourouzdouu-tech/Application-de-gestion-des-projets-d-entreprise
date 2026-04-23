@@ -487,4 +487,22 @@ export class Equipes implements OnInit, OnDestroy {
     this.nameError = '';
     this.descriptionError = '';
   }
+
+  goToDashboard(): void {
+    const roles = this.authService.getRoles();
+    
+    if (roles.includes('ADMIN')) {
+      this.router.navigate(['/admin/dashboard']);
+    } else if (roles.includes('CHEF_PROJET')) {
+      this.router.navigate(['/chef-projet/dashboard']);
+    } else if (roles.includes('MANAGER')) {
+      this.router.navigate(['/manager/dashboard']);
+    } else if (roles.includes('RESPONSABLE_CONTRAT')) {
+      this.router.navigate(['/responsable-contrat/dashboard']);
+    } else if (roles.includes('MEMBRE_EQUIPE')) {
+      this.router.navigate(['/membre-equipe/dashboard']);
+    } else {
+      this.router.navigate(['/chef-projet/dashboard']);
+    }
+  }
 }

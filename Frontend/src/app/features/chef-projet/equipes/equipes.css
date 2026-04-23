@@ -210,9 +210,9 @@
 .main-content {
   flex: 1;
   min-width: 0;
-  padding: 0;
+  padding: 24px 32px 32px 32px;  /* ← Ajout de padding top:24px, right:32px, bottom:32px, left:32px */
   overflow-x: auto;
-  background: #f9fafb;
+  background: #fdfdfff2;
 }
 .nav-item-with-badge {
   justify-content: space-between;
@@ -815,7 +815,7 @@
 .btn-cancel {
   border: 1px solid #dbe3ee;
   background: #ffffff;
-  color: #475569;
+  color: #474e69;
   border-radius: 12px;
   padding: 11px 18px;
   font-size: 14px;
@@ -829,7 +829,7 @@
 
 .btn-submit {
   border: none;
-  background: #08152f;
+  background: #7d4ecd;
   color: #ffffff;
   border-radius: 12px;
   padding: 11px 20px;
@@ -892,7 +892,7 @@
   }
 }
 .btn-submit {
-  border: 1px solid #08152f;
+  border: 1px solid #7d4ecd;
   background: #08152f;
   color: #ffffff;
   border-radius: 12px;
@@ -1729,4 +1729,33 @@
 }
 .tag-remove:hover {
   color: #ef4444;
+}
+/* Breadcrumb */
+.breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 20px;
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+.breadcrumb svg {
+  color: #cbd5e1;
+}
+
+.breadcrumb-parent {
+  color: #94a3b8;
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+.breadcrumb-parent:hover {
+  color: #101011;
+  text-decoration: underline;
+}
+
+.breadcrumb-current {
+  color: #1e293b;
+  font-weight: 600;
 }

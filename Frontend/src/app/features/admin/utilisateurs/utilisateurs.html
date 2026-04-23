@@ -1,7 +1,7 @@
 <div class="main-content">
 
   <div class="breadcrumb">
-    <span class="breadcrumb-parent" style="cursor: pointer;">Tableau de bord</span>
+    <span class="breadcrumb-parent" style="cursor: pointer;" (click)="goToDashboard()">Tableau de bord</span>
     <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
       <polyline points="9 18 15 12 9 6" />
     </svg>
@@ -24,7 +24,7 @@
         <select class="search-input" style="padding-left: 12px;" (change)="onFilterRole($any($event.target).value)">
           <option value="">Tous les rôles</option>
           @for (role of roles(); track role.id) {
-            <option [value]="role.nom">{{ role.nom }}</option>
+            <option [value]="role.nom">{{ role.description || role.nom }}</option>
           }
         </select>
       </div>
@@ -301,7 +301,7 @@
                [value]="role.nom"
                [checked]="newRoles().includes(role.nom)"
                (change)="toggleRoleSelection(role.nom, $event)" />
-        <span>{{ role.nom }}</span>
+        <span>{{ role.description || role.nom }}</span>
       </label>
     }
   </div>
@@ -399,7 +399,7 @@
                [value]="role.nom"
                [checked]="editRoles().includes(role.nom)"
                (change)="toggleEditRoleSelection(role.nom, $event)" />
-        <span>{{ role.nom }}</span>
+        <span>{{ role.description || role.nom }}</span>
       </label>
     }
   </div>

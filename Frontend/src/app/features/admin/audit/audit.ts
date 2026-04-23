@@ -1,8 +1,10 @@
-import { Component, OnInit, signal, WritableSignal, HostListener } from '@angular/core';
+import { Component, OnInit, signal, WritableSignal, HostListener, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import * as XLSX from 'xlsx';
+import { AuthService } from '../../../core/services/auth.service'; 
+import { Router } from '@angular/router'; 
 
 // ─── Interfaces ───────────────────────────────────
 export interface AuditLog {
@@ -77,7 +79,8 @@ export class AuditComponent implements OnInit {
     '#7c3aed', '#2563eb', '#10b981', '#f59e0b',
     '#ef4444', '#8b5cf6', '#06b6d4', '#ec4899'
   ];
-
+private authService = inject(AuthService); 
+ private router = inject(Router);
   constructor(private http: HttpClient) {}
 
   ngOnInit(): void {
@@ -490,4 +493,26 @@ export class AuditComponent implements OnInit {
       this.showToast = false;
     }, 3000);
   }
-}
+   goToDashboard(): void {
+    const roles = this.authService.getRoles();
+    
+    if (roles.includes('ADMIN')) {
+      this.router.navigate(['/admin/dashboard']);
+    } else if (roles.includes('CHEF_PROJET')) {
+      this.router.navigate(['/chef-projet/dashboard']);
+    } else if (roles.includes('MANAGER')) {
+      this.router.navigate(['/manager/dashboard']);
+    } else if (roles.includes('RESPONSABLE_CONTRAT')) {
+      this.router.navigate(['/responsable-contrat/dashboard']);
+    } else if (roles.includes('MEMBRE_EQUIPE')) {
+      this.router.navigate(['/membre-equipe/dashboard']);
+    } else {
+      // Par défaut, essayer de rediriger selon l'URL actuelle
+      const currentUrl = this.router.url;
+      if (currentUrl.includes('/admin')) {
+        this.router.navigate(['/admin/dashboard']);
+      } else {
+        this.router.navigate(['/login']);
+      }
+    }
+}}
