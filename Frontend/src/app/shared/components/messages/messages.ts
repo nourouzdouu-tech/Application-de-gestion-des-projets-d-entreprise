@@ -14,12 +14,21 @@ import {
   MessageService,
   Conversation,
   Message,
-  MessageAttachment
+  MessageAttachment,
+  MessageReaction
 } from '../../../core/services/message.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { UserService, User } from '../../../core/services/user.service';
 import { WebSocketService, WebSocketMessage } from '../../../core/services/websocket.service';
-import { Subscription } from 'rxjs';
+import { Subscription, firstValueFrom } from 'rxjs';
+
+type PendingUploadFile = {
+  id: string;
+  file: File;
+  fileName: string;
+  fileType: string;
+  fileSize: number;
+};
 
 type LocalMessage = Message & {
   pending?: boolean;
@@ -48,14 +57,18 @@ export class SharedMessagesComponent implements OnInit, OnDestroy {
   usersList: User[] = [];
 
   replyingToMessage: LocalMessage | null = null;
-  selectedFiles: MessageAttachment[] = [];
+  selectedFiles: PendingUploadFile[] = [];
 
   lightboxUrl: string | null = null;
 
   showEmojiPicker = false;
   emojiList = ['😊', '😂', '❤️', '👍', '🎉', '🔥', '😍', '🙏', '😢', '😎', '👏', '🤔', '😅', '💪', '✅', '🫡', '😆', '🥳', '👀', '💯'];
 
-  readonly maxFileSizeBytes = 1024 * 1024; // 1 MB
+  readonly maxFileSizeBytes = 10 * 1024 * 1024;
+
+  // ✅ Recherche utilisateur
+  searchQuery = '';
+  filteredUsers: User[] = [];
 
   private wsSubscription?: Subscription;
 
@@ -73,20 +86,17 @@ export class SharedMessagesComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     const user = this.authService.getUser();
-    this.currentUserId = user?.id ?? 0;
+    this.currentUserId = Number(user?.id ?? 0);
 
     this.wsService.connect();
 
     this.wsSubscription = this.wsService.getMessages().subscribe((wsMsg: WebSocketMessage) => {
       if (!wsMsg) return;
 
+      console.log('📩 WS component reçu:', wsMsg);
+
       if (wsMsg.type === 'reaction') {
         this.handleReactionMessage(wsMsg);
-        return;
-      }
-
-      if (wsMsg.type === 'file') {
-        this.handleFileMessage(wsMsg);
         return;
       }
 
@@ -94,9 +104,9 @@ export class SharedMessagesComponent implements OnInit, OnDestroy {
         id: wsMsg.id ?? wsMsg.messageId ?? Date.now(),
         clientTempId: wsMsg.clientTempId,
         content: wsMsg.content || '',
-        senderId: wsMsg.senderId,
+        senderId: Number(wsMsg.senderId),
         senderName: wsMsg.senderName,
-        receiverId: wsMsg.receiverId,
+        receiverId: Number(wsMsg.receiverId),
         receiverName: wsMsg.receiverName || '',
         sentAt: wsMsg.sentAt || new Date().toISOString(),
         read: wsMsg.read || false,
@@ -118,11 +128,40 @@ export class SharedMessagesComponent implements OnInit, OnDestroy {
     this.wsService.disconnect();
   }
 
+  // ✅ Helpers pour éviter les erreurs de type dans le template
+  getUserFullName(user: User): string {
+    return `${user.prenom ?? ''} ${user.nom ?? ''}`.trim();
+  }
+
+  getUserInitials(user: User): string {
+    const p = (user.prenom ?? '').charAt(0).toUpperCase();
+    const n = (user.nom ?? '').charAt(0).toUpperCase();
+    return `${p}${n}`;
+  }
+
+  // ✅ Recherche
+  filterUsers(): void {
+    const q = this.searchQuery.toLowerCase().trim();
+    if (!q) {
+      this.filteredUsers = [];
+      return;
+    }
+    this.filteredUsers = this.usersList.filter(u =>
+      this.getUserFullName(u).toLowerCase().includes(q) ||
+      (u.email ?? '').toLowerCase().includes(q)
+    );
+  }
+
+  selectUser(user: User): void {
+    this.newMessageReceiverId = Number(user.id);
+    this.searchQuery = this.getUserFullName(user);
+    this.filteredUsers = [];
+  }
+
   renderMarkdown(text: string): SafeHtml {
     if (!text) return this.sanitizer.bypassSecurityTrustHtml('');
 
     let html = this.escapeHtml(text);
-
     html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
     html = html.replace(/(?<![_*])_([^_]+)_(?![_*])/g, '<em>$1</em>');
     html = html.replace(/(?<!\*)\*(?!\*)([^*]+)(?<!\*)\*(?!\*)/g, '<em>$1</em>');
@@ -137,24 +176,16 @@ export class SharedMessagesComponent implements OnInit, OnDestroy {
 
     for (const line of lines) {
       if (line.startsWith('- ')) {
-        if (!inList) {
-          result.push('<ul class="msg-list">');
-          inList = true;
-        }
+        if (!inList) { result.push('<ul class="msg-list">'); inList = true; }
         result.push(`<li>${line.substring(2)}</li>`);
       } else {
-        if (inList) {
-          result.push('</ul>');
-          inList = false;
-        }
+        if (inList) { result.push('</ul>'); inList = false; }
         result.push(line);
       }
     }
 
     if (inList) result.push('</ul>');
-    html = result.join('\n');
-    html = html.replace(/\n/g, '<br>');
-
+    html = result.join('\n').replace(/\n/g, '<br>');
     return this.sanitizer.bypassSecurityTrustHtml(html);
   }
 
@@ -180,13 +211,10 @@ export class SharedMessagesComponent implements OnInit, OnDestroy {
 
   insertEmoji(emoji: string): void {
     const textarea = this.messageTextareaRef?.nativeElement;
-
     if (textarea) {
       const start = textarea.selectionStart ?? this.newMessage.length;
       const end = textarea.selectionEnd ?? this.newMessage.length;
-      this.newMessage =
-        this.newMessage.substring(0, start) + emoji + this.newMessage.substring(end);
-
+      this.newMessage = this.newMessage.substring(0, start) + emoji + this.newMessage.substring(end);
       setTimeout(() => {
         textarea.focus();
         const pos = start + emoji.length;
@@ -196,7 +224,6 @@ export class SharedMessagesComponent implements OnInit, OnDestroy {
     } else {
       this.newMessage += emoji;
     }
-
     this.showEmojiPicker = false;
     this.cdr.detectChanges();
   }
@@ -208,7 +235,6 @@ export class SharedMessagesComponent implements OnInit, OnDestroy {
     const start = textarea.selectionStart ?? 0;
     const end = textarea.selectionEnd ?? 0;
     const selected = this.newMessage.substring(start, end);
-
     let replacement = '';
     let cursorStart = start;
     let cursorEnd = start;
@@ -237,18 +263,13 @@ export class SharedMessagesComponent implements OnInit, OnDestroy {
         break;
     }
 
-    this.newMessage =
-      this.newMessage.substring(0, start) +
-      replacement +
-      this.newMessage.substring(end);
-
+    this.newMessage = this.newMessage.substring(0, start) + replacement + this.newMessage.substring(end);
     setTimeout(() => {
       textarea.focus();
       textarea.selectionStart = cursorStart;
       textarea.selectionEnd = cursorEnd;
       this.autoResizeTextarea(textarea);
     }, 0);
-
     this.cdr.detectChanges();
   }
 
@@ -258,7 +279,6 @@ export class SharedMessagesComponent implements OnInit, OnDestroy {
         this.conversations = [...data].sort(
           (a, b) => new Date(b.lastMessageTime).getTime() - new Date(a.lastMessageTime).getTime()
         );
-
         if (this.selectedConv) {
           const selected = this.conversations.find(
             c => c.otherParticipantId === this.selectedConv!.otherParticipantId
@@ -267,7 +287,6 @@ export class SharedMessagesComponent implements OnInit, OnDestroy {
             this.selectedConv = { ...selected, unreadCount: 0 };
           }
         }
-
         this.cdr.detectChanges();
       },
       error: (err) => console.error('Erreur chargement conversations', err)
@@ -277,7 +296,7 @@ export class SharedMessagesComponent implements OnInit, OnDestroy {
   loadUsersList(): void {
     this.userService.getAllUsers().subscribe({
       next: (users: User[]) => {
-        this.usersList = users.filter(u => u.id !== this.currentUserId);
+        this.usersList = users.filter(u => Number(u.id) !== this.currentUserId);
         this.cdr.detectChanges();
       },
       error: (err) => {
@@ -293,9 +312,7 @@ export class SharedMessagesComponent implements OnInit, OnDestroy {
       this.messageService.getOrCreateConversation(conv.otherParticipantId).subscribe({
         next: (realConv) => {
           this.conversations = this.conversations.map(c =>
-            c.otherParticipantId === conv.otherParticipantId
-              ? { ...realConv, unreadCount: 0 }
-              : c
+            c.otherParticipantId === conv.otherParticipantId ? { ...realConv, unreadCount: 0 } : c
           );
           this.sortConversations();
           this.openConversation(realConv);
@@ -304,7 +321,6 @@ export class SharedMessagesComponent implements OnInit, OnDestroy {
       });
       return;
     }
-
     this.openConversation(conv);
   }
 
@@ -312,6 +328,7 @@ export class SharedMessagesComponent implements OnInit, OnDestroy {
     this.selectedConv = { ...conv, unreadCount: 0 };
     this.replyingToMessage = null;
     this.selectedFiles = [];
+    this.showEmojiPicker = false;
 
     this.conversations = this.conversations.map(c =>
       c.id === conv.id ? { ...c, unreadCount: 0 } : c
@@ -319,67 +336,15 @@ export class SharedMessagesComponent implements OnInit, OnDestroy {
 
     this.messageService.getMessages(conv.id).subscribe({
       next: (msgs: Message[]) => {
-        // Charger messageslocaux par conversation ID ET par participants
-        const localMessagesById = this.loadLocalConversationMessages(conv.id);
-        const localMessagesByParticipants = this.loadLocalConversationMessagesByParticipants(conv.otherParticipantId);
-        
-        // Fusionner les deux sources locales
-        const combinedLocal = [...localMessagesById];
-        for (const msg of localMessagesByParticipants) {
-          const exists = combinedLocal.some(m =>
-            m.id === msg.id ||
-            (!!m.clientTempId && !!msg.clientTempId && m.clientTempId === msg.clientTempId)
-          );
-          if (!exists) {
-            combinedLocal.push(msg);
-          }
-        }
-
-        const serverMessages = msgs.map(msg =>
-          this.applyLocalMetaToSingleMessage(this.normalizeMessage(msg), combinedLocal)
-        );
-
-        const merged = [...serverMessages];
-
-        for (const local of combinedLocal) {
-          const exists = merged.some(server =>
-            server.id === local.id ||
-            (!!server.clientTempId && !!local.clientTempId && server.clientTempId === local.clientTempId)
-          );
-
-          if (!exists) {
-            merged.push(this.normalizeMessage(local));
-          }
-        }
-
-        this.messages = merged.map(m => this.normalizeMessage(m));
+        this.messages = msgs.map(msg => this.normalizeMessage(msg));
         this.sortMessages();
-        this.persistConversationMessages();
         this.cdr.detectChanges();
         this.scrollToBottom();
       },
       error: (err) => {
         console.error('Erreur chargement messages', err);
-
-        // En cas d'erreur, charger les messages locaux (2 sources)
-        const localMessagesById = this.loadLocalConversationMessages(conv.id);
-        const localMessagesByParticipants = this.loadLocalConversationMessagesByParticipants(conv.otherParticipantId);
-        
-        const combined = [...localMessagesById];
-        for (const msg of localMessagesByParticipants) {
-          const exists = combined.some(m =>
-            m.id === msg.id ||
-            (!!m.clientTempId && !!msg.clientTempId && m.clientTempId === msg.clientTempId)
-          );
-          if (!exists) {
-            combined.push(msg);
-          }
-        }
-
-        this.messages = combined.map(m => this.normalizeMessage(m));
-        this.sortMessages();
+        this.messages = [];
         this.cdr.detectChanges();
-        this.scrollToBottom();
       }
     });
   }
@@ -407,6 +372,14 @@ export class SharedMessagesComponent implements OnInit, OnDestroy {
     const filesToSend = [...this.selectedFiles];
     const replyToMessageId = this.replyingToMessage?.id ?? null;
 
+    const localAttachments: MessageAttachment[] = filesToSend.map(file => ({
+      id: file.id,
+      fileName: file.fileName,
+      fileType: file.fileType,
+      fileSize: file.fileSize,
+      fileUrl: ''
+    }));
+
     const localMsg: LocalMessage = {
       id: messageId,
       clientTempId,
@@ -419,21 +392,15 @@ export class SharedMessagesComponent implements OnInit, OnDestroy {
       read: false,
       replyToMessageId,
       reactions: [],
-      attachments: filesToSend,
+      attachments: localAttachments,
       pending: true,
       error: false
     };
 
     this.messages = [...this.messages, localMsg];
     this.sortMessages();
-    this.persistConversationMessages();
-    this.appendMessageToConversationStorage(this.selectedConv.otherParticipantId, localMsg);
-
-    this.upsertConversationFromMessage(localMsg, false, {
-      forcePreview: this.getConversationPreview(localMsg)
-    });
-
     this.scrollToBottom();
+    this.cdr.detectChanges();
 
     try {
       if (text) {
@@ -446,59 +413,70 @@ export class SharedMessagesComponent implements OnInit, OnDestroy {
         );
       }
 
-      if (filesToSend.length > 0) {
-        for (const file of filesToSend) {
-          const base64Data = file.fileDataUrl.split(',')[1] || file.fileDataUrl;
-
-          this.wsService.sendFile(
+      for (const file of filesToSend) {
+        await firstValueFrom(
+          this.messageService.sendFile(
             this.selectedConv.otherParticipantId,
-            messageId,
-            {
-              fileName: file.fileName,
-              fileType: file.fileType,
-              fileSize: file.fileSize,
-              fileData: base64Data
-            },
+            file.file,
             clientTempId,
             replyToMessageId
-          );
-        }
+          )
+        );
       }
+
+      if (this.selectedConv?.id) {
+        const localReactionsMap = new Map<number, MessageReaction[]>();
+        this.messages.forEach(m => {
+          if (m.reactions && m.reactions.length > 0) {
+            localReactionsMap.set(Number(m.id), [...m.reactions]);
+          }
+        });
+
+        const refreshed = await firstValueFrom(this.messageService.getMessages(this.selectedConv.id));
+
+        this.messages = refreshed.map(msg => {
+          const normalized = this.normalizeMessage(msg);
+          const serverReactions = normalized.reactions ?? [];
+          const localReactions = localReactionsMap.get(Number(normalized.id)) ?? [];
+          normalized.reactions = serverReactions.length > 0 ? serverReactions : localReactions;
+          return normalized;
+        });
+
+        this.sortMessages();
+      }
+
+      this.loadConversations();
     } catch (error) {
       console.error('Erreur lors de l\'envoi:', error);
-
       const index = this.messages.findIndex(
         m => m.id === messageId || m.clientTempId === clientTempId
       );
-
       if (index !== -1) {
-        this.messages[index] = {
-          ...this.messages[index],
-          pending: false,
-          error: true
-        };
-        this.persistConversationMessages();
+        this.messages[index] = { ...this.messages[index], pending: false, error: true };
+        this.messages = [...this.messages];
       }
     } finally {
       this.newMessage = '';
       this.selectedFiles = [];
       this.replyingToMessage = null;
       this.isSending = false;
-
       const ta = this.messageTextareaRef?.nativeElement;
-      if (ta) {
-        ta.style.height = 'auto';
-      }
-
+      if (ta) ta.style.height = 'auto';
       this.cdr.detectChanges();
+      this.scrollToBottom();
     }
   }
 
   downloadFile(file: MessageAttachment): void {
+    if (!file.fileUrl) return;
+    const relativePath = file.fileUrl.replace('http://localhost:8080', '');
+    const downloadUrl = `http://localhost:8080/api/files/download?path=${encodeURIComponent(relativePath)}`;
     const link = document.createElement('a');
-    link.href = file.fileDataUrl;
+    link.href = downloadUrl;
     link.download = file.fileName;
+    document.body.appendChild(link);
     link.click();
+    document.body.removeChild(link);
   }
 
   private handleIncomingMessage(incomingMessage: LocalMessage): void {
@@ -508,14 +486,12 @@ export class SharedMessagesComponent implements OnInit, OnDestroy {
         : incomingMessage.senderId;
 
     const isConversationOpen =
-      !!this.selectedConv &&
-      this.selectedConv.otherParticipantId === otherParticipantId;
+      !!this.selectedConv && this.selectedConv.otherParticipantId === otherParticipantId;
 
     const pendingIndex = this.findMatchingPendingMessageIndex(incomingMessage);
 
     if (pendingIndex !== -1) {
       const localPending = this.messages[pendingIndex];
-
       const updatedMessage: LocalMessage = this.normalizeMessage({
         ...localPending,
         ...incomingMessage,
@@ -530,288 +506,72 @@ export class SharedMessagesComponent implements OnInit, OnDestroy {
 
       this.messages = this.messages.map((m, i) => i === pendingIndex ? updatedMessage : m);
       this.sortMessages();
-      this.persistConversationMessages();
-      this.appendMessageToConversationStorage(otherParticipantId, updatedMessage);
-
-      this.upsertConversationFromMessage(updatedMessage, false, {
-        forcePreview: this.getConversationPreview(updatedMessage)
-      });
-
-      if (isConversationOpen) {
-        this.scrollToBottom();
-      }
-
+      if (isConversationOpen) this.scrollToBottom();
       this.cdr.detectChanges();
       return;
     }
 
-    if (this.findDuplicateMessageIndex(incomingMessage) !== -1) {
-      return;
-    }
+    if (this.findDuplicateMessageIndex(incomingMessage) !== -1) return;
 
-    const hydrated = this.applyLocalMetaToSingleMessage(incomingMessage);
-
+    const hydrated = this.normalizeMessage(incomingMessage);
     if (isConversationOpen) {
       this.messages = [...this.messages, hydrated];
       this.sortMessages();
-      this.persistConversationMessages();
       this.scrollToBottom();
     }
 
-    this.appendMessageToConversationStorage(otherParticipantId, hydrated);
-
-    this.upsertConversationFromMessage(
-      hydrated,
-      hydrated.senderId !== this.currentUserId,
-      {
-        forcePreview: this.getConversationPreview(hydrated)
-      }
-    );
-
+    this.loadConversations();
     this.cdr.detectChanges();
   }
 
   private handleReactionMessage(reactionMsg: WebSocketMessage): void {
-    const targetMessageId = reactionMsg.messageId;
-    if (!targetMessageId) return;
-
-    const message = this.messages.find(m => m.id === targetMessageId);
-    if (!message) {
+    console.log('=== handleReactionMessage ===', reactionMsg);
+    if (Number(reactionMsg.senderId) === this.currentUserId) {
       return;
     }
-
-    if (!message.reactions) {
-      message.reactions = [];
-    }
-
-    const emoji = reactionMsg.emoji || '';
-    const senderId = reactionMsg.senderId;
-    const senderName = reactionMsg.senderName;
-
-    if (reactionMsg.isAdd) {
-      const existing = message.reactions.find(r => r.userId === senderId && r.emoji === emoji);
-      if (!existing) {
-        message.reactions.push({
-          emoji,
-          userId: senderId,
-          userName: senderName
-        });
-      }
-    } else {
-      const index = message.reactions.findIndex(r => r.userId === senderId && r.emoji === emoji);
-      if (index !== -1) {
-        message.reactions.splice(index, 1);
-      }
-    }
-
-    this.persistConversationMessages();
-    this.cdr.detectChanges();
+    this.applyReactionLocally(reactionMsg);
+    this.loadConversations();
   }
 
-  private handleFileMessage(fileMsg: WebSocketMessage): void {
-    if (!fileMsg.fileName || !fileMsg.fileType || !fileMsg.fileData || !fileMsg.messageId) {
-      console.warn('Message fichier incomplet:', fileMsg);
-      return;
-    }
+  private applyReactionLocally(wsMsg: WebSocketMessage): void {
+    if (!wsMsg.messageId || !wsMsg.emoji || !wsMsg.senderId) return;
 
-    const attachment: MessageAttachment = {
-      id: this.generateId(),
-      fileName: fileMsg.fileName,
-      fileType: fileMsg.fileType,
-      fileSize: fileMsg.fileSize ?? 0,
-      fileDataUrl: `data:${fileMsg.fileType};base64,${fileMsg.fileData}`
-    };
+    const index = this.messages.findIndex(m => Number(m.id) === Number(wsMsg.messageId));
+    if (index === -1) return;
 
-    const messageDate = fileMsg.sentAt || new Date().toISOString();
+    const currentReactions = [...(this.messages[index].reactions ?? [])];
 
-    const otherParticipantId =
-      fileMsg.senderId === this.currentUserId ? fileMsg.receiverId : fileMsg.senderId;
-
-    const targetIndex = this.messages.findIndex(m =>
-      m.id === fileMsg.messageId ||
-      (!!fileMsg.clientTempId && m.clientTempId === fileMsg.clientTempId)
+    const exists = currentReactions.some(
+      r => Number(r.userId) === Number(wsMsg.senderId) && r.emoji === wsMsg.emoji
     );
 
-    let finalMessage: LocalMessage;
+    let updatedReactions: MessageReaction[];
 
-    if (targetIndex !== -1) {
-      const existingMessage = { ...this.messages[targetIndex] };
-      const attachments = [...(existingMessage.attachments ?? [])];
-
-      const alreadyExists = attachments.some(
-        a =>
-          a.fileName === attachment.fileName &&
-          a.fileSize === attachment.fileSize &&
-          a.fileType === attachment.fileType
+    if (wsMsg.isAdd) {
+      updatedReactions = exists
+        ? currentReactions
+        : [...currentReactions, {
+            emoji: wsMsg.emoji,
+            userId: Number(wsMsg.senderId),
+            userName: wsMsg.senderName
+          }];
+    } else {
+      updatedReactions = currentReactions.filter(
+        r => !(Number(r.userId) === Number(wsMsg.senderId) && r.emoji === wsMsg.emoji)
       );
-
-      if (!alreadyExists) {
-        attachments.push(attachment);
-      }
-
-      finalMessage = this.normalizeMessage({
-        ...existingMessage,
-        id: fileMsg.messageId,
-        clientTempId: fileMsg.clientTempId || existingMessage.clientTempId,
-        sentAt: messageDate,
-        replyToMessageId: existingMessage.replyToMessageId ?? fileMsg.replyToMessageId ?? null,
-        attachments,
-        pending: false,
-        error: false
-      });
-
-      this.messages[targetIndex] = finalMessage;
-    } else {
-      finalMessage = {
-        id: fileMsg.messageId,
-        clientTempId: fileMsg.clientTempId,
-        content: '',
-        senderId: fileMsg.senderId,
-        senderName: fileMsg.senderName,
-        receiverId: fileMsg.receiverId,
-        receiverName: fileMsg.receiverName || this.findUserNameById(fileMsg.receiverId),
-        sentAt: messageDate,
-        read: false,
-        replyToMessageId: fileMsg.replyToMessageId ?? null,
-        reactions: [],
-        attachments: [attachment],
-        pending: false,
-        error: false
-      };
-
-      const isConversationOpen =
-        !!this.selectedConv &&
-        this.selectedConv.otherParticipantId === otherParticipantId;
-
-      if (isConversationOpen) {
-        this.messages = [...this.messages, finalMessage];
-      }
     }
 
-    this.sortMessages();
-    if (this.selectedConv && this.selectedConv.otherParticipantId === otherParticipantId) {
-      this.persistConversationMessages();
-    }
-    this.appendMessageToConversationStorage(otherParticipantId, finalMessage);
-
-    this.upsertConversationFromMessage(
-      finalMessage,
-      fileMsg.senderId !== this.currentUserId,
-      {
-        forcePreview: `📎 ${fileMsg.fileName}`
-      }
+    this.messages = this.messages.map((m, i) =>
+      i === index ? { ...m, reactions: updatedReactions } : m
     );
-
-    if (this.selectedConv && this.selectedConv.otherParticipantId === otherParticipantId) {
-      this.scrollToBottom();
-    }
-
     this.cdr.detectChanges();
-  }
-
-  private upsertConversationFromMessage(
-    message: LocalMessage,
-    incrementUnread: boolean,
-    options?: { forcePreview?: string }
-  ): void {
-    const otherParticipantId =
-      message.senderId === this.currentUserId ? message.receiverId : message.senderId;
-
-    const otherParticipantName =
-      message.senderId === this.currentUserId
-        ? (message.receiverName || this.findUserNameById(message.receiverId))
-        : (message.senderName || this.findUserNameById(message.senderId));
-
-    const isCurrentlyOpen =
-      !!this.selectedConv &&
-      this.selectedConv.otherParticipantId === otherParticipantId;
-
-    const preview = options?.forcePreview || this.getConversationPreview(message);
-
-    const index = this.conversations.findIndex(c => c.otherParticipantId === otherParticipantId);
-
-    if (index === -1) {
-      this.conversations = [{
-        id: -Math.floor(Date.now() + Math.random() * 1000),
-        otherParticipantId,
-        otherParticipantName: otherParticipantName || 'Utilisateur',
-        lastMessage: preview,
-        lastMessageTime: message.sentAt,
-        unreadCount: incrementUnread && !isCurrentlyOpen ? 1 : 0
-      }, ...this.conversations];
-
-      this.sortConversations();
-      this.updateSelectedConversationPreview(otherParticipantId, preview, message.sentAt);
-      this.cdr.detectChanges();
-      return;
-    }
-
-    const conv = this.conversations[index];
-    const unreadCount = isCurrentlyOpen ? 0 : incrementUnread ? (conv.unreadCount || 0) + 1 : conv.unreadCount || 0;
-
-    this.conversations = this.conversations.map((c, i) => i === index ? {
-      ...conv,
-      otherParticipantName: otherParticipantName || conv.otherParticipantName,
-      lastMessage: preview,
-      lastMessageTime: message.sentAt,
-      unreadCount
-    } : c);
-
-    this.sortConversations();
-    this.updateSelectedConversationPreview(otherParticipantId, preview, message.sentAt);
-    this.cdr.detectChanges();
-  }
-
-  private updateSelectedConversationPreview(
-    otherParticipantId: number,
-    preview: string,
-    sentAt: string
-  ): void {
-    if (this.selectedConv && this.selectedConv.otherParticipantId === otherParticipantId) {
-      this.selectedConv = {
-        ...this.selectedConv,
-        lastMessage: preview,
-        lastMessageTime: sentAt,
-        unreadCount: 0
-      };
-    }
-  }
-
-  private getConversationPreview(message: Partial<LocalMessage>): string {
-    const attachments = message.attachments ?? [];
-    const text = (message.content || '').trim();
-
-    if (attachments.length > 0) {
-      if (attachments.length === 1) {
-        return `📎 ${attachments[0].fileName}`;
-      }
-      return `📎 ${attachments.length} fichiers`;
-    }
-
-    if (text) {
-      return text;
-    }
-
-    return '[Pièce jointe]';
-  }
-
-  private findUserNameById(userId: number): string {
-    const user = this.usersList.find(u => u.id === userId);
-    return user ? `${user.prenom} ${user.nom}` : 'Utilisateur';
   }
 
   private findMatchingPendingMessageIndex(msg: LocalMessage): number {
     return this.messages.findIndex(m => {
       if (!m.pending) return false;
-
-      if (m.clientTempId && msg.clientTempId && m.clientTempId === msg.clientTempId) {
-        return true;
-      }
-
-      if (m.id && msg.id && m.id === msg.id) {
-        return true;
-      }
-
+      if (m.clientTempId && msg.clientTempId && m.clientTempId === msg.clientTempId) return true;
+      if (m.id && msg.id && m.id === msg.id) return true;
       return (
         m.senderId === msg.senderId &&
         m.receiverId === msg.receiverId &&
@@ -824,15 +584,8 @@ export class SharedMessagesComponent implements OnInit, OnDestroy {
   private findDuplicateMessageIndex(msg: LocalMessage): number {
     return this.messages.findIndex(m => {
       if (m.pending) return false;
-
-      if (m.clientTempId && msg.clientTempId && m.clientTempId === msg.clientTempId) {
-        return true;
-      }
-
-      if (m.id === msg.id) {
-        return true;
-      }
-
+      if (m.clientTempId && msg.clientTempId && m.clientTempId === msg.clientTempId) return true;
+      if (m.id === msg.id) return true;
       return (
         m.senderId === msg.senderId &&
         m.receiverId === msg.receiverId &&
@@ -855,184 +608,38 @@ export class SharedMessagesComponent implements OnInit, OnDestroy {
   }
 
   normalizeMessage(msg: Message | LocalMessage): LocalMessage {
+    const attachments: MessageAttachment[] = [];
+    const existingAttachments = msg.attachments ?? [];
+    if (existingAttachments.length > 0) attachments.push(...existingAttachments);
+
+    if ((msg.fileUrl ?? '').trim()) {
+      const alreadyAdded = attachments.some(a => a.fileUrl === msg.fileUrl);
+      if (!alreadyAdded) {
+        attachments.push({
+          fileName: msg.fileName || 'Fichier',
+          fileType: msg.fileType || 'application/octet-stream',
+          fileSize: msg.fileSize || 0,
+          fileUrl: msg.fileUrl || ''
+        });
+      }
+    }
+
     return {
       ...msg,
+      id: Number(msg.id),
+      senderId: Number(msg.senderId),
+      receiverId: Number(msg.receiverId),
       replyToMessageId: msg.replyToMessageId ?? null,
-      reactions: msg.reactions ?? [],
-      attachments: msg.attachments ?? [],
+      reactions: (msg.reactions ?? []).map((r: MessageReaction) => ({
+        emoji: r.emoji,
+        userId: Number(r.userId),
+        userName: r.userName
+      })),
+      attachments,
       pending: (msg as LocalMessage).pending ?? false,
-      clientTempId: (msg as LocalMessage).clientTempId,
+      clientTempId: (msg as LocalMessage).clientTempId ?? msg.clientTempId,
       error: (msg as LocalMessage).error ?? false
     };
-  }
-
-  private getConversationStorageKey(id: number): string {
-    return `messages_conversation_${id}`;
-  }
-
-  private getConversationStorageKeyByParticipants(otherParticipantId: number): string {
-    const sortedIds = [this.currentUserId, otherParticipantId].sort((a, b) => a - b);
-    return `messages_conversation_users_${sortedIds[0]}_${sortedIds[1]}`;
-  }
-
-  private persistConversationMessages(): void {
-    if (!this.selectedConv || this.selectedConv.id <= 0) return;
-
-    try {
-      localStorage.setItem(
-        this.getConversationStorageKey(this.selectedConv.id),
-        JSON.stringify(this.messages)
-      );
-      localStorage.setItem(
-        this.getConversationStorageKeyByParticipants(this.selectedConv.otherParticipantId),
-        JSON.stringify(this.messages)
-      );
-    } catch (e) {
-      console.warn('Erreur localStorage:', e);
-    }
-  }
-
-  private persistMessagesForConversation(conversationId: number, messages: LocalMessage[], otherParticipantId?: number): void {
-    if (!conversationId || conversationId <= 0) return;
-
-    try {
-      localStorage.setItem(
-        this.getConversationStorageKey(conversationId),
-        JSON.stringify(messages.map(m => this.normalizeMessage(m)))
-      );
-      if (otherParticipantId) {
-        localStorage.setItem(
-          this.getConversationStorageKeyByParticipants(otherParticipantId),
-          JSON.stringify(messages.map(m => this.normalizeMessage(m)))
-        );
-      }
-    } catch (error) {
-      console.warn('Erreur persistConversationMessages:', error);
-    }
-  }
-
-  private resolveConversationIdByParticipant(otherParticipantId: number): number | null {
-    const conv = this.conversations.find(c => c.otherParticipantId === otherParticipantId);
-    if (conv && conv.id > 0) {
-      return conv.id;
-    }
-
-    if (
-      this.selectedConv &&
-      this.selectedConv.otherParticipantId === otherParticipantId &&
-      this.selectedConv.id > 0
-    ) {
-      return this.selectedConv.id;
-    }
-
-    return null;
-  }
-
-  private appendMessageToConversationStorage(otherParticipantId: number, message: LocalMessage): void {
-    const conversationId = this.resolveConversationIdByParticipant(otherParticipantId);
-    
-    const localMessages = conversationId 
-      ? this.loadLocalConversationMessages(conversationId)
-      : this.loadLocalConversationMessagesByParticipants(otherParticipantId);
-
-    const exists = localMessages.some(m =>
-      m.id === message.id ||
-      (!!m.clientTempId && !!message.clientTempId && m.clientTempId === message.clientTempId)
-    );
-
-    if (exists) {
-      const updated = localMessages.map(m => {
-        if (
-          m.id === message.id ||
-          (!!m.clientTempId && !!message.clientTempId && m.clientTempId === message.clientTempId)
-        ) {
-          return this.normalizeMessage({
-            ...m,
-            ...message,
-            attachments: (message.attachments && message.attachments.length > 0)
-              ? message.attachments
-              : (m.attachments ?? []),
-            pending: false,
-            error: false
-          });
-        }
-        return this.normalizeMessage(m);
-      });
-
-      if (conversationId) {
-        this.persistMessagesForConversation(conversationId, updated, otherParticipantId);
-      } else {
-        this.persistMessagesForConversationByParticipants(otherParticipantId, updated);
-      }
-      return;
-    }
-
-    const updated = [...localMessages, this.normalizeMessage(message)];
-    updated.sort((a, b) => new Date(a.sentAt).getTime() - new Date(b.sentAt).getTime());
-
-    if (conversationId) {
-      this.persistMessagesForConversation(conversationId, updated, otherParticipantId);
-    } else {
-      this.persistMessagesForConversationByParticipants(otherParticipantId, updated);
-    }
-  }
-
-  private loadLocalConversationMessages(id: number): LocalMessage[] {
-    try {
-      const raw = localStorage.getItem(this.getConversationStorageKey(id));
-      if (!raw) return [];
-      return (JSON.parse(raw) as LocalMessage[]).map(m => this.normalizeMessage(m));
-    } catch {
-      return [];
-    }
-  }
-
-  private loadLocalConversationMessagesByParticipants(otherParticipantId: number): LocalMessage[] {
-    try {
-      const raw = localStorage.getItem(this.getConversationStorageKeyByParticipants(otherParticipantId));
-      if (!raw) return [];
-      return (JSON.parse(raw) as LocalMessage[]).map(m => this.normalizeMessage(m));
-    } catch {
-      return [];
-    }
-  }
-
-  private persistMessagesForConversationByParticipants(otherParticipantId: number, messages: LocalMessage[]): void {
-    try {
-      localStorage.setItem(
-        this.getConversationStorageKeyByParticipants(otherParticipantId),
-        JSON.stringify(messages.map(m => this.normalizeMessage(m)))
-      );
-    } catch (error) {
-      console.warn('Erreur persistMessagesForConversationByParticipants:', error);
-    }
-  }
-
-  private applyLocalMetaToSingleMessage(msg: LocalMessage, localMessages?: LocalMessage[]): LocalMessage {
-    const localSource =
-      localMessages ??
-      (this.selectedConv && this.selectedConv.id > 0
-        ? this.loadLocalConversationMessages(this.selectedConv.id)
-        : []);
-
-    const local = localSource.find(m =>
-      m.id === msg.id ||
-      (!!m.clientTempId && !!msg.clientTempId && m.clientTempId === msg.clientTempId)
-    );
-
-    if (!local) return this.normalizeMessage(msg);
-
-    return this.normalizeMessage({
-      ...msg,
-      replyToMessageId: local.replyToMessageId ?? msg.replyToMessageId ?? null,
-      reactions: local.reactions ?? msg.reactions ?? [],
-      attachments: (local.attachments && local.attachments.length > 0)
-        ? local.attachments
-        : (msg.attachments ?? []),
-      pending: false,
-      clientTempId: local.clientTempId ?? msg.clientTempId,
-      error: false
-    });
   }
 
   startReply(message: LocalMessage): void {
@@ -1046,50 +653,64 @@ export class SharedMessagesComponent implements OnInit, OnDestroy {
 
   findMessageById(id: number | null | undefined): LocalMessage | null {
     if (!id) return null;
-    return this.messages.find(m => m.id === id) ?? null;
+    return this.messages.find(m => Number(m.id) === Number(id)) ?? null;
   }
 
   addReaction(message: LocalMessage, emoji: string): void {
+    this.toggleReaction(message, emoji);
+  }
+
+  toggleReaction(message: LocalMessage, emoji: string): void {
     const currentUser = this.authService.getUser();
-    if (!currentUser || !currentUser.id) {
+    if (!currentUser || !currentUser.id) return;
+
+    if (!message.id || message.id <= 0) {
+      console.warn('Message sans id base de données, réaction impossible');
       return;
     }
 
-    if (!message.reactions) {
-      message.reactions = [];
+    if (!this.selectedConv || !this.selectedConv.otherParticipantId) {
+      console.warn('Conversation sélectionnée introuvable');
+      return;
     }
 
-    const userId = currentUser.id;
-    const existingIndex = message.reactions.findIndex(r => r.userId === userId && r.emoji === emoji);
-    const isAdd = existingIndex === -1;
-
-    if (existingIndex !== -1) {
-      message.reactions.splice(existingIndex, 1);
-    } else {
-      message.reactions.push({
-        emoji,
-        userId,
-        userName: `${currentUser.prenom} ${currentUser.nom}`.trim()
-      });
+    const index = this.messages.findIndex(m => Number(m.id) === Number(message.id));
+    if (index === -1) {
+      console.warn('Message introuvable dans la liste');
+      return;
     }
 
-    this.persistConversationMessages();
+    const existingReactions = [...(this.messages[index].reactions ?? [])];
+
+    const alreadyExists = existingReactions.some(
+      r => Number(r.userId) === Number(currentUser.id) && r.emoji === emoji
+    );
+
+    const updatedReactions = alreadyExists
+      ? existingReactions.filter(
+          r => !(Number(r.userId) === Number(currentUser.id) && r.emoji === emoji)
+        )
+      : [...existingReactions, {
+          emoji,
+          userId: Number(currentUser.id),
+          userName: `${currentUser.prenom} ${currentUser.nom}`.trim()
+        }];
+
+    this.messages = this.messages.map((m, i) =>
+      i === index ? { ...m, reactions: updatedReactions } : m
+    );
     this.cdr.detectChanges();
 
-    if (this.selectedConv && this.selectedConv.otherParticipantId) {
-      this.wsService.sendReaction(
-        this.selectedConv.otherParticipantId,
-        message.id,
-        emoji,
-        isAdd
-      );
-    }
+    this.wsService.sendReaction(
+      this.selectedConv.otherParticipantId,
+      Number(message.id),
+      emoji,
+      !alreadyExists
+    );
   }
 
   getReactionGroups(message: LocalMessage): { emoji: string; count: number }[] {
-    if (!message.reactions || message.reactions.length === 0) {
-      return [];
-    }
+    if (!message.reactions || message.reactions.length === 0) return [];
 
     const grouped = new Map<string, number>();
     message.reactions.forEach(reaction => {
@@ -1097,7 +718,6 @@ export class SharedMessagesComponent implements OnInit, OnDestroy {
         grouped.set(reaction.emoji, (grouped.get(reaction.emoji) || 0) + 1);
       }
     });
-
     return Array.from(grouped.entries()).map(([emoji, count]) => ({ emoji, count }));
   }
 
@@ -1107,43 +727,25 @@ export class SharedMessagesComponent implements OnInit, OnDestroy {
 
     Array.from(input.files).forEach(file => {
       if (file.size > this.maxFileSizeBytes) {
-        alert(`"${file.name}" dépasse 1 MB.`);
+        alert(`"${file.name}" dépasse 10 MB.`);
         return;
       }
-
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const result = e.target?.result as string;
-
-        const newAttachment: MessageAttachment = {
+      const alreadyExists = this.selectedFiles.some(
+        f => f.fileName === file.name && f.fileSize === file.size && f.fileType === file.type
+      );
+      if (!alreadyExists) {
+        this.selectedFiles = [...this.selectedFiles, {
           id: this.generateId(),
+          file,
           fileName: file.name,
           fileType: file.type,
-          fileSize: file.size,
-          fileDataUrl: result
-        };
-
-        const alreadyExists = this.selectedFiles.some(
-          f =>
-            f.fileName === newAttachment.fileName &&
-            f.fileSize === newAttachment.fileSize &&
-            f.fileType === newAttachment.fileType
-        );
-
-        if (!alreadyExists) {
-          this.selectedFiles = [...this.selectedFiles, newAttachment];
-          this.cdr.detectChanges();
-        }
-      };
-
-      reader.onerror = (error) => {
-        console.error('Erreur lecture fichier:', error);
-      };
-
-      reader.readAsDataURL(file);
+          fileSize: file.size
+        }];
+      }
     });
 
     input.value = '';
+    this.cdr.detectChanges();
   }
 
   removeSelectedFile(index: number): void {
@@ -1176,12 +778,16 @@ export class SharedMessagesComponent implements OnInit, OnDestroy {
 
   openNewMessageModal(): void {
     this.showNewMessageModal = true;
+    this.searchQuery = '';
+    this.filteredUsers = [];
     this.newMessageReceiverId = null;
   }
 
   closeNewMessageModal(): void {
     this.showNewMessageModal = false;
     this.newMessageReceiverId = null;
+    this.searchQuery = '';
+    this.filteredUsers = [];
   }
 
   createNewConversation(): void {
@@ -1191,11 +797,7 @@ export class SharedMessagesComponent implements OnInit, OnDestroy {
       next: (conv: Conversation) => {
         const exists = this.conversations.some(c => c.id === conv.id);
         this.closeNewMessageModal();
-
-        if (!exists) {
-          this.conversations = [{ ...conv, unreadCount: 0 }, ...this.conversations];
-        }
-
+        if (!exists) this.conversations = [{ ...conv, unreadCount: 0 }, ...this.conversations];
         this.sortConversations();
         this.selectConversation(conv);
         this.cdr.detectChanges();
@@ -1204,13 +806,8 @@ export class SharedMessagesComponent implements OnInit, OnDestroy {
     });
   }
 
-  openImageFullscreen(url: string): void {
-    this.lightboxUrl = url;
-  }
-
-  closeLightbox(): void {
-    this.lightboxUrl = null;
-  }
+  openImageFullscreen(url: string): void { this.lightboxUrl = url; }
+  closeLightbox(): void { this.lightboxUrl = null; }
 
   closeChat(): void {
     if (this.selectedConv) {
@@ -1219,7 +816,6 @@ export class SharedMessagesComponent implements OnInit, OnDestroy {
           ? { ...c, unreadCount: 0 } : c
       );
     }
-
     this.selectedConv = null;
     this.messages = [];
     this.replyingToMessage = null;
@@ -1231,11 +827,9 @@ export class SharedMessagesComponent implements OnInit, OnDestroy {
   getAvatarColor(name: string): string {
     const colors = ['#8b5cf6', '#10b981', '#f59e0b', '#ef4444', '#3b82f6', '#ec4899', '#14b8a6', '#f97316'];
     let hash = 0;
-
     for (let i = 0; i < name.length; i++) {
       hash = name.charCodeAt(i) + ((hash << 5) - hash);
     }
-
     return colors[Math.abs(hash) % colors.length];
   }
 
@@ -1249,8 +843,7 @@ export class SharedMessagesComponent implements OnInit, OnDestroy {
   }
 
   autoResize(event: Event): void {
-    const ta = event.target as HTMLTextAreaElement;
-    this.autoResizeTextarea(ta);
+    this.autoResizeTextarea(event.target as HTMLTextAreaElement);
   }
 
   private autoResizeTextarea(ta: HTMLTextAreaElement): void {
@@ -1260,5 +853,17 @@ export class SharedMessagesComponent implements OnInit, OnDestroy {
 
   private generateId(): string {
     return `${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+  }
+
+  private reloadCurrentConversationMessages(): void {
+    if (!this.selectedConv?.id) return;
+    this.messageService.getMessages(this.selectedConv.id).subscribe({
+      next: (msgs: Message[]) => {
+        this.messages = msgs.map(msg => this.normalizeMessage(msg));
+        this.sortMessages();
+        this.cdr.detectChanges();
+      },
+      error: (err) => console.error('Erreur reload messages après réaction', err)
+    });
   }
 }

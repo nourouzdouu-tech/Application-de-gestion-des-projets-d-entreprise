@@ -13,7 +13,7 @@
 
 .admin-layout {
   display: flex;
-  min-height: 100vh;
+  height: 100vh;        /* ← remplace min-height: 100vh */
   background-color: #f9fafb;
   font-family: 'Inter', sans-serif;
 }
@@ -209,6 +209,8 @@
   flex: 1;
   min-width: 0;
   overflow-x: auto;
+  overflow-y: hidden;   /* ← ajoute ça */
+  height: 100vh;        /* ← ajoute ça */
   background: #f9fafb;
 }
 

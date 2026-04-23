@@ -9,7 +9,8 @@ interface CalendarEvent {
   id: number;
   title: string;
   date: Date;
-  time?: string;
+  startTime?: string;
+  endTime?: string;
   description?: string;
 
   projectId?: number | null;
@@ -52,7 +53,8 @@ export class SharedCalendarComponent implements OnInit {
     title: '',
     description: '',
     date: '',
-    time: '',
+    startTime: '',
+    endTime: '',
     projectId: null as number | null,
     invitedUserIds: [] as number[]
   };
@@ -88,6 +90,8 @@ export class SharedCalendarComponent implements OnInit {
       this.allEvents = JSON.parse(raw).map((e: any) => ({
         ...e,
         date: new Date(e.date),
+        startTime: e.startTime || e.time || '',
+        endTime: e.endTime || e.time || '',
         invitedUserIds: Array.isArray(e.invitedUserIds) ? e.invitedUserIds : [],
         invitedUserNames: Array.isArray(e.invitedUserNames) ? e.invitedUserNames : []
       }));
@@ -284,7 +288,8 @@ export class SharedCalendarComponent implements OnInit {
       title: '',
       description: '',
       date: this.selectedDate() ? this.formatDate(this.selectedDate()!) : '',
-      time: '',
+      startTime: '',
+      endTime: '',
       projectId: null,
       invitedUserIds: []
     };
@@ -307,7 +312,8 @@ export class SharedCalendarComponent implements OnInit {
       title: event.title,
       description: event.description || '',
       date: this.formatDate(event.date),
-      time: event.time || '',
+      startTime: event.startTime || '',
+      endTime: event.endTime || '',
       projectId: event.projectId ?? null,
       invitedUserIds: [...event.invitedUserIds]
     };
@@ -323,8 +329,18 @@ export class SharedCalendarComponent implements OnInit {
       return;
     }
 
+    if (
+      this.eventForm.startTime &&
+      this.eventForm.endTime &&
+      this.eventForm.endTime < this.eventForm.startTime
+    ) {
+      this.showToastMessage("L'heure de fin doit être après l'heure de début", 'error');
+      return;
+    }
+
     const eventDate = new Date(this.eventForm.date);
-    const eventTime = this.eventForm.time || '00:00';
+    const startTime = this.eventForm.startTime || '00:00';
+    const endTime = this.eventForm.endTime || startTime;
 
     const invitedUsers = this.usersList.filter(user =>
       this.eventForm.invitedUserIds.includes(user.id)
@@ -348,7 +364,8 @@ export class SharedCalendarComponent implements OnInit {
           title: this.eventForm.title,
           description: this.eventForm.description,
           date: eventDate,
-          time: eventTime,
+          startTime,
+          endTime,
           projectId: selectedProject?.id ?? null,
           projectName: selectedProject?.name ?? '',
           invitedUserIds: [...this.eventForm.invitedUserIds],
@@ -363,7 +380,8 @@ export class SharedCalendarComponent implements OnInit {
         title: this.eventForm.title,
         description: this.eventForm.description,
         date: eventDate,
-        time: eventTime,
+        startTime,
+        endTime,
         projectId: selectedProject?.id ?? null,
         projectName: selectedProject?.name ?? '',
         ownerId: this.currentUserId,
@@ -405,7 +423,8 @@ export class SharedCalendarComponent implements OnInit {
       title: '',
       description: '',
       date: '',
-      time: '',
+      startTime: '',
+      endTime: '',
       projectId: null,
       invitedUserIds: []
     };

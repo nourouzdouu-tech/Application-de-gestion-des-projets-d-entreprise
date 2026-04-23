@@ -30,6 +30,10 @@ public class MessageWebSocketController {
 
     @MessageMapping("/chat.send")
     public void sendMessage(@Payload WebSocketMessageDto chatMessage, Principal principal) {
+        if (principal == null) {
+            throw new RuntimeException("Utilisateur WebSocket non authentifié");
+        }
+
         String senderEmail = principal.getName();
 
         User sender = userRepository.findByEmailAndDeletedFalse(senderEmail)
@@ -56,6 +60,18 @@ public class MessageWebSocketController {
 
     @MessageMapping("/chat.reaction")
     public void sendReaction(@Payload WebSocketMessageDto reactionDto, Principal principal) {
+        if (principal == null) {
+            throw new RuntimeException("Utilisateur WebSocket non authentifié");
+        }
+
+        if (reactionDto.getMessageId() == null) {
+            throw new RuntimeException("messageId est obligatoire pour une réaction");
+        }
+
+        if (reactionDto.getEmoji() == null || reactionDto.getEmoji().isBlank()) {
+            throw new RuntimeException("emoji est obligatoire pour une réaction");
+        }
+
         String senderEmail = principal.getName();
 
         User sender = userRepository.findByEmailAndDeletedFalse(senderEmail)
@@ -64,54 +80,23 @@ public class MessageWebSocketController {
         User receiver = userRepository.findById(reactionDto.getReceiverId())
                 .orElseThrow(() -> new RuntimeException("Destinataire non trouvé"));
 
+        messageService.toggleReaction(
+                reactionDto.getMessageId(),
+                reactionDto.getEmoji().trim(),
+                reactionDto.isAdd(),
+                sender
+        );
+
         WebSocketMessageDto response = new WebSocketMessageDto();
         response.setType("reaction");
         response.setMessageId(reactionDto.getMessageId());
-        response.setEmoji(reactionDto.getEmoji());
+        response.setEmoji(reactionDto.getEmoji().trim());
         response.setAdd(reactionDto.isAdd());
         response.setSenderId(sender.getId());
         response.setSenderName(sender.getPrenom() + " " + sender.getNom());
         response.setReceiverId(receiver.getId());
         response.setReceiverName(receiver.getPrenom() + " " + receiver.getNom());
         response.setSentAt(LocalDateTime.now());
-
-        messagingTemplate.convertAndSendToUser(sender.getEmail(), "/queue/messages", response);
-        messagingTemplate.convertAndSendToUser(receiver.getEmail(), "/queue/messages", response);
-    }
-
-    @MessageMapping("/chat.file")
-    public void sendFile(@Payload WebSocketMessageDto fileDto, Principal principal) {
-        String senderEmail = principal.getName();
-
-        User sender = userRepository.findByEmailAndDeletedFalse(senderEmail)
-                .orElseThrow(() -> new RuntimeException("Expéditeur non trouvé"));
-
-        User receiver = userRepository.findById(fileDto.getReceiverId())
-                .orElseThrow(() -> new RuntimeException("Destinataire non trouvé"));
-
-        Message saved = messageService.saveWebSocketFileMessage(
-                sender,
-                receiver,
-                fileDto.getClientTempId(),
-                fileDto.getReplyToMessageId()
-        );
-
-        WebSocketMessageDto response = new WebSocketMessageDto();
-        response.setType("file");
-        response.setId(saved.getId());
-        response.setMessageId(saved.getId());
-        response.setClientTempId(fileDto.getClientTempId());
-        response.setReplyToMessageId(fileDto.getReplyToMessageId());
-        response.setFileName(fileDto.getFileName());
-        response.setFileType(fileDto.getFileType());
-        response.setFileSize(fileDto.getFileSize());
-        response.setFileData(fileDto.getFileData());
-        response.setSenderId(sender.getId());
-        response.setSenderName(sender.getPrenom() + " " + sender.getNom());
-        response.setReceiverId(receiver.getId());
-        response.setReceiverName(receiver.getPrenom() + " " + receiver.getNom());
-        response.setSentAt(saved.getSentAt());
-        response.setRead(saved.isRead());
 
         messagingTemplate.convertAndSendToUser(sender.getEmail(), "/queue/messages", response);
         messagingTemplate.convertAndSendToUser(receiver.getEmail(), "/queue/messages", response);

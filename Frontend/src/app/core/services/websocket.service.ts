@@ -2,10 +2,10 @@ import { Injectable } from '@angular/core';
 import { Client, Message as StompMessage } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
 import { AuthService } from './auth.service';
-import { Subject } from 'rxjs';
+import { Subject, Observable } from 'rxjs';
 
 export interface WebSocketMessage {
-  type?: 'message' | 'reaction' | 'file';
+  type?: 'message' | 'reaction';
 
   id?: number;
   clientTempId?: string;
@@ -25,11 +25,6 @@ export interface WebSocketMessage {
   messageId?: number;
   emoji?: string;
   isAdd?: boolean;
-
-  fileName?: string;
-  fileType?: string;
-  fileSize?: number;
-  fileData?: string;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -50,7 +45,6 @@ export class WebSocketService {
       return;
     }
 
-    const user = this.authService.getUser();
     const socket = new SockJS('http://localhost:8080/ws-messages');
 
     this.stompClient = new Client({
@@ -63,18 +57,11 @@ export class WebSocketService {
     this.stompClient.onConnect = () => {
       console.log('✅ WebSocket connecté');
 
-      const userEmail = user?.email;
-      if (!userEmail) {
-        console.error('❌ Email utilisateur introuvable, abonnement impossible');
-        return;
-      }
-
-      const destination = `/user/${userEmail}/queue/messages`;
-      console.log('📡 Abonnement à:', destination);
-
-      this.stompClient?.subscribe(destination, (message: StompMessage) => {
+      // IMPORTANT: côté client Spring STOMP utilise /user/queue/messages
+      this.stompClient?.subscribe('/user/queue/messages', (message: StompMessage) => {
         try {
           const parsed = JSON.parse(message.body) as WebSocketMessage;
+          console.log('📩 WS reçu:', parsed);
           this.messageSubject.next(parsed);
         } catch (error) {
           console.error('Erreur parsing message:', error);
@@ -84,6 +71,10 @@ export class WebSocketService {
 
     this.stompClient.onStompError = (frame) => {
       console.error('❌ Erreur STOMP:', frame);
+    };
+
+    this.stompClient.onWebSocketClose = () => {
+      console.warn('⚠️ WebSocket fermé');
     };
 
     this.stompClient.onDisconnect = () => {
@@ -108,6 +99,7 @@ export class WebSocketService {
     replyToMessageId?: number | null
   ): void {
     const user = this.authService.getUser();
+
     if (!user || !this.stompClient?.connected) {
       console.error('WebSocket non connecté ou utilisateur non trouvé');
       return;
@@ -135,6 +127,10 @@ export class WebSocketService {
 
   sendReaction(receiverId: number, messageId: number, emoji: string, isAdd: boolean): void {
     const user = this.authService.getUser();
+
+    console.log('=== FRONT sendReaction ===');
+    console.log({ receiverId, messageId, emoji, isAdd, connected: this.stompClient?.connected, user });
+
     if (!user || !this.stompClient?.connected) {
       console.error('WebSocket non connecté ou utilisateur non trouvé');
       return;
@@ -156,45 +152,11 @@ export class WebSocketService {
       destination: '/app/chat.reaction',
       body: JSON.stringify(reaction)
     });
+
+    console.log('=== FRONT publish /app/chat.reaction OK ===');
   }
 
-  sendFile(
-    receiverId: number,
-    messageId: number,
-    file: { fileName: string; fileType: string; fileSize: number; fileData: string },
-    clientTempId?: string,
-    replyToMessageId?: number | null
-  ): void {
-    const user = this.authService.getUser();
-    if (!user || !this.stompClient?.connected) {
-      console.error('WebSocket non connecté ou utilisateur non trouvé');
-      return;
-    }
-
-    const fileMessage: WebSocketMessage = {
-      type: 'file',
-      id: messageId,
-      messageId,
-      clientTempId,
-      fileName: file.fileName,
-      fileType: file.fileType,
-      fileSize: file.fileSize,
-      fileData: file.fileData,
-      receiverId,
-      senderId: user.id ?? 0,
-      senderName: `${user.prenom} ${user.nom}`.trim(),
-      receiverName: '',
-      sentAt: new Date().toISOString(),
-      replyToMessageId: replyToMessageId ?? null
-    };
-
-    this.stompClient.publish({
-      destination: '/app/chat.file',
-      body: JSON.stringify(fileMessage)
-    });
-  }
-
-  getMessages(): Subject<WebSocketMessage> {
-    return this.messageSubject;
+  getMessages(): Observable<WebSocketMessage> {
+    return this.messageSubject.asObservable();
   }
 }

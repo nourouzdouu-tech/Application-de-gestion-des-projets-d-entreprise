@@ -56,7 +56,9 @@
                 [style.background]="getEventColor(event)"
                 (click)="$event.stopPropagation(); openEditEventModal(event)"
               >
-                <span class="event-time">{{ event.time || '00:00' }}</span>
+                <span class="event-time">
+                  {{ event.startTime || '00:00' }} - {{ event.endTime || '00:00' }}
+                </span>
                 {{ event.title.length > 18 ? event.title.substring(0, 18) + '...' : event.title }}
               </div>
             }
@@ -94,7 +96,9 @@
 
           <div class="event-content">
             <h4>
-              <span class="event-time-sidebar">{{ event.time || '00:00' }}</span>
+              <span class="event-time-sidebar">
+                {{ event.startTime || '00:00' }} - {{ event.endTime || '00:00' }}
+              </span>
               {{ event.title }}
             </h4>
 
@@ -150,11 +154,20 @@
           </div>
 
           <div class="form-group">
-            <label>Heure</label>
+            <label>Heure de début</label>
             <input
               type="time"
               class="form-control"
-              [(ngModel)]="eventForm.time"
+              [(ngModel)]="eventForm.startTime"
+            >
+          </div>
+
+          <div class="form-group">
+            <label>Heure de fin</label>
+            <input
+              type="time"
+              class="form-control"
+              [(ngModel)]="eventForm.endTime"
             >
           </div>
 
@@ -168,51 +181,51 @@
             ></textarea>
           </div>
 
-      <div class="form-group">
-  <label>Projet</label>
-  <select class="form-control" [(ngModel)]="eventForm.projectId">
-    <option [ngValue]="null">-- Aucun projet --</option>
-    <option *ngFor="let project of myProjects" [ngValue]="project.id">
-      {{ project.name }}
-    </option>
-  </select>
-</div>
+          <div class="form-group">
+            <label>Projet</label>
+            <select class="form-control" [(ngModel)]="eventForm.projectId">
+              <option [ngValue]="null">-- Aucun projet --</option>
+              <option *ngFor="let project of myProjects" [ngValue]="project.id">
+                {{ project.name }}
+              </option>
+            </select>
+          </div>
 
-<div class="form-group">
-  <label>Inviter des utilisateurs (optionnel)</label>
+          <div class="form-group">
+            <label>Inviter des utilisateurs (optionnel)</label>
 
-  <input
-    type="text"
-    class="form-control"
-    [(ngModel)]="inviteSearch"
-    (input)="onInviteSearch()"
-    placeholder="Rechercher un utilisateur par nom ou email"
-  >
+            <input
+              type="text"
+              class="form-control"
+              [(ngModel)]="inviteSearch"
+              (input)="onInviteSearch()"
+              placeholder="Rechercher un utilisateur par nom ou email"
+            >
 
-  <div class="selected-users-preview" *ngIf="eventForm.invitedUserIds.length > 0">
-    <strong>Sélectionnés :</strong> {{ getSelectedUsersLabel() }}
-  </div>
+            <div class="selected-users-preview" *ngIf="eventForm.invitedUserIds.length > 0">
+              <strong>Sélectionnés :</strong> {{ getSelectedUsersLabel() }}
+            </div>
 
-  <div class="invite-results">
-    <div class="invite-empty" *ngIf="filteredUsers.length === 0">
-      Aucun utilisateur trouvé
-    </div>
+            <div class="invite-results">
+              <div class="invite-empty" *ngIf="filteredUsers.length === 0">
+                Aucun utilisateur trouvé
+              </div>
 
-    <div
-      class="invite-user-item"
-      *ngFor="let user of filteredUsers"
-      [class.selected]="isUserSelected(user.id)"
-      (click)="toggleInvitedUser(user.id)"
-    >
-      <div class="invite-user-meta">
-        <span class="invite-user-name">{{ user.prenom }} {{ user.nom }}</span>
-        <span class="invite-user-email">{{ user.email }}</span>
-      </div>
+              <div
+                class="invite-user-item"
+                *ngFor="let user of filteredUsers"
+                [class.selected]="isUserSelected(user.id)"
+                (click)="toggleInvitedUser(user.id)"
+              >
+                <div class="invite-user-meta">
+                  <span class="invite-user-name">{{ user.prenom }} {{ user.nom }}</span>
+                  <span class="invite-user-email">{{ user.email }}</span>
+                </div>
 
-      <span class="invite-user-check" *ngIf="isUserSelected(user.id)">✓</span>
-    </div>
-  </div>
-</div>
+                <span class="invite-user-check" *ngIf="isUserSelected(user.id)">✓</span>
+              </div>
+            </div>
+          </div>
         </div>
 
         <div class="modal-footer">

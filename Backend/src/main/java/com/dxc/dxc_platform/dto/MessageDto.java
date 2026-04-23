@@ -1,6 +1,8 @@
 package com.dxc.dxc_platform.dto;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 public class MessageDto {
     private Long id;
@@ -13,6 +15,14 @@ public class MessageDto {
     private boolean read;
     private String clientTempId;
     private Long replyToMessageId;
+
+    private String fileName;
+    private String fileType;
+    private Long fileSize;
+    private String fileUrl;
+    private String downloadUrl;
+
+    private List<MessageReactionDto> reactions = new ArrayList<>();
 
     public MessageDto() {}
 
@@ -45,4 +55,22 @@ public class MessageDto {
 
     public Long getReplyToMessageId() { return replyToMessageId; }
     public void setReplyToMessageId(Long replyToMessageId) { this.replyToMessageId = replyToMessageId; }
+
+    public String getFileName() { return fileName; }
+    public void setFileName(String fileName) { this.fileName = fileName; }
+
+    public String getFileType() { return fileType; }
+    public void setFileType(String fileType) { this.fileType = fileType; }
+
+    public Long getFileSize() { return fileSize; }
+    public void setFileSize(Long fileSize) { this.fileSize = fileSize; }
+
+    public String getFileUrl() { return fileUrl; }
+    public void setFileUrl(String fileUrl) { this.fileUrl = fileUrl; }
+
+    public String getDownloadUrl() { return downloadUrl; }
+    public void setDownloadUrl(String downloadUrl) { this.downloadUrl = downloadUrl; }
+
+    public List<MessageReactionDto> getReactions() { return reactions; }
+    public void setReactions(List<MessageReactionDto> reactions) { this.reactions = reactions; }
 }

@@ -6,6 +6,7 @@ import com.dxc.dxc_platform.service.MessageService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import java.util.Map;
@@ -54,6 +55,16 @@ public class MessageController {
 
         return ResponseEntity.ok(
                 messageService.sendMessage(receiverId, content, clientTempId, replyToMessageId)
+        );
+    }
+
+    @PostMapping(value = "/send-file/{receiverId}", consumes = {"multipart/form-data"})
+    public ResponseEntity<MessageDto> sendFile(@PathVariable Long receiverId,
+                                               @RequestParam("file") MultipartFile file,
+                                               @RequestParam(value = "clientTempId", required = false) String clientTempId,
+                                               @RequestParam(value = "replyToMessageId", required = false) Long replyToMessageId) {
+        return ResponseEntity.ok(
+                messageService.sendFileMessage(receiverId, file, clientTempId, replyToMessageId)
         );
     }
 }

@@ -41,7 +41,9 @@ public class SecurityConfig {
                                 "/swagger-ui.html",
                                 "/v3/api-docs/**",
                                 "/ws-messages/**",
-                                "/actuator/health"
+                                "/actuator/health",
+                                "/uploads/**",
+                                "/api/files/**"
                         ).permitAll()
                         .requestMatchers("/api/admin/**").hasAuthority("ADMIN")
                         .requestMatchers("/api/clients/select").authenticated()

@@ -18,11 +18,11 @@ export interface MessageReaction {
 }
 
 export interface MessageAttachment {
-  id: string;
+  id?: string;
   fileName: string;
   fileType: string;
   fileSize: number;
-  fileDataUrl: string;
+  fileUrl: string;
 }
 
 export interface Message {
@@ -36,6 +36,12 @@ export interface Message {
   read: boolean;
   clientTempId?: string;
   replyToMessageId?: number | null;
+
+  fileName?: string | null;
+  fileType?: string | null;
+  fileSize?: number | null;
+  fileUrl?: string | null;
+
   reactions?: MessageReaction[];
   attachments?: MessageAttachment[];
 }
@@ -65,6 +71,26 @@ export class MessageService {
       clientTempId: clientTempId ?? null,
       replyToMessageId: replyToMessageId ?? null
     });
+  }
+
+  sendFile(
+    receiverId: number,
+    file: File,
+    clientTempId?: string,
+    replyToMessageId?: number | null
+  ): Observable<Message> {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    if (clientTempId) {
+      formData.append('clientTempId', clientTempId);
+    }
+
+    if (replyToMessageId != null) {
+      formData.append('replyToMessageId', String(replyToMessageId));
+    }
+
+    return this.http.post<Message>(`${this.apiUrl}/send-file/${receiverId}`, formData);
   }
 
   getOrCreateConversation(otherUserId: number): Observable<Conversation> {
