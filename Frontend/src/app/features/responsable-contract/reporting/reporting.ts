@@ -23,6 +23,10 @@ export class Reporting implements OnInit {
   searchTerm = signal('');
   activeTab = signal<ReportingTab>('all');
 
+  // PAGINATION
+  currentPage = signal(1);
+  pageSize = 6;
+
   ngOnInit(): void {
     this.loadProjects();
   }
@@ -46,10 +50,12 @@ export class Reporting implements OnInit {
 
   setTab(tab: ReportingTab): void {
     this.activeTab.set(tab);
+    this.currentPage.set(1);
   }
 
   onSearch(value: string): void {
     this.searchTerm.set(value);
+    this.currentPage.set(1);
   }
 
   filteredProjects = computed(() => {
@@ -76,6 +82,36 @@ export class Reporting implements OnInit {
       return matchesSearch && matchesTab;
     });
   });
+
+  // PAGINATION COMPUTED
+  totalPages = computed(() => {
+    const total = this.filteredProjects().length;
+    return Math.max(1, Math.ceil(total / this.pageSize));
+  });
+
+  paginatedProjects = computed(() => {
+    const start = (this.currentPage() - 1) * this.pageSize;
+    const end = start + this.pageSize;
+    return this.filteredProjects().slice(start, end);
+  });
+
+  pages = computed(() =>
+    Array.from({ length: this.totalPages() }, (_, i) => i + 1)
+  );
+
+  goToPage(page: number): void {
+    if (page < 1 || page > this.totalPages()) return;
+    this.currentPage.set(page);
+  }
+
+  getRangeStart(): number {
+    if (this.filteredProjects().length === 0) return 0;
+    return (this.currentPage() - 1) * this.pageSize + 1;
+  }
+
+  getRangeEnd(): number {
+    return Math.min(this.currentPage() * this.pageSize, this.filteredProjects().length);
+  }
 
   totalProjects = computed(() => this.projects().length);
 
@@ -111,7 +147,7 @@ export class Reporting implements OnInit {
     const list = this.projects();
     if (!list.length) return 0;
 
-    const total = list.reduce((sum, p) => sum + (p.progressPercentage ?? 0), 0);
+    const total = list.reduce((sum, p) => sum + p.progressPercentage, 0);
     return Math.round(total / list.length);
   });
 

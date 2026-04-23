@@ -529,18 +529,24 @@
           <textarea [(ngModel)]="editingTask.description" rows="3"></textarea>
         </div>
 
-        <label>Date début *</label>
-<input type="date" [(ngModel)]="editingTask.startDate">
+      <div class="form-row">
+  <div class="form-group">
+    <label>Date début *</label>
+    <input type="date" [(ngModel)]="taskForm.startDate">
+  </div>
 
-<label>Criticité *</label>
-<select [(ngModel)]="editingTask.criticite">
-  <option [ngValue]="1">1 (Très simple)</option>
-  <option [ngValue]="2">2</option>
-  <option [ngValue]="3">3</option>
-  <option [ngValue]="5">5</option>
-  <option [ngValue]="8">8</option>
-  <option [ngValue]="13">13 (Très complexe)</option>
-</select>
+  <div class="form-group">
+    <label>Criticité *</label>
+    <select [(ngModel)]="taskForm.criticite">
+      <option [ngValue]="1">1</option>
+      <option [ngValue]="2">2</option>
+      <option [ngValue]="3">3</option>
+      <option [ngValue]="5">5</option>
+      <option [ngValue]="8">8</option>
+      <option [ngValue]="13">13</option>
+    </select>
+  </div>
+</div>
 
         <div class="form-group">
           <label>Priorité</label>
@@ -623,18 +629,24 @@
           <textarea [(ngModel)]="taskForm.description" rows="3"></textarea>
         </div>
 
-       <label>Date début *</label>
-<input type="date" [(ngModel)]="taskForm.startDate">
+<div class="form-row">
+  <div class="form-group">
+    <label>Date début *</label>
+    <input type="date" [(ngModel)]="taskForm.startDate">
+  </div>
 
-<label>Criticité *</label>
-<select [(ngModel)]="taskForm.criticite">
-  <option [ngValue]="1">1</option>
-  <option [ngValue]="2">2</option>
-  <option [ngValue]="3">3</option>
-  <option [ngValue]="5">5</option>
-  <option [ngValue]="8">8</option>
-  <option [ngValue]="13">13</option>
-</select>
+  <div class="form-group">
+    <label>Criticité *</label>
+    <select [(ngModel)]="taskForm.criticite">
+      <option [ngValue]="1">1</option>
+      <option [ngValue]="2">2</option>
+      <option [ngValue]="3">3</option>
+      <option [ngValue]="5">5</option>
+      <option [ngValue]="8">8</option>
+      <option [ngValue]="13">13</option>
+    </select>
+  </div>
+</div>
         <div class="form-group">
           <label>Priorité</label>
           <select [(ngModel)]="taskForm.priority">

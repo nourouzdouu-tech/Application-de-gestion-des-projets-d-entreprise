@@ -10,6 +10,7 @@ export interface RoleSummary {
 export interface PermissionSummary {
   id: number;
   nom: string;
+  description: string;
 }
 
 export interface RoleResponse {

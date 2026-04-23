@@ -131,79 +131,116 @@
       </div>
     </div>
 
-    <div class="table-card">
-      <div class="table-head">
-        <h2 class="table-title">{{ filteredProjects().length }} projet(s) trouvé(s)</h2>
+   <div class="table-card">
+  <div class="table-head">
+    <h2 class="table-title">{{ filteredProjects().length }} projet(s) trouvé(s)</h2>
+  </div>
+
+  @if (loading()) {
+    <div class="state-box">Chargement des projets...</div>
+  } @else if (error()) {
+    <div class="state-box error">{{ error() }}</div>
+  } @else if (filteredProjects().length === 0) {
+    <div class="state-box">Aucun projet trouvé.</div>
+  } @else {
+    <div class="reporting-table">
+      <div class="table-header">
+        <div>Projet</div>
+        <div>Client</div>
+        <div>Progression</div>
+        <div>Statut</div>
+        <div>Risque</div>
+        <div>Équipe</div>
+        <div>Période</div>
       </div>
 
-      @if (loading()) {
-        <div class="state-box">Chargement des projets...</div>
-      } @else if (error()) {
-        <div class="state-box error">{{ error() }}</div>
-      } @else if (filteredProjects().length === 0) {
-        <div class="state-box">Aucun projet trouvé.</div>
-      } @else {
-        <div class="reporting-table">
-          <div class="table-header">
-            <div>Projet</div>
-            <div>Client</div>
-            <div>Progression</div>
-            <div>Statut</div>
-            <div>Risque</div>
-            <div>Équipe</div>
-            <div>Période</div>
-          </div>
-
-          @for (project of filteredProjects(); track project.id) {
-            <div class="table-row">
-              <div class="project-cell">
-                <div class="project-icon">📁</div>
-                <div>
-                  <div class="project-name">{{ project.name }}</div>
-                  <div class="project-description">
-                    {{ project.description || 'Aucune description' }}
-                  </div>
-                </div>
-              </div>
-
-              <div class="muted-text">{{ project.client || '—' }}</div>
-
-              <div class="progress-cell">
-                <div class="progress-top">
-                  <span>{{ project.progressPercentage }}%</span>
-                </div>
-                <div class="progress-bar">
-                  <div
-                    [class]="getProgressBarClass(project.progressPercentage)"
-                    [style.width.%]="project.progressPercentage">
-                  </div>
-                </div>
-              </div>
-
-              <div>
-                <span [class]="getStatusClass(project.status)">
-                  {{ formatStatus(project.status) }}
-                </span>
-              </div>
-
-              <div>
-                <span [class]="getRiskClass(project.riskLevel)">
-                  {{ formatRisk(project.riskLevel) }}
-                </span>
-              </div>
-
-              <div class="muted-text">
-                {{ project.teamName || 'Non affectée' }}
-              </div>
-
-              <div class="date-cell">
-                <div>{{ project.startDate || '—' }}</div>
-                <div class="date-muted">{{ project.endDate || '—' }}</div>
+      @for (project of paginatedProjects(); track project.id) {
+        <div class="table-row">
+          <div class="project-cell">
+            <div class="project-icon">📁</div>
+            <div>
+              <div class="project-name">{{ project.name }}</div>
+              <div class="project-description">
+                {{ project.description || 'Aucune description' }}
               </div>
             </div>
-          }
+          </div>
+
+          <div class="muted-text">{{ project.client || '—' }}</div>
+
+          <div class="progress-cell">
+            <div class="progress-top">
+              <span>{{ project.progressPercentage }}%</span>
+            </div>
+            <div class="progress-bar">
+              <div
+                [class]="getProgressBarClass(project.progressPercentage)"
+                [style.width.%]="project.progressPercentage">
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <span [class]="getStatusClass(project.status)">
+              {{ formatStatus(project.status) }}
+            </span>
+          </div>
+
+          <div>
+            <span [class]="getRiskClass(project.riskLevel)">
+              {{ formatRisk(project.riskLevel) }}
+            </span>
+          </div>
+
+          <div class="muted-text">
+            {{ project.teamName || 'Non affectée' }}
+          </div>
+
+          <div class="date-cell">
+            <div>{{ project.startDate || '—' }}</div>
+            <div class="date-muted">{{ project.endDate || '—' }}</div>
+          </div>
         </div>
       }
     </div>
+
+    <!-- PAGINATION -->
+    <div class="pagination-bar">
+      <span class="pagination-info">
+        Affichage de {{ getRangeStart() }} à {{ getRangeEnd() }}
+        sur {{ filteredProjects().length }} projet(s)
+      </span>
+
+      <div class="pagination-controls">
+        <button
+          class="page-btn page-nav"
+          [disabled]="currentPage() === 1"
+          (click)="goToPage(currentPage() - 1)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="15 18 9 12 15 6" />
+          </svg>
+        </button>
+
+        @for (page of pages(); track page) {
+          <button
+            class="page-btn"
+            [class.page-active]="page === currentPage()"
+            (click)="goToPage(page)">
+            {{ page }}
+          </button>
+        }
+
+        <button
+          class="page-btn page-nav"
+          [disabled]="currentPage() === totalPages()"
+          (click)="goToPage(currentPage() + 1)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="9 18 15 12 9 6" />
+          </svg>
+        </button>
+      </div>
+    </div>
+  }
+</div>
   </main>
 </div>
