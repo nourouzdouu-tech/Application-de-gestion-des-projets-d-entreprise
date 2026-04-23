@@ -30,6 +30,8 @@ interface SavedBillingData {
   totalManager: number;
   totalChefProjet: number;
   totalGeneral: number;
+  tvaAmount: number;
+  totalTTC: number;
 }
 
 @Component({
@@ -53,7 +55,11 @@ export class TjmCalculatorComponent implements OnInit {
   totalMembres = 0;
   totalManager = 0;
   totalChefProjet = 0;
-  totalGeneral = 0;
+  totalGeneral = 0; // HT
+
+  tvaRate = 0.2; // 20%
+  tvaAmount = 0;
+  totalTTC = 0;
 
   constructor(
     private route: ActivatedRoute,
@@ -196,7 +202,9 @@ export class TjmCalculatorComponent implements OnInit {
       .filter(l => l.source === 'CHEF_PROJET')
       .reduce((sum, l) => sum + Number(l.montant ?? 0), 0);
 
-    this.totalGeneral = this.totalMembres + this.totalManager + this.totalChefProjet;
+    this.totalGeneral = this.totalMembres + this.totalManager + this.totalChefProjet; // HT
+    this.tvaAmount = this.totalGeneral * this.tvaRate;
+    this.totalTTC = this.totalGeneral + this.tvaAmount;
   }
 
   resetJours(): void {
@@ -221,7 +229,9 @@ export class TjmCalculatorComponent implements OnInit {
       totalMembres: this.totalMembres,
       totalManager: this.totalManager,
       totalChefProjet: this.totalChefProjet,
-      totalGeneral: this.totalGeneral
+      totalGeneral: this.totalGeneral,
+      tvaAmount: this.tvaAmount,
+      totalTTC: this.totalTTC
     };
 
     localStorage.setItem(this.storageKey, JSON.stringify(payload));
@@ -426,10 +436,9 @@ export class TjmCalculatorComponent implements OnInit {
   </table>
 
   <div class="summary">
-    <div class="summary-row"><span>Total membres</span><span>${this.formatMoney(this.totalMembres)} MAD</span></div>
-    <div class="summary-row"><span>Total manager</span><span>${this.formatMoney(this.totalManager)} MAD</span></div>
-    <div class="summary-row"><span>Total chef de projet</span><span>${this.formatMoney(this.totalChefProjet)} MAD</span></div>
-    <div class="summary-row"><span>Total général</span><span>${this.formatMoney(this.totalGeneral)} MAD</span></div>
+    <div class="summary-row"><span>Total HT</span><span>${this.formatMoney(this.totalGeneral)} MAD</span></div>
+    <div class="summary-row"><span>TVA (20%)</span><span>${this.formatMoney(this.tvaAmount)} MAD</span></div>
+    <div class="summary-row"><span>Total TTC</span><span>${this.formatMoney(this.totalTTC)} MAD</span></div>
   </div>
 
   <div class="generated">Document généré le ${generatedAt}</div>
@@ -456,14 +465,6 @@ export class TjmCalculatorComponent implements OnInit {
 
   get storageKey(): string {
     return `billing_project_${this.projectId}`;
-  }
-
-  get projectTitle(): string {
-    return this.project?.name || 'Projet';
-  }
-
-  get projectDescription(): string {
-    return this.project?.description || 'Aucune description disponible.';
   }
 
   get memberLines(): BillingLine[] {

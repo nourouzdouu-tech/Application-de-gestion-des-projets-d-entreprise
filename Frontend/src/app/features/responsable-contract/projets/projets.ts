@@ -111,7 +111,7 @@ export class Projets implements OnInit, OnDestroy {
     this.currentPage = 1;
 
     const query = this.searchTerm.trim() || undefined;
-    const status = this.selectedStatus || undefined;
+    const status = this.selectedStatus.trim() || undefined;
 
     this.projectService.getAllProjects(query, status)
       .pipe(takeUntil(this.destroy$))
@@ -123,7 +123,7 @@ export class Projets implements OnInit, OnDestroy {
         },
         error: (err: any) => {
           console.error('Erreur chargement projets:', err);
-          this.error = 'Erreur lors du chargement des projets.';
+          this.error = err?.error?.message || 'Erreur lors du chargement des projets.';
           this.loading = false;
           this.cdr.detectChanges();
         }
@@ -173,7 +173,7 @@ export class Projets implements OnInit, OnDestroy {
       startDate: '',
       endDate: '',
       managerId: undefined
-    };
+    } as ProjectDto;
   }
 
   openCreateForm(): void {
@@ -201,8 +201,8 @@ export class Projets implements OnInit, OnDestroy {
       riskLevel: project.riskLevel ?? 'FAIBLE',
       startDate: project.startDate ?? '',
       endDate: project.endDate ?? '',
-      managerId: project.managerId
-    };
+      managerId: (project as any).managerId
+    } as ProjectDto;
 
     const selectedClient = this.clients.find(c => c.nom === this.projectForm.client);
     this.selectedRepresentants = selectedClient?.representants ?? [];
@@ -234,25 +234,31 @@ export class Projets implements OnInit, OnDestroy {
       riskLevel: this.projectForm.riskLevel ?? 'FAIBLE',
       startDate: this.projectForm.startDate,
       endDate: this.projectForm.endDate,
-      managerId: this.projectForm.managerId ? Number(this.projectForm.managerId) : undefined
-    };
+      managerId: (this.projectForm as any).managerId
+        ? Number((this.projectForm as any).managerId)
+        : undefined
+    } as ProjectDto;
 
     if (!payload.name) {
       this.formError = 'Le nom du projet est obligatoire.';
       return;
     }
+
     if (!payload.client) {
       this.formError = 'Le client est obligatoire.';
       return;
     }
-    if (!payload.managerId) {
+
+    if (!(payload as any).managerId) {
       this.formError = 'Le manager est obligatoire.';
       return;
     }
+
     if (!payload.startDate || !payload.endDate) {
       this.formError = 'Les dates sont obligatoires.';
       return;
     }
+
     if (payload.startDate > payload.endDate) {
       this.formError = 'La date de début doit être antérieure à la date de fin.';
       return;
@@ -303,6 +309,7 @@ export class Projets implements OnInit, OnDestroy {
           if (this.currentPage > this.totalPages && this.totalPages > 0) {
             this.currentPage = this.totalPages;
           }
+
           if (this.projects.length === 0) {
             this.currentPage = 1;
           }
@@ -326,12 +333,18 @@ export class Projets implements OnInit, OnDestroy {
   clearSearch(): void {
     this.searchTerm = '';
     this.selectedStatus = '';
+    this.currentPage = 1;
     this.fetchProjects();
   }
 
   setStatusFilter(status: string): void {
-    this.selectedStatus = status;
+    this.selectedStatus = (status || '').trim();
+    this.currentPage = 1;
     this.fetchProjects();
+  }
+
+  isStatusActive(status: string): boolean {
+    return this.selectedStatus === status;
   }
 
   goToBilling(project: ProjectDto): void {
