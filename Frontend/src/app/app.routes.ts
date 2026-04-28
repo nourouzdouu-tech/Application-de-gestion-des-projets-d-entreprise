@@ -16,7 +16,6 @@ import { TachesComponent } from './features/chef-projet/taches/taches';
 import { ResponsableContract } from './features/responsable-contract/responsable-contract';
 import { Projets as ResponsableProjets } from './features/responsable-contract/projets/projets';
 import { TjmCalculatorComponent } from './features/responsable-contract/tjm-calculator/tjm-calculator';
-import { Reporting } from './features/responsable-contract/reporting/reporting';
 
 import { ManagerLayoutComponent } from './features/manager/manager';
 import { ReviewProjetsComponent } from './features/manager/projets/projets';
@@ -76,7 +75,6 @@ export const routes: Routes = [
     children: [
       { path: 'dashboard', component: Dashboard },
       { path: 'projets', component: ResponsableProjets },
-      { path: 'reporting', component: Reporting },
      // { path: 'facturation', component: Facturation },
       { path: 'facturation/:projectId', component: TjmCalculatorComponent },
       { path: '', redirectTo: 'dashboard', pathMatch: 'full' }
