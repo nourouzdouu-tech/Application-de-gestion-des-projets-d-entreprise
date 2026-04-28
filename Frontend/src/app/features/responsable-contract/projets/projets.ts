@@ -16,6 +16,24 @@ type RepresentantDto = {
   telephone: string;
 };
 
+type WorkflowStepState = 'complete' | 'current' | 'upcoming' | 'rejected';
+
+type WorkflowStep = {
+  key: string;
+  label: string;
+  icon: 'create' | 'validate' | 'manager' | 'chef' | 'team' | 'progress' | 'close';
+  state: WorkflowStepState;
+  date: string;
+  time: string;
+  reviewedAt?: string;
+updatedAt?: string;
+createdAt?: string;
+managerComment?: string;
+managerName?: string;
+chefProjetName?: string;
+managerId?: number;
+};
+
 @Component({
   selector: 'app-responsable-contrat-projets',
   standalone: true,
@@ -185,8 +203,16 @@ export class Projets implements OnInit, OnDestroy {
     this.selectedRepresentantId = null;
     this.projectForm = this.getEmptyForm();
   }
+  isProjectInProgress(project: ProjectDto): boolean {
+  return (project.status ?? '').toUpperCase() === 'EN_COURS';
+}
+
+isRejectedEditMode(): boolean {
+  return this.isEditMode && (this.projectForm.status ?? '').toUpperCase() === 'REJETE';
+}
 
   openEditForm(project: ProjectDto): void {
+  if (this.isProjectInProgress(project)) return;
     this.showForm = true;
     this.isEditMode = true;
     this.editingProjectId = project.id ?? null;
@@ -201,12 +227,12 @@ export class Projets implements OnInit, OnDestroy {
       riskLevel: project.riskLevel ?? 'FAIBLE',
       startDate: project.startDate ?? '',
       endDate: project.endDate ?? '',
-      managerId: (project as any).managerId
+      managerId: (project as any).managerId,
+      status: project.status
     } as ProjectDto;
 
     const selectedClient = this.clients.find(c => c.nom === this.projectForm.client);
     this.selectedRepresentants = selectedClient?.representants ?? [];
-    this.selectedRepresentantId = null;
   }
 
   closeForm(): void {
@@ -288,9 +314,11 @@ export class Projets implements OnInit, OnDestroy {
   }
 
   confirmDelete(project: ProjectDto): void {
-    this.projectToDelete = project;
-    this.showDeleteConfirm = true;
-  }
+  if (this.isProjectInProgress(project)) return;
+
+  this.projectToDelete = project;
+  this.showDeleteConfirm = true;
+}
 
   cancelDelete(): void {
     this.projectToDelete = null;
@@ -403,7 +431,7 @@ export class Projets implements OnInit, OnDestroy {
       case 'VALIDE':
         return 'status-success';
       case 'EN_COURS':
-        return 'status-warning';
+        return 'status-success';
       case 'REJETE':
         return 'status-danger';
       case 'CLOTURE':
@@ -411,5 +439,132 @@ export class Projets implements OnInit, OnDestroy {
       default:
         return 'status-info';
     }
+  }
+
+  formatDateTime(value?: string | null): string {
+    if (!value) return '-';
+
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return '-';
+
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+
+    return `${day}/${month}/${year} ${hours}:${minutes}`;
+  }
+
+  private splitDateTime(value?: string | null): { date: string; time: string } {
+    const formatted = this.formatDateTime(value);
+    if (formatted === '-') {
+      return { date: 'À venir', time: '' };
+    }
+
+    const parts = formatted.split(' ');
+    return {
+      date: parts[0] ?? '-',
+      time: parts[1] ?? ''
+    };
+  }
+
+  getWorkflowSteps(project: ProjectDto | null): WorkflowStep[] {
+    const status = project?.status;
+    const reviewedAt = (project as any)?.reviewedAt;
+    const updatedAt = (project as any)?.updatedAt;
+    const createdAt = (project as any)?.createdAt;
+    const startDate = project?.startDate;
+    const endDate = project?.endDate;
+
+    const creationDate = this.splitDateTime(createdAt || updatedAt);
+    const validationDate = this.splitDateTime(reviewedAt || updatedAt || createdAt);
+    const teamDate = this.splitDateTime(updatedAt || reviewedAt || createdAt);
+    const progressDate = this.splitDateTime(startDate || updatedAt || reviewedAt || createdAt);
+    const closeDate = this.splitDateTime(endDate);
+
+    const steps: WorkflowStep[] = [
+      {
+        key: 'creation',
+        label: 'Création par RC',
+        icon: 'create',
+        state: 'complete',
+        date: creationDate.date,
+        time: creationDate.time
+      },
+      {
+        key: 'validation_manager',
+        label: 'Validation manager',
+        icon: 'validate',
+        state: 'upcoming',
+        date: validationDate.date,
+        time: validationDate.time
+      },
+      {
+        key: 'affectation_equipe',
+        label: 'Affectation équipe',
+        icon: 'team',
+        state: 'upcoming',
+        date: teamDate.date,
+        time: teamDate.time
+      },
+      {
+        key: 'projet_en_cours',
+        label: 'Projet en cours',
+        icon: 'progress',
+        state: 'upcoming',
+        date: progressDate.date,
+        time: progressDate.time
+      },
+      {
+        key: 'cloture',
+        label: 'Clôturé',
+        icon: 'close',
+        state: 'upcoming',
+        date: closeDate.date,
+        time: closeDate.time
+      }
+    ];
+
+   switch (status) {
+  case 'EN_VALIDATION':
+    // seulement la création est faite
+    break;
+
+  case 'PRE_VALIDE':
+  case 'VALIDE':
+    steps[1].state = 'complete';
+    steps[2].state = 'current';
+    break;
+
+  case 'EN_COURS':
+    steps[1].state = 'complete';
+    steps[2].state = 'complete';
+    steps[3].state = 'current';
+    break;
+
+  case 'CLOTURE':
+    steps[1].state = 'complete';
+    steps[2].state = 'complete';
+    steps[3].state = 'complete';
+    steps[4].state = 'current';
+    break;
+
+  case 'REJETE':
+    steps[1].state = 'rejected';
+    break;
+
+  default:
+    break;
+}
+
+    steps.forEach(step => {
+      if (step.state === 'upcoming') {
+        step.date = 'À venir';
+        step.time = '';
+      }
+    });
+
+    return steps;
   }
 }

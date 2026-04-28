@@ -82,7 +82,7 @@ export class Projets implements OnInit {
     public authService: AuthService,
     private cdr: ChangeDetectorRef,
     private ngZone: NgZone,
-     private router: Router 
+    private router: Router
   ) {}
 
   ngOnInit(): void {
@@ -319,17 +319,17 @@ export class Projets implements OnInit {
     this.fetchProjects();
   }
 
- getStatusLabel(status?: string): string {
-  const m: Record<string, string> = {
-    PRE_VALIDE: 'En cours',
-    EN_COURS: 'En cours',
-    EN_VALIDATION: 'En validation',
-    VALIDE: 'Validé',
-    REJETE: 'Rejeté',
-    CLOTURE: 'Clôturé'
-  };
-  return status ? (m[status] ?? status) : '-';
-}
+  getStatusLabel(status?: string): string {
+    const m: Record<string, string> = {
+      PRE_VALIDE: 'En cours',
+      EN_COURS: 'En cours',
+      EN_VALIDATION: 'En validation',
+      VALIDE: 'Validé',
+      REJETE: 'Rejeté',
+      CLOTURE: 'Clôturé'
+    };
+    return status ? (m[status] ?? status) : '-';
+  }
 
   getRiskLabel(risk?: string): string {
     const m: Record<string, string> = { FAIBLE: 'Faible', MOYEN: 'Moyen', ELEVE: 'Élevé' };
@@ -360,15 +360,23 @@ export class Projets implements OnInit {
     return status ? (m[status] ?? status) : 'À faire';
   }
 
-  getTaskStatusClass(status?: string): string {
-    const m: Record<string, string> = {
-      A_faire: 'statut-a-faire',
-      En_cours: 'statut-en-cours',
-      Terminé: 'statut-termine',
-      Validation: 'statut-validation'
-    };
-    return status ? (m[status] ?? '') : 'statut-a-faire';
+  // ✅ NOUVEAU : affiche "Rejeté" si la tâche est rejetée, sinon le label normal
+  getTaskDisplayStatus(task: TaskDto): string {
+    if (task.rejected && task.status === 'En_cours') return 'Rejeté';
+    return this.getTaskStatusLabel(task.status);
   }
+
+  // ✅ MODIFIÉ : ajoute la classe rouge "statut-rejete" pour les tâches rejetées
+ // ✅ Revenir à la signature originale (string, pas TaskDto)
+getTaskStatusClass(status?: string): string {
+  const m: Record<string, string> = {
+    A_faire: 'statut-a-faire',
+    En_cours: 'statut-en-cours',
+    Terminé: 'statut-termine',
+    Validation: 'statut-validation'
+  };
+  return status ? (m[status] ?? '') : 'statut-a-faire';
+}
 
   getTaskPriorityClass(priority?: string): string {
     if (!priority) return 'priorite-moyenne';
@@ -451,7 +459,7 @@ export class Projets implements OnInit {
   closeTaskModal(): void {
     this.showTaskModal = false;
     this.currentProjectForTask = null;
-    this.taskForm = { title: '', description: '', startDate: '',criticite: 3, assignedToId: undefined };
+    this.taskForm = { title: '', description: '', startDate: '', criticite: 3, assignedToId: undefined };
     this.cdr.detectChanges();
   }
 
@@ -590,31 +598,50 @@ export class Projets implements OnInit {
   confirmValidation(): void {
     if (!this.taskToValidate?.id) return;
 
-    const newStatus = this.validationAction === 'valider' ? 'Terminé' : 'En_cours';
-    const payload: TaskDto = { ...this.taskToValidate, status: newStatus };
-
-    this.taskService.updateTask(this.taskToValidate.id, payload).subscribe({
-      next: () => this.ngZone.run(() => {
-        const idx = this.projectTasks.findIndex(t => t.id === this.taskToValidate!.id);
-        if (idx !== -1) {
-          this.projectTasks[idx] = { ...this.projectTasks[idx], status: newStatus };
-          this.projectTasks = [...this.projectTasks];
-          this.refreshTasksPagination();
+    if (this.validationAction === 'valider') {
+      const payload: TaskDto = { ...this.taskToValidate, status: 'Terminé' };
+      this.taskService.updateTask(this.taskToValidate.id, payload).subscribe({
+        next: () => this.ngZone.run(() => {
+          const idx = this.projectTasks.findIndex(t => t.id === this.taskToValidate!.id);
+          if (idx !== -1) {
+            this.projectTasks[idx] = { ...this.projectTasks[idx], status: 'Terminé' };
+            this.projectTasks = [...this.projectTasks];
+            this.refreshTasksPagination();
+          }
+          this.showToast('✅ Tâche validée !', 'success');
+          this.closeValidationModal();
+          this.cdr.detectChanges();
+        }),
+        error: (err) => {
+          this.showToast(err.error?.message || 'Erreur lors de la validation', 'error');
+          this.closeValidationModal();
         }
+      });
 
-        this.showToast(
-          this.validationAction === 'valider' ? '✅ Tâche validée !' : '❌ Tâche rejetée.',
-          this.validationAction === 'valider' ? 'success' : 'error'
-        );
-
-        this.closeValidationModal();
-        this.cdr.detectChanges();
-      }),
-      error: (err) => {
-        this.showToast(err.error?.message || 'Erreur lors de la validation', 'error');
-        this.closeValidationModal();
-      }
-    });
+    } else {
+      this.taskService.rejectTask(this.taskToValidate.id, this.validationComment).subscribe({
+        next: () => this.ngZone.run(() => {
+          const idx = this.projectTasks.findIndex(t => t.id === this.taskToValidate!.id);
+          if (idx !== -1) {
+            this.projectTasks[idx] = {
+              ...this.projectTasks[idx],
+              status: 'En_cours',
+              rejected: true,
+              rejectionComment: this.validationComment
+            };
+            this.projectTasks = [...this.projectTasks];
+            this.refreshTasksPagination();
+          }
+          this.showToast('❌ Tâche rejetée.', 'error');
+          this.closeValidationModal();
+          this.cdr.detectChanges();
+        }),
+        error: (err) => {
+          this.showToast(err.error?.message || 'Erreur lors du rejet', 'error');
+          this.closeValidationModal();
+        }
+      });
+    }
   }
 
   showToast(message: string, type: 'success' | 'error' = 'success'): void {
@@ -661,9 +688,10 @@ export class Projets implements OnInit {
     this.currentPageTaches = 1;
     this.updatePaginatedTasks();
   }
+
   goToDashboard(): void {
     const roles = this.authService.getRoles();
-    
+
     if (roles.includes('ADMIN')) {
       this.router.navigate(['/admin/dashboard']);
     } else if (roles.includes('CHEF_PROJET')) {
@@ -678,71 +706,72 @@ export class Projets implements OnInit {
       this.router.navigate(['/admin/dashboard']);
     }
   }
+
   // ══════════════════════════════════════════════════
-// PAGINATION PROJETS (avec numéros de page)
-// ══════════════════════════════════════════════════
+  // PAGINATION PROJETS (avec numéros de page)
+  // ══════════════════════════════════════════════════
 
-getProjetsTotalPages(): number {
-  return Math.ceil(this.totalProjets / this.itemsPerPageProjets);
-}
-
-getProjetsRangeStart(): number {
-  if (this.totalProjets === 0) return 0;
-  return (this.currentPageProjets - 1) * this.itemsPerPageProjets + 1;
-}
-
-getProjetsRangeEnd(): number {
-  return Math.min(this.currentPageProjets * this.itemsPerPageProjets, this.totalProjets);
-}
-
-getProjetsPageNumbers(): number[] {
-  const total = this.getProjetsTotalPages();
-  const current = this.currentPageProjets;
-  const pages: number[] = [];
-
-  if (total <= 7) {
-    for (let i = 1; i <= total; i++) pages.push(i);
-  } else if (current <= 4) {
-    pages.push(1, 2, 3, 4, 5, -1, total);
-  } else if (current >= total - 3) {
-    pages.push(1, -1, total - 4, total - 3, total - 2, total - 1, total);
-  } else {
-    pages.push(1, -1, current - 1, current, current + 1, -1, total);
+  getProjetsTotalPages(): number {
+    return Math.ceil(this.totalProjets / this.itemsPerPageProjets);
   }
-  return pages;
-}
 
-// ══════════════════════════════════════════════════
-// PAGINATION TÂCHES (avec numéros de page)
-// ══════════════════════════════════════════════════
-
-getTachesTotalPages(): number {
-  return Math.ceil(this.totalTaches / this.itemsPerPageTaches);
-}
-
-getTachesRangeStart(): number {
-  if (this.totalTaches === 0) return 0;
-  return (this.currentPageTaches - 1) * this.itemsPerPageTaches + 1;
-}
-
-getTachesRangeEnd(): number {
-  return Math.min(this.currentPageTaches * this.itemsPerPageTaches, this.totalTaches);
-}
-
-getTachesPageNumbers(): number[] {
-  const total = this.getTachesTotalPages();
-  const current = this.currentPageTaches;
-  const pages: number[] = [];
-
-  if (total <= 7) {
-    for (let i = 1; i <= total; i++) pages.push(i);
-  } else if (current <= 4) {
-    pages.push(1, 2, 3, 4, 5, -1, total);
-  } else if (current >= total - 3) {
-    pages.push(1, -1, total - 4, total - 3, total - 2, total - 1, total);
-  } else {
-    pages.push(1, -1, current - 1, current, current + 1, -1, total);
+  getProjetsRangeStart(): number {
+    if (this.totalProjets === 0) return 0;
+    return (this.currentPageProjets - 1) * this.itemsPerPageProjets + 1;
   }
-  return pages;
-}
+
+  getProjetsRangeEnd(): number {
+    return Math.min(this.currentPageProjets * this.itemsPerPageProjets, this.totalProjets);
+  }
+
+  getProjetsPageNumbers(): number[] {
+    const total = this.getProjetsTotalPages();
+    const current = this.currentPageProjets;
+    const pages: number[] = [];
+
+    if (total <= 7) {
+      for (let i = 1; i <= total; i++) pages.push(i);
+    } else if (current <= 4) {
+      pages.push(1, 2, 3, 4, 5, -1, total);
+    } else if (current >= total - 3) {
+      pages.push(1, -1, total - 4, total - 3, total - 2, total - 1, total);
+    } else {
+      pages.push(1, -1, current - 1, current, current + 1, -1, total);
+    }
+    return pages;
+  }
+
+  // ══════════════════════════════════════════════════
+  // PAGINATION TÂCHES (avec numéros de page)
+  // ══════════════════════════════════════════════════
+
+  getTachesTotalPages(): number {
+    return Math.ceil(this.totalTaches / this.itemsPerPageTaches);
+  }
+
+  getTachesRangeStart(): number {
+    if (this.totalTaches === 0) return 0;
+    return (this.currentPageTaches - 1) * this.itemsPerPageTaches + 1;
+  }
+
+  getTachesRangeEnd(): number {
+    return Math.min(this.currentPageTaches * this.itemsPerPageTaches, this.totalTaches);
+  }
+
+  getTachesPageNumbers(): number[] {
+    const total = this.getTachesTotalPages();
+    const current = this.currentPageTaches;
+    const pages: number[] = [];
+
+    if (total <= 7) {
+      for (let i = 1; i <= total; i++) pages.push(i);
+    } else if (current <= 4) {
+      pages.push(1, 2, 3, 4, 5, -1, total);
+    } else if (current >= total - 3) {
+      pages.push(1, -1, total - 4, total - 3, total - 2, total - 1, total);
+    } else {
+      pages.push(1, -1, current - 1, current, current + 1, -1, total);
+    }
+    return pages;
+  }
 }

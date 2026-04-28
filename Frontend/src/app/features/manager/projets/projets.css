@@ -383,16 +383,24 @@
 .table-footer {
   padding: 16px 24px 18px;
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  justify-content: space-between;
   gap: 12px;
   border-top: 1px solid #edf1f7;
+  flex-wrap: wrap;
 }
 
+/* 👉 pousse pagination à droite */
 .pagination {
+  margin-left: auto;
   display: flex;
   align-items: center;
   gap: 8px;
+}
+
+.footer-meta {
+  font-size: 12px;
+  color: #94a3b8;
 }
 
 .page-btn {
@@ -809,4 +817,43 @@
   .actions {
     justify-content: flex-end;
   }
+}
+/* Stats */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(240px, 286px));
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.soft-purple {
+  background: #efe9ff;
+}
+
+.soft-lilac {
+  background: #f2ebff;
+}
+
+.soft-red {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+/* Action */
+.th-action {
+  text-align: center !important;
+  width: 180px;
+}
+
+.action-cell {
+  text-align: center !important;
+  width: 180px;
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
 }

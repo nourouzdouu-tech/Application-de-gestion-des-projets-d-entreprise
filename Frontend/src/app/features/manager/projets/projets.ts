@@ -59,6 +59,9 @@ export class ReviewProjetsComponent implements OnInit {
   readonly selectedRejectProject = signal<ReviewProject | null>(null);
    private router = inject(Router);           // ← AJOUTER CETTE LIGNE
   private authService = inject(AuthService); 
+  readonly countRejectes = computed(
+  () => this.projects().filter((p) => p.status === 'REJETE').length
+);
 
   rejectComment = '';
 

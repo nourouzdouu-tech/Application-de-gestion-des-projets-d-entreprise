@@ -203,14 +203,22 @@ export class TachesComponent implements OnInit {
   }
 
   valider(id: number): void {
-    this.taskService.updateMyTaskStatus(id, 'Terminé').subscribe({
+    const commentaire = prompt('Commentaire de validation :') ?? '';
+
+    this.taskService.validateTask(id, commentaire).subscribe({
       next: () => this.loadTasks(),
       error: (err) => console.error('Erreur validation tâche :', err)
     });
   }
 
   rejeter(id: number): void {
-    this.taskService.updateMyTaskStatus(id, 'A_faire').subscribe({
+    const commentaire = prompt('Motif du rejet :');
+
+    if (!commentaire || !commentaire.trim()) {
+      return;
+    }
+
+    this.taskService.rejectTask(id, commentaire.trim()).subscribe({
       next: () => this.loadTasks(),
       error: (err) => console.error('Erreur rejet tâche :', err)
     });

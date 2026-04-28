@@ -22,9 +22,14 @@ export interface TaskDto {
   projectName?: string;
   deleted?: boolean;
   priority?: 'BASSE' | 'MOYENNE' | 'HAUTE';
+
+  rejected?: boolean;
+  rejectionComment?: string;
 }
 
-@Injectable({ providedIn: 'root' })
+@Injectable({
+  providedIn: 'root'
+})
 export class TaskService {
   private apiUrl = 'http://localhost:8080/api/tasks';
 
@@ -64,6 +69,18 @@ export class TaskService {
   updateMyTaskStatus(id: number, status: TaskStatus): Observable<TaskDto> {
     const params = new HttpParams().set('status', status);
     return this.http.patch<TaskDto>(`${this.apiUrl}/${id}/status`, null, { params });
+  }
+
+  submitTaskForValidation(id: number): Observable<TaskDto> {
+    return this.http.post<TaskDto>(`${this.apiUrl}/${id}/submit`, {});
+  }
+
+  validateTask(id: number, commentaire: string): Observable<TaskDto> {
+    return this.http.post<TaskDto>(`${this.apiUrl}/${id}/validate`, { commentaire });
+  }
+
+  rejectTask(id: number, commentaire: string): Observable<TaskDto> {
+    return this.http.post<TaskDto>(`${this.apiUrl}/${id}/reject`, { commentaire });
   }
 
   deleteTask(id: number): Observable<void> {

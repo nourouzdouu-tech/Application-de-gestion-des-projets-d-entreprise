@@ -57,19 +57,12 @@ public class TaskController {
         return ResponseEntity.ok(taskService.updateMyTaskStatus(id, status));
     }
 
-    @DeleteMapping("/{id}")
-    @PreAuthorize("hasRole('CHEF_PROJET')")
-    public ResponseEntity<Void> deleteTask(@PathVariable Long id) {
-        taskService.deleteTask(id);
-        return ResponseEntity.noContent().build();
-    }
     @PostMapping("/{id}/submit")
     @PreAuthorize("isAuthenticated()")
     public ResponseEntity<TaskDto> submitTaskForValidation(@PathVariable Long id) {
         return ResponseEntity.ok(taskService.submitTaskForValidation(id));
     }
 
-    // ✅ Valider une tâche (chef de projet)
     @PostMapping("/{id}/validate")
     @PreAuthorize("hasRole('CHEF_PROJET')")
     public ResponseEntity<TaskDto> validateTask(
@@ -79,7 +72,6 @@ public class TaskController {
         return ResponseEntity.ok(taskService.validateTask(id, commentaire));
     }
 
-    // ✅ Rejeter une tâche (chef de projet)
     @PostMapping("/{id}/reject")
     @PreAuthorize("hasRole('CHEF_PROJET')")
     public ResponseEntity<TaskDto> rejectTask(
@@ -87,5 +79,12 @@ public class TaskController {
             @RequestBody(required = false) Map<String, String> body) {
         String commentaire = body != null ? body.get("commentaire") : null;
         return ResponseEntity.ok(taskService.rejectTask(id, commentaire));
+    }
+
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasRole('CHEF_PROJET')")
+    public ResponseEntity<Void> deleteTask(@PathVariable Long id) {
+        taskService.deleteTask(id);
+        return ResponseEntity.noContent().build();
     }
 }

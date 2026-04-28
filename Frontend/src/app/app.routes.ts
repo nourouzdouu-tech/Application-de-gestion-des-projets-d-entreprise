@@ -77,7 +77,7 @@ export const routes: Routes = [
       { path: 'dashboard', component: Dashboard },
       { path: 'projets', component: ResponsableProjets },
       { path: 'reporting', component: Reporting },
-      { path: 'facturation', component: TjmCalculatorComponent },
+     // { path: 'facturation', component: Facturation },
       { path: 'facturation/:projectId', component: TjmCalculatorComponent },
       { path: '', redirectTo: 'dashboard', pathMatch: 'full' }
     ]

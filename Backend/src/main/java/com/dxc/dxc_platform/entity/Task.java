@@ -28,7 +28,6 @@ public class Task {
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
-    // Nouveau modèle
     @Column(name = "start_date")
     private LocalDate startDate;
 
@@ -59,58 +58,166 @@ public class Task {
     @Column(nullable = false)
     private LocalDateTime updatedAt;
 
-    public Task() {}
+    @Column(name = "rejected", nullable = false)
+    private boolean rejected = false;
+
+    @Column(name = "rejection_comment", length = 2000)
+    private String rejectionComment;
+
+    public Task() {
+    }
 
     @PrePersist
     protected void onCreate() {
-        createdAt = LocalDateTime.now();
-        updatedAt = LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now();
+        this.createdAt = now;
+        this.updatedAt = now;
+
+        if (this.priority == null) {
+            this.priority = Priority.MOYENNE;
+        }
+
+        if (this.status == null) {
+            this.status = Status.A_faire;
+        }
+
+        this.rejected = false;
     }
 
     @PreUpdate
     protected void onUpdate() {
-        updatedAt = LocalDateTime.now();
+        this.updatedAt = LocalDateTime.now();
+
+        if (this.rejected == false && this.rejectionComment != null && this.rejectionComment.isBlank()) {
+            this.rejectionComment = null;
+        }
     }
 
-    public Long getId() { return id; }
-    public void setId(Long id) { this.id = id; }
+    public Long getId() {
+        return id;
+    }
 
-    public String getTitle() { return title; }
-    public void setTitle(String title) { this.title = title; }
+    public void setId(Long id) {
+        this.id = id;
+    }
 
-    public String getDescription() { return description; }
-    public void setDescription(String description) { this.description = description; }
+    public String getTitle() {
+        return title;
+    }
 
-    public Status getStatus() { return status; }
-    public void setStatus(Status status) { this.status = status; }
+    public void setTitle(String title) {
+        this.title = title;
+    }
 
-    public LocalDateTime getCreatedAt() { return createdAt; }
-    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+    public String getDescription() {
+        return description;
+    }
 
-    public LocalDate getStartDate() { return startDate; }
-    public void setStartDate(LocalDate startDate) { this.startDate = startDate; }
+    public void setDescription(String description) {
+        this.description = description;
+    }
 
-    public Integer getCriticite() { return criticite; }
-    public void setCriticite(Integer criticite) { this.criticite = criticite; }
+    public Status getStatus() {
+        return status;
+    }
 
-    public Integer getDureeEstimee() { return dureeEstimee; }
-    public void setDureeEstimee(Integer dureeEstimee) { this.dureeEstimee = dureeEstimee; }
+    public void setStatus(Status status) {
+        this.status = status;
+    }
 
-    public LocalDate getEstimatedEndDate() { return estimatedEndDate; }
-    public void setEstimatedEndDate(LocalDate estimatedEndDate) { this.estimatedEndDate = estimatedEndDate; }
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
 
-    public User getAssignedTo() { return assignedTo; }
-    public void setAssignedTo(User assignedTo) { this.assignedTo = assignedTo; }
+    public void setCreatedAt(LocalDateTime createdAt) {
+        this.createdAt = createdAt;
+    }
 
-    public Project getProject() { return project; }
-    public void setProject(Project project) { this.project = project; }
+    public LocalDate getStartDate() {
+        return startDate;
+    }
 
-    public boolean isDeleted() { return deleted; }
-    public void setDeleted(boolean deleted) { this.deleted = deleted; }
+    public void setStartDate(LocalDate startDate) {
+        this.startDate = startDate;
+    }
 
-    public LocalDateTime getUpdatedAt() { return updatedAt; }
-    public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
+    public Integer getCriticite() {
+        return criticite;
+    }
 
-    public Priority getPriority() { return priority; }
-    public void setPriority(Priority priority) { this.priority = priority; }
+    public void setCriticite(Integer criticite) {
+        this.criticite = criticite;
+    }
+
+    public Integer getDureeEstimee() {
+        return dureeEstimee;
+    }
+
+    public void setDureeEstimee(Integer dureeEstimee) {
+        this.dureeEstimee = dureeEstimee;
+    }
+
+    public LocalDate getEstimatedEndDate() {
+        return estimatedEndDate;
+    }
+
+    public void setEstimatedEndDate(LocalDate estimatedEndDate) {
+        this.estimatedEndDate = estimatedEndDate;
+    }
+
+    public Priority getPriority() {
+        return priority;
+    }
+
+    public void setPriority(Priority priority) {
+        this.priority = priority;
+    }
+
+    public User getAssignedTo() {
+        return assignedTo;
+    }
+
+    public void setAssignedTo(User assignedTo) {
+        this.assignedTo = assignedTo;
+    }
+
+    public Project getProject() {
+        return project;
+    }
+
+    public void setProject(Project project) {
+        this.project = project;
+    }
+
+    public boolean isDeleted() {
+        return deleted;
+    }
+
+    public void setDeleted(boolean deleted) {
+        this.deleted = deleted;
+    }
+
+    public LocalDateTime getUpdatedAt() {
+        return updatedAt;
+    }
+
+    public void setUpdatedAt(LocalDateTime updatedAt) {
+        this.updatedAt = updatedAt;
+    }
+
+    public boolean isRejected() {
+        return rejected;
+    }
+
+    public void setRejected(boolean rejected) {
+        this.rejected = rejected;
+    }
+
+    public String getRejectionComment() {
+        return rejectionComment;
+    }
+
+    public void setRejectionComment(String rejectionComment) {
+        this.rejectionComment = rejectionComment;
+    }
 }

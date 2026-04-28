@@ -300,7 +300,7 @@ export class TjmCalculatorComponent implements OnInit {
       line.fullName,
       line.roleName,
       line.profileLibelle || '-',
-      `${this.formatMoney(line.tjm)} MAD`,
+      this.formatMoney(line.tjm) + ' MAD',
       `${Number(line.nombreJours ?? 0)}`,
       `${this.formatMoney(line.montant)} MAD`
     ]);
@@ -374,11 +374,11 @@ export class TjmCalculatorComponent implements OnInit {
   }
 
   formatMoney(value: number): string {
-    return Number(value || 0).toLocaleString('fr-FR', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2
-    });
-  }
+  return Number(value || 0)
+    .toFixed(2)                // 20000.00
+    .replace('.', ',')         // 20000,00
+    .replace(/\B(?=(\d{3})+(?!\d))/g, ' '); // 20 000,00
+}
 
   get storageKey(): string {
     return `billing_project_${this.projectId}`;

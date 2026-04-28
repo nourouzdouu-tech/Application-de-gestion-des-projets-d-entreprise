@@ -138,6 +138,7 @@ public class ProjectServiceImpl implements ProjectService {
     public ProjectDto updateProject(Long projectId, ProjectDto request) {
         Project project = findActiveProjectById(projectId);
         User currentUser = getAuthenticatedUser();
+
         validateCurrentUserCanManageProject(project, currentUser);
         validateProjectDates(request);
 
@@ -146,7 +147,9 @@ public class ProjectServiceImpl implements ProjectService {
                 && projectRepository.existsByNameIgnoreCaseAndDeletedFalse(newName)) {
             throw new ConflictException("PROJECT_ALREADY_EXISTS", "Un projet avec ce nom existe déjà");
         }
+
         String oldName = project.getName();
+
         project.setName(newName);
         project.setDescription(request.getDescription());
         project.setClient(request.getClient().trim());
@@ -156,11 +159,23 @@ public class ProjectServiceImpl implements ProjectService {
         project.setEndDate(request.getEndDate());
 
         if (request.getManagerId() != null) {
+            Long currentManagerId = project.getManager() != null ? project.getManager().getId() : null;
+
             User manager = findValidManagerById(request.getManagerId());
             project.setManager(manager);
+
+            // ✅ Si le projet était rejeté et que le manager change,
+            // il repart en cours de validation
+            if (project.getStatus() == ProjectStatus.REJETE
+                    && (currentManagerId == null || !currentManagerId.equals(manager.getId()))) {
+                project.setStatus(ProjectStatus.EN_VALIDATION);
+                project.setChefProjet(null);
+                project.setTeam(null);
+                project.setManagerComment(null);
+                project.setReviewedAt(null);
+            }
         }
 
-        // ✅ Vérifier si l'équipe change et si des tâches existent
         Long newTeamId = request.getTeamId();
         if (newTeamId != null) {
             Long currentTeamId = project.getTeam() != null ? project.getTeam().getId() : null;
@@ -182,6 +197,7 @@ public class ProjectServiceImpl implements ProjectService {
         auditService.log("UPDATE_PROJECT", "PROJECT", projectId,
                 "Modification du projet " + oldName + " → " + newName,
                 getCurrentUserEmail(), null);
+
         return projectMapper.toDto(updatedProject);
     }
 

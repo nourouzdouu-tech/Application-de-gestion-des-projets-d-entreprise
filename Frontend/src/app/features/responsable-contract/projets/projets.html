@@ -42,43 +42,23 @@
     </div>
 
     <div class="tabs-filter">
-      <button
-        type="button"
-        class="tab-btn"
-        [class.active]="isStatusActive('')"
-        (click)="setStatusFilter('')">
+      <button type="button" class="tab-btn" [class.active]="isStatusActive('')" (click)="setStatusFilter('')">
         Tous
       </button>
 
-      <button
-        type="button"
-        class="tab-btn"
-        [class.active]="isStatusActive('EN_VALIDATION')"
-        (click)="setStatusFilter('EN_VALIDATION')">
+      <button type="button" class="tab-btn" [class.active]="isStatusActive('EN_VALIDATION')" (click)="setStatusFilter('EN_VALIDATION')">
         En validation
       </button>
 
-      <button
-        type="button"
-        class="tab-btn"
-        [class.active]="isStatusActive('PRE_VALIDE')"
-        (click)="setStatusFilter('PRE_VALIDE')">
+      <button type="button" class="tab-btn" [class.active]="isStatusActive('PRE_VALIDE')" (click)="setStatusFilter('PRE_VALIDE')">
         Pré-validés
       </button>
 
-      <button
-        type="button"
-        class="tab-btn"
-        [class.active]="isStatusActive('EN_COURS')"
-        (click)="setStatusFilter('EN_COURS')">
+      <button type="button" class="tab-btn" [class.active]="isStatusActive('EN_COURS')" (click)="setStatusFilter('EN_COURS')">
         En cours
       </button>
 
-      <button
-        type="button"
-        class="tab-btn"
-        [class.active]="isStatusActive('REJETE')"
-        (click)="setStatusFilter('REJETE')">
+      <button type="button" class="tab-btn" [class.active]="isStatusActive('REJETE')" (click)="setStatusFilter('REJETE')">
         Rejetés
       </button>
     </div>
@@ -162,7 +142,8 @@
             <button
               class="icon-action-btn icon-edit"
               type="button"
-              title="Modifier"
+              [title]="isProjectInProgress(project) ? 'Modification désactivée pour un projet en cours' : 'Modifier'"
+              [disabled]="isProjectInProgress(project)"
               (click)="openEditForm(project)">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M12 20h9" />
@@ -173,7 +154,8 @@
             <button
               class="icon-action-btn icon-delete"
               type="button"
-              title="Supprimer"
+              [title]="isProjectInProgress(project) ? 'Suppression désactivée pour un projet en cours' : 'Supprimer'"
+              [disabled]="isProjectInProgress(project)"
               (click)="confirmDelete(project)">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <polyline points="3 6 5 6 21 6" />
@@ -267,17 +249,31 @@
       <div class="form-grid">
         <div class="form-group form-group-full">
           <label>Nom du projet</label>
-          <input type="text" name="projectName" [(ngModel)]="projectForm.name" placeholder="Ex: Projet Alpha" />
+          <input
+            type="text"
+            name="projectName"
+            [(ngModel)]="projectForm.name"
+            [disabled]="isRejectedEditMode()"
+            placeholder="Ex: Projet Alpha"
+          />
         </div>
 
         <div class="form-group form-group-full">
           <label>Description</label>
-          <textarea name="projectDescription" [(ngModel)]="projectForm.description" placeholder="Décrivez l'objectif du projet..."></textarea>
+          <textarea
+            name="projectDescription"
+            [(ngModel)]="projectForm.description"
+            [disabled]="isRejectedEditMode()"
+            placeholder="Décrivez l'objectif du projet..."></textarea>
         </div>
 
         <div class="form-group">
           <label>Client</label>
-          <select name="projectClient" [(ngModel)]="projectForm.client" (ngModelChange)="onClientChange()">
+          <select
+            name="projectClient"
+            [(ngModel)]="projectForm.client"
+            [disabled]="isRejectedEditMode()"
+            (ngModelChange)="onClientChange()">
             <option value="">Choisir un client</option>
             <option *ngFor="let c of clients" [value]="c.nom">{{ c.nom }}</option>
           </select>
@@ -288,7 +284,7 @@
           <select
             name="projectRepresentant"
             [(ngModel)]="selectedRepresentantId"
-            [disabled]="!projectForm.client || selectedRepresentants.length === 0">
+            [disabled]="isRejectedEditMode() || !projectForm.client || selectedRepresentants.length === 0">
             <option [ngValue]="null">Choisir un représentant</option>
             <option *ngFor="let r of selectedRepresentants" [ngValue]="r.id">
               {{ r.nom }} - {{ r.email }}
@@ -306,12 +302,22 @@
 
         <div class="form-group">
           <label>Date début</label>
-          <input type="date" name="projectStartDate" [(ngModel)]="projectForm.startDate" />
+          <input
+            type="date"
+            name="projectStartDate"
+            [(ngModel)]="projectForm.startDate"
+            [disabled]="isRejectedEditMode()"
+          />
         </div>
 
         <div class="form-group">
           <label>Date fin</label>
-          <input type="date" name="projectEndDate" [(ngModel)]="projectForm.endDate" />
+          <input
+            type="date"
+            name="projectEndDate"
+            [(ngModel)]="projectForm.endDate"
+            [disabled]="isRejectedEditMode()"
+          />
         </div>
       </div>
     </div>
@@ -328,35 +334,193 @@
 </div>
 
 <!-- Modal : Détails projet -->
-<div class="modal-backdrop" *ngIf="showDetailsModal">
-  <div class="modal-card modal-confirm">
-    <div class="modal-header">
-      <div class="modal-title-wrap">
+<div class="modal-backdrop modal-details-backdrop" *ngIf="showDetailsModal" (click)="closeDetails()">
+  <div class="modal-card modal-details-card" (click)="$event.stopPropagation()">
+    <div class="modal-header modal-details-header">
+      <div class="modal-title-wrap modal-details-title-wrap">
         <div>
           <h2>Détails du projet</h2>
-          <p class="modal-subtitle">Commentaire du manager</p>
+          <p class="modal-subtitle">Suivi complet du projet et workflow</p>
         </div>
       </div>
-      <button class="modal-close-btn" type="button" (click)="closeDetails()" aria-label="Fermer">×</button>
+      <button class="modal-close-btn modal-details-close" type="button" (click)="closeDetails()" aria-label="Fermer">×</button>
     </div>
 
-    <div class="modal-body" *ngIf="selectedProjectDetails">
-      <p><strong>Projet :</strong> {{ selectedProjectDetails.name }}</p>
-      <p><strong>Statut :</strong> {{ getStatusLabel(selectedProjectDetails.status) }}</p>
-      <p><strong>Équipe :</strong> {{ selectedProjectDetails.teamName || 'Non affectée' }}</p>
+    <div class="modal-body modal-details-body" *ngIf="selectedProjectDetails as project">
+      <div class="details-top-grid">
+        <div class="detail-info-card">
+          <div class="detail-info-item">
+            <div class="detail-info-icon detail-info-icon-project">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="4" width="18" height="16" rx="3"></rect>
+                <path d="M8 2v4M16 2v4M3 10h18"></path>
+              </svg>
+            </div>
+            <div class="detail-info-content">
+              <span class="detail-label">Projet</span>
+              <strong>{{ project.name }}</strong>
+            </div>
+          </div>
 
-      <p><strong>Commentaire manager :</strong></p>
-      <div class="comment-box">
-        {{ selectedProjectDetails.managerComment || 'Aucun commentaire disponible.' }}
+          <div class="detail-info-item">
+            <div class="detail-info-icon detail-info-icon-client">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M3 21h18"></path>
+                <path d="M5 21V7l7-4 7 4v14"></path>
+                <path d="M9 9h.01M9 12h.01M9 15h.01M15 9h.01M15 12h.01M15 15h.01"></path>
+              </svg>
+            </div>
+            <div class="detail-info-content">
+              <span class="detail-label">Client</span>
+              <strong>{{ project.client }}</strong>
+            </div>
+          </div>
+
+          <div class="detail-info-item">
+            <div class="detail-info-icon detail-info-icon-manager">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M20 21a8 8 0 0 0-16 0"></path>
+                <circle cx="12" cy="8" r="4"></circle>
+              </svg>
+            </div>
+            <div class="detail-info-content">
+              <span class="detail-label">Manager</span>
+              <strong>{{ project.managerName || 'Non affecté' }}</strong>
+            </div>
+          </div>
+
+          <div class="detail-info-item">
+            <div class="detail-info-icon detail-info-icon-team">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                <circle cx="9" cy="7" r="4"></circle>
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+              </svg>
+            </div>
+            <div class="detail-info-content">
+              <span class="detail-label">Équipe</span>
+              <strong>{{ project.teamName || 'Non affectée' }}</strong>
+            </div>
+          </div>
+
+          <div class="detail-info-item">
+            <div class="detail-info-icon detail-info-icon-chef">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M20 21a8 8 0 0 0-16 0"></path>
+                <circle cx="12" cy="8" r="4"></circle>
+              </svg>
+            </div>
+            <div class="detail-info-content">
+              <span class="detail-label">Chef de projet</span>
+              <strong>{{ project.chefProjetName || 'Non affecté' }}</strong>
+            </div>
+          </div>
+
+          <div class="detail-info-item">
+            <div class="detail-info-icon detail-info-icon-status">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M5 5v14"></path>
+                <path d="M5 5h10l-2.5 4L15 13H5"></path>
+              </svg>
+            </div>
+            <div class="detail-info-content">
+              <span class="detail-label">Statut actuel</span>
+              <span class="status-pill details-status-pill" [ngClass]="getStatusClass(project.status)">
+                {{ getStatusLabel(project.status) }}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div class="details-meta-card">
+          <div class="details-comment-block">
+            <div class="detail-info-icon detail-info-icon-comment">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"></path>
+              </svg>
+            </div>
+            <div class="details-meta-content">
+              <span class="detail-label">Commentaire du manager</span>
+              <div class="details-comment-box">
+                {{ project.managerComment || 'Aucun commentaire disponible.' }}
+              </div>
+            </div>
+          </div>
+
+          <div class="details-date-block">
+            <div class="detail-info-icon detail-info-icon-date">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="4" width="18" height="18" rx="3"></rect>
+                <path d="M8 2v4M16 2v4M3 10h18"></path>
+              </svg>
+            </div>
+            <div class="details-meta-content">
+              <span class="detail-label">Date de traitement</span>
+              <strong>{{ formatDateTime(project.reviewedAt || project.updatedAt || project.createdAt) }}</strong>
+            </div>
+          </div>
+        </div>
       </div>
 
-      <p *ngIf="selectedProjectDetails.reviewedAt">
-        <strong>Date de traitement :</strong>
-        {{ selectedProjectDetails.reviewedAt | date:'dd/MM/yyyy HH:mm' }}
-      </p>
+      <div class="details-workflow-card">
+        <div class="details-workflow-head">
+          <h3>Workflow du projet</h3>
+          <p>Étapes de validation et d'avancement</p>
+        </div>
+
+        <div class="workflow-timeline">
+          <div
+            class="workflow-step"
+            *ngFor="let step of getWorkflowSteps(project); let i = index"
+            [class.is-complete]="step.state === 'complete'"
+            [class.is-current]="step.state === 'current'"
+            [class.is-upcoming]="step.state === 'upcoming'"
+            [class.is-rejected]="step.state === 'rejected'"
+          >
+            <div class="workflow-line" *ngIf="i < getWorkflowSteps(project).length - 1"></div>
+
+            <div class="workflow-marker" [attr.data-stage]="i + 1">
+              <svg *ngIf="step.icon === 'create'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="4" width="18" height="16" rx="3"></rect>
+                <path d="M8 2v4M16 2v4M3 10h18"></path>
+              </svg>
+              <svg *ngIf="step.icon === 'validate'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="20 6 9 17 4 12"></polyline>
+              </svg>
+              <svg *ngIf="step.icon === 'manager'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M20 21a8 8 0 0 0-16 0"></path>
+                <circle cx="12" cy="8" r="4"></circle>
+              </svg>
+              <svg *ngIf="step.icon === 'chef'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M20 21a8 8 0 0 0-16 0"></path>
+                <circle cx="12" cy="8" r="4"></circle>
+              </svg>
+              <svg *ngIf="step.icon === 'team'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                <circle cx="9" cy="7" r="4"></circle>
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+              </svg>
+              <svg *ngIf="step.icon === 'progress'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polygon points="7 4 19 12 7 20 7 4"></polygon>
+              </svg>
+              <svg *ngIf="step.icon === 'close'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M5 5v14"></path>
+                <path d="M5 5h10l-2.5 4L15 13H5"></path>
+              </svg>
+            </div>
+
+            <div class="workflow-index">{{ i + 1 }}</div>
+            <div class="workflow-title">{{ step.label }}</div>
+            <div class="workflow-date">{{ step.date }}</div>
+            <div class="workflow-time">{{ step.time }}</div>
+          </div>
+        </div>
+      </div>
     </div>
 
-    <div class="modal-footer">
+    <div class="modal-footer modal-details-footer">
       <button class="btn-secondary" type="button" (click)="closeDetails()">Fermer</button>
     </div>
   </div>

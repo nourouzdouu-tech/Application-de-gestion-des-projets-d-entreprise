@@ -535,12 +535,36 @@
     max-width: none;
   }
 
-  .pagination-bar {
-    align-items: center;
-  }
+.pagination-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px 22px;
+  border-top: 1px solid #edf0f7;
+  gap: 14px;
+  flex-wrap: wrap;
+}
 
-  .pagination-controls {
-    justify-content: center;
-    flex-wrap: wrap;
-  }
+/* 👉 pousse les boutons à droite */
+.pagination-controls {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pagination-info {
+  font-size: 13px;
+  color: #94a3b8;
+  font-weight: 500;
+}
+}
+.breadcrumb-parent {
+  color: #9ca3af;
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+
+.breadcrumb-parent:hover {
+  color: #6b7280;
 }

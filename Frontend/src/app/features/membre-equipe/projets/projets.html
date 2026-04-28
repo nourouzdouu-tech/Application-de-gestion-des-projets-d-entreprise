@@ -1,6 +1,8 @@
 <div class="projects-page">
+
+  <!-- ✅ Breadcrumb cliquable -->
   <div class="breadcrumb">
-    <span class="breadcrumb-parent">Tableau de bord</span>
+    <span class="breadcrumb-parent" (click)="goToDashboard()">Tableau de bord</span>
     <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
       <polyline points="9 18 15 12 9 6" />
     </svg>
@@ -20,6 +22,7 @@
         <circle cx="11" cy="11" r="8"></circle>
         <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
       </svg>
+
       <input
         type="text"
         class="search-input search-input-large"
@@ -135,37 +138,39 @@
       </div>
 
       <div class="pagination-bar" *ngIf="filteredProjects().length > 0">
-        <div class="pagination-controls">
-          <button
-            class="page-btn page-nav"
-            type="button"
-            [disabled]="currentPage() === 1"
-            (click)="prevPage()">
-            ‹
-          </button>
 
-          <button
-            *ngFor="let page of pages()"
-            class="page-btn"
-            type="button"
-            [class.page-active]="page === currentPage()"
-            (click)="setPage(page)">
-            {{ page }}
-          </button>
+  <span class="pagination-info">
+    Affichage de {{ rangeStart() }} à {{ rangeEnd() }} sur {{ filteredProjects().length }} projets
+  </span>
 
-          <button
-            class="page-btn page-nav"
-            type="button"
-            [disabled]="currentPage() === totalPages()"
-            (click)="nextPage()">
-            ›
-          </button>
-        </div>
+  <div class="pagination-controls">
+    <button
+      class="page-btn page-nav"
+      type="button"
+      [disabled]="currentPage() === 1"
+      (click)="prevPage()">
+      ‹
+    </button>
 
-        <span class="pagination-info">
-          Affichant {{ itemsPerPage }} par page
-        </span>
-      </div>
+    <button
+      *ngFor="let page of pages()"
+      class="page-btn"
+      type="button"
+      [class.page-active]="page === currentPage()"
+      (click)="setPage(page)">
+      {{ page }}
+    </button>
+
+    <button
+      class="page-btn page-nav"
+      type="button"
+      [disabled]="currentPage() === totalPages()"
+      (click)="nextPage()">
+      ›
+    </button>
+  </div>
+
+</div>
     }
   </div>
 
@@ -182,4 +187,5 @@
       </div>
     </div>
   </div>
+
 </div>

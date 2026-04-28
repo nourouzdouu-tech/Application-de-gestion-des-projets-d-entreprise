@@ -41,6 +41,19 @@
         <div class="stat-value">{{ countAssignes() }}</div>
       </div>
     </article>
+    <article class="stat-card">
+  <div class="stat-icon soft-red">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <circle cx="12" cy="12" r="9"></circle>
+      <line x1="9" y1="9" x2="15" y2="15"></line>
+      <line x1="15" y1="9" x2="9" y2="15"></line>
+    </svg>
+  </div>
+  <div class="stat-content">
+    <div class="stat-label">Rejetés</div>
+    <div class="stat-value">{{ countRejectes() }}</div>
+  </div>
+</article>
   </div>
 
   <div class="search-row">
@@ -76,7 +89,7 @@
             <th>STATUT</th>
             <th>CLIENT</th>
             <th>DATE DE CRÉATION</th>
-            <th class="th-action">ACTION</th>
+            <th class="th-action">ACTIONS</th>
           </tr>
         </thead>
 
@@ -183,38 +196,45 @@
     </div>
 
     <div class="table-footer">
-      <div class="pagination">
-        <button
-          type="button"
-          class="page-btn icon"
-          (click)="previousPage()"
-          [disabled]="currentPage() === 1"
-        >
-          ‹
-        </button>
 
-        <button
-          type="button"
-          class="page-btn"
-          *ngFor="let page of pageNumbers()"
-          [class.active]="page === currentPage()"
-          (click)="goToPage(page)"
-        >
-          {{ page }}
-        </button>
+  <!-- TEXTE À GAUCHE -->
+  <div class="footer-meta">
+    Affichage de {{ displayRange().start }} à {{ displayRange().end }} sur
+    {{ displayRange().total }} projets
+  </div>
 
-        <button
-          type="button"
-          class="page-btn icon"
-          (click)="nextPage()"
-          [disabled]="currentPage() === totalPages()"
-        >
-          ›
-        </button>
-      </div>
+  <!-- PAGINATION À DROITE -->
+  <div class="pagination">
+    <button
+      type="button"
+      class="page-btn icon"
+      (click)="previousPage()"
+      [disabled]="currentPage() === 1"
+    >
+      ‹
+    </button>
 
-      <div class="footer-meta">Affichant {{ pageSize }} par page</div>
-    </div>
+    <button
+      type="button"
+      class="page-btn"
+      *ngFor="let page of pageNumbers()"
+      [class.active]="page === currentPage()"
+      (click)="goToPage(page)"
+    >
+      {{ page }}
+    </button>
+
+    <button
+      type="button"
+      class="page-btn icon"
+      (click)="nextPage()"
+      [disabled]="currentPage() === totalPages()"
+    >
+      ›
+    </button>
+  </div>
+
+</div>
   </section>
 </section>
 

@@ -4,11 +4,10 @@ import { FormsModule } from '@angular/forms';
 import {
   CdkDragDrop,
   DragDropModule,
-  moveItemInArray,
-  transferArrayItem
+  moveItemInArray
 } from '@angular/cdk/drag-drop';
 import { TaskService, TaskDto, TaskStatus } from '../../../core/services/task.service';
-
+import { Router } from '@angular/router';
 type PrioriteUi = 'HAUTE' | 'MOYENNE' | 'BASSE';
 type StatutColonne = 'A_FAIRE' | 'EN_COURS' | 'EN_VALIDATION' | 'TERMINE';
 
@@ -22,6 +21,7 @@ interface TaskItem {
   commentaire?: string;
   reference?: string;
   membreNom?: string;
+  rejected?: boolean;
 }
 
 @Component({
@@ -33,6 +33,7 @@ interface TaskItem {
 })
 export class MembreEquipeTaches implements OnInit {
   private taskService = inject(TaskService);
+  private router = inject(Router);
 
   searchQuery = signal('');
   filterPriorite = signal<string>('Toutes');
@@ -58,6 +59,12 @@ export class MembreEquipeTaches implements OnInit {
     'doneList'
   ];
 
+  showCommentModal = signal(false);
+  selectedComment = signal('');
+  selectedTaskTitle = signal('');
+goToDashboard() {
+  this.router.navigate(['/membre-equipe/dashboard']);
+}
   ngOnInit(): void {
     this.loadTasks();
   }
@@ -85,22 +92,21 @@ export class MembreEquipeTaches implements OnInit {
     });
   }
 
-  private mapTask(task: TaskDto): TaskItem {
-    const membreNom = task.assignedToName?.trim() || 'Non assigné';
-
-    return {
-      id: task.id ?? 0,
-      titre: task.title,
-      projet: task.projectName || 'Sans projet',
-      date: this.formatDate(task.estimatedEndDate || task.createdAt || ''),
-      priorite: this.mapPriority(task.priority),
-      statut: this.mapStatusToColumn(task.status),
-      commentaire: task.description || '',
-      reference: task.id ? `#${task.id}` : '',
-      membreNom
-    };
-  }
-
+private mapTask(task: TaskDto): TaskItem {
+  const membreNom = task.assignedToName?.trim() || 'Non assigné';
+  return {
+    id: task.id ?? 0,
+    titre: task.title,
+    projet: task.projectName || 'Sans projet',
+    date: this.formatDate(task.estimatedEndDate || task.createdAt || ''),
+    priorite: this.mapPriority(task.priority),
+    statut: this.mapStatusToColumn(task.status),
+    commentaire: task.rejectionComment || '',   // ✅ typed now
+    reference: task.id ? `#${task.id}` : '',
+    membreNom,
+    rejected: !!task.rejected                   // ✅ typed now
+  };
+}
   private mapPriority(priority?: 'BASSE' | 'MOYENNE' | 'HAUTE'): PrioriteUi {
     switch (priority) {
       case 'HAUTE':
@@ -114,35 +120,34 @@ export class MembreEquipeTaches implements OnInit {
     }
   }
 
-private mapStatusToColumn(status: TaskStatus | any): StatutColonne {
-  const s = String(status).toLowerCase().trim();
+  private mapStatusToColumn(status: TaskStatus | any): StatutColonne {
+    const s = String(status).toLowerCase().trim();
 
-  if (s === 'a_faire' || s === 'a faire') {
-    return 'A_FAIRE';
-  }
+    if (s === 'a_faire' || s === 'a faire') {
+      return 'A_FAIRE';
+    }
 
-  if (
-    s === 'en_cours' ||
-    s === 'en cours' ||
-    s === 'refuse' ||
-    s === 'refusé' ||
-    s === 'rejeté' ||
-    s === 'rejetee'
-  ) {
+    if (
+      s === 'en_cours' ||
+      s === 'en cours' ||
+      s === 'refuse' ||
+      s === 'refusé' ||
+      s === 'rejeté' ||
+      s === 'rejetee'
+    ) {
+      return 'EN_COURS';
+    }
+
+    if (s === 'validation') {
+      return 'EN_VALIDATION';
+    }
+
+    if (s === 'terminé' || s === 'termine') {
+      return 'TERMINE';
+    }
+
     return 'EN_COURS';
   }
-
-  if (s === 'validation') {
-    return 'EN_VALIDATION';
-  }
-
-  if (s === 'terminé' || s === 'termine') {
-    return 'TERMINE';
-  }
-
-  // sécurité
-  return 'EN_COURS';
-}
 
   private mapColumnToStatus(status: StatutColonne): TaskStatus {
     switch (status) {
@@ -287,42 +292,56 @@ private mapStatusToColumn(status: TaskStatus | any): StatutColonne {
     });
   }
 
-  drop(event: CdkDragDrop<TaskItem[]>, newStatus: StatutColonne): void {
-    const previousData = event.previousContainer.data;
-    const currentData = event.container.data;
-
+  drop(event: CdkDragDrop<TaskItem[]>, targetStatus: StatutColonne): void {
     if (event.previousContainer === event.container) {
-      moveItemInArray(currentData, event.previousIndex, event.currentIndex);
-      this.refreshSignals();
+      moveItemInArray(event.container.data, event.previousIndex, event.currentIndex);
       return;
     }
 
-    const oldState = this.snapshotState();
+    const task = event.previousContainer.data[event.previousIndex];
+    if (!task) return;
 
-    transferArrayItem(
-      previousData,
-      currentData,
-      event.previousIndex,
-      event.currentIndex
-    );
+    const currentStatus = task.statut;
 
-    const movedTask = currentData[event.currentIndex];
-    if (!movedTask?.id) {
-      this.refreshSignals();
+    const isAllowed =
+      (currentStatus === 'A_FAIRE' && targetStatus === 'EN_COURS') ||
+      (currentStatus === 'EN_COURS' && targetStatus === 'A_FAIRE') ||
+      (currentStatus === 'EN_COURS' && targetStatus === 'EN_VALIDATION');
+
+    if (!isAllowed) {
       return;
     }
 
-    movedTask.statut = newStatus;
+    const previousState = this.snapshotState();
+
+    this.removeTaskFromAllColumns(task.id);
+    this.addTaskToColumn({ ...task, statut: targetStatus }, targetStatus);
     this.refreshSignals();
 
-    this.taskService.updateMyTaskStatus(movedTask.id, this.mapColumnToStatus(newStatus)).subscribe({
+    this.taskService.updateMyTaskStatus(task.id, this.mapColumnToStatus(targetStatus)).subscribe({
       next: () => this.loadTasks(),
       error: (err) => {
-        console.error('Erreur mise à jour statut tâche :', err);
-        this.restoreState(oldState);
+        console.error('Erreur changement statut tâche :', err);
+        this.restoreState(previousState);
         this.error.set('Impossible de mettre à jour le statut.');
       }
     });
+  }
+
+  openComment(task: TaskItem): void {
+    this.selectedTaskTitle.set(task.titre || 'Tâche');
+    this.selectedComment.set(
+      task.commentaire?.trim()
+        ? task.commentaire
+        : 'Aucun commentaire de rejet disponible.'
+    );
+    this.showCommentModal.set(true);
+  }
+
+  closeCommentModal(): void {
+    this.showCommentModal.set(false);
+    this.selectedComment.set('');
+    this.selectedTaskTitle.set('');
   }
 
   private removeTaskFromAllColumns(taskId: number): void {

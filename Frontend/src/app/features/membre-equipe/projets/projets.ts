@@ -1,6 +1,7 @@
 import { Component, computed, signal, inject, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ProjectService, ProjectDto } from '../../../core/services/project.service';
+import { Router } from '@angular/router';
 
 interface MemberProject {
   id: number;
@@ -30,6 +31,7 @@ export class MembreEquipeProjets implements OnInit {
   searchTerm = signal('');
   loading = signal(false);
   error = signal('');
+  private router = inject(Router);
 
   projects = signal<MemberProject[]>([]);
 
@@ -43,7 +45,9 @@ export class MembreEquipeProjets implements OnInit {
       date: 'Maintenant'
     }
   ]);
-
+goToDashboard() {
+  this.router.navigate(['/membre-equipe/dashboard']);
+}
   ngOnInit(): void {
     this.loadProjects();
   }

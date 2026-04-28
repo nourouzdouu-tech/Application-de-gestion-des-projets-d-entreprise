@@ -35,16 +35,17 @@ public class TaskServiceImpl implements TaskService {
 
     public TaskServiceImpl(TaskRepository taskRepository,
                            UserRepository userRepository,
-                           ProjectRepository projectRepository, AuditService auditService) {
+                           ProjectRepository projectRepository,
+                           AuditService auditService) {
         this.taskRepository = taskRepository;
         this.userRepository = userRepository;
         this.projectRepository = projectRepository;
         this.auditService = auditService;
     }
+
     private String getCurrentUserEmail() {
         return SecurityContextHolder.getContext().getAuthentication().getName();
     }
-
 
     private User getCurrentUser() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
@@ -131,10 +132,15 @@ public class TaskServiceImpl implements TaskService {
         task.setProject(project);
         task.setPriority(dto.getPriority() != null ? dto.getPriority() : Priority.MOYENNE);
 
+        // ✅ Nouveau
+        task.setRejected(false);
+        task.setRejectionComment(null);
+
         Task saved = taskRepository.save(task);
         auditService.log("CREATE_TASK", "TASK", saved.getId(),
                 "Création de la tâche '" + saved.getTitle() + "' pour le projet " + project.getName(),
                 getCurrentUserEmail(), null);
+
         return toDto(saved);
     }
 
@@ -151,6 +157,7 @@ public class TaskServiceImpl implements TaskService {
                 !task.getProject().getTeam().getProjectManager().getId().equals(currentUser.getId())) {
             throw new ForbiddenException("FORBIDDEN", "Vous ne pouvez pas modifier cette tâche");
         }
+
         String oldTitle = task.getTitle();
         task.setTitle(dto.getTitle());
         task.setDescription(dto.getDescription());
@@ -173,10 +180,19 @@ public class TaskServiceImpl implements TaskService {
             task.setPriority(dto.getPriority());
         }
 
+        // ✅ Si on modifie explicitement les infos de rejet
+        if (dto.getRejected() != null) {
+            task.setRejected(dto.getRejected());
+        }
+        if (dto.getRejectionComment() != null) {
+            task.setRejectionComment(dto.getRejectionComment());
+        }
+
         Task updated = taskRepository.save(task);
         auditService.log("UPDATE_TASK", "TASK", id,
                 "Modification de la tâche '" + oldTitle + "' → '" + updated.getTitle() + "'",
                 getCurrentUserEmail(), null);
+
         return toDto(updated);
     }
 
@@ -266,7 +282,9 @@ public class TaskServiceImpl implements TaskService {
                 })
                 .map(this::toDto)
                 .collect(Collectors.toList());
-    }@Override
+    }
+
+    @Override
     public TaskDto updateMyTaskStatus(Long taskId, Status status) {
         User currentUser = getCurrentUser();
 
@@ -292,15 +310,20 @@ public class TaskServiceImpl implements TaskService {
 
         Status oldStatus = task.getStatus();
         task.setStatus(status);
+
+        // ✅ Si le membre resoumet la tâche ou l'avance, on enlève l'état rejeté
+        if (status == Status.Validation) {
+            task.setRejected(false);
+            task.setRejectionComment(null);
+        }
+
         Task updated = taskRepository.save(task);
 
-        // ✅ Audit pour le changement de statut
         auditService.log("UPDATE_TASK_STATUS", "TASK", taskId,
                 "Membre équipe '" + currentUser.getEmail() + "' a changé le statut de la tâche '" +
                         task.getTitle() + "' de " + oldStatus + " à " + status,
                 getCurrentUserEmail(), null);
 
-        // ✅ Si le statut devient "Validation", logger une soumission
         if (status == Status.Validation) {
             auditService.log("SUBMIT_TASK", "TASK", taskId,
                     "Membre équipe '" + currentUser.getEmail() + "' a soumis la tâche '" +
@@ -311,7 +334,6 @@ public class TaskServiceImpl implements TaskService {
         return toDto(updated);
     }
 
-    // ✅ Nouvelle méthode pour soumettre une tâche pour validation
     @Override
     public TaskDto submitTaskForValidation(Long taskId) {
         User currentUser = getCurrentUser();
@@ -332,6 +354,9 @@ public class TaskServiceImpl implements TaskService {
         }
 
         task.setStatus(Status.Validation);
+        task.setRejected(false);
+        task.setRejectionComment(null);
+
         Task updated = taskRepository.save(task);
 
         auditService.log("SUBMIT_TASK", "TASK", taskId,
@@ -342,7 +367,6 @@ public class TaskServiceImpl implements TaskService {
         return toDto(updated);
     }
 
-    // ✅ Nouvelle méthode pour que le chef de projet valide une tâche
     @Override
     public TaskDto validateTask(Long taskId, String commentaire) {
         User currentUser = getCurrentUser();
@@ -369,6 +393,9 @@ public class TaskServiceImpl implements TaskService {
         }
 
         task.setStatus(Status.Terminé);
+        task.setRejected(false);
+        task.setRejectionComment(null);
+
         Task updated = taskRepository.save(task);
 
         auditService.log("VALIDATE_TASK", "TASK", taskId,
@@ -379,7 +406,6 @@ public class TaskServiceImpl implements TaskService {
         return toDto(updated);
     }
 
-    // ✅ Nouvelle méthode pour que le chef de projet rejette une tâche
     @Override
     public TaskDto rejectTask(Long taskId, String commentaire) {
         User currentUser = getCurrentUser();
@@ -405,7 +431,11 @@ public class TaskServiceImpl implements TaskService {
             throw new BusinessException("INVALID_STATUS", "Cette tâche n'est pas en attente de validation");
         }
 
-        task.setStatus(Status.A_revoir);  // À ajouter dans votre enum
+        // ✅ Retour à EN_COURS + marquage rejet
+        task.setStatus(Status.En_cours);
+        task.setRejected(true);
+        task.setRejectionComment(commentaire != null ? commentaire.trim() : null);
+
         Task updated = taskRepository.save(task);
 
         auditService.log("REJECT_TASK", "TASK", taskId,
@@ -429,16 +459,16 @@ public class TaskServiceImpl implements TaskService {
                 !task.getProject().getTeam().getProjectManager().getId().equals(currentUser.getId())) {
             throw new ForbiddenException("FORBIDDEN", "Vous ne pouvez pas supprimer cette tâche");
         }
+
         String taskTitle = task.getTitle();
         task.setDeleted(true);
+
         auditService.log("DELETE_TASK", "TASK", id,
                 "Suppression de la tâche '" + taskTitle + "'",
                 getCurrentUserEmail(), null);
+
         taskRepository.save(task);
-
     }
-
-
 
     private TaskDto toDto(Task task) {
         TaskDto dto = new TaskDto();
@@ -466,6 +496,11 @@ public class TaskServiceImpl implements TaskService {
         }
 
         dto.setDeleted(task.isDeleted());
+
+        // ✅ Nouveau
+        dto.setRejected(task.isRejected());
+        dto.setRejectionComment(task.getRejectionComment());
+
         return dto;
     }
 }

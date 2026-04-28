@@ -27,6 +27,10 @@ public class TaskDto {
     private boolean deleted;
     private Priority priority;
 
+    // ✅ Nouveau
+    private Boolean rejected;
+    private String rejectionComment;
+
     public TaskDto() {}
 
     public Long getId() { return id; }
@@ -73,4 +77,10 @@ public class TaskDto {
 
     public Priority getPriority() { return priority; }
     public void setPriority(Priority priority) { this.priority = priority; }
+
+    public Boolean getRejected() { return rejected; }
+    public void setRejected(Boolean rejected) { this.rejected = rejected; }
+
+    public String getRejectionComment() { return rejectionComment; }
+    public void setRejectionComment(String rejectionComment) { this.rejectionComment = rejectionComment; }
 }
