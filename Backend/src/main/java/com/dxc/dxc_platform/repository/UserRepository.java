@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -33,7 +34,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     @Query("""
         SELECT DISTINCT u FROM User u
-        JOIN u.roles r
+        LEFT JOIN u.roles r
         WHERE u.deleted = false
           AND (:locked IS NULL OR u.locked = :locked)
           AND (:role = '' OR LOWER(r.nom) = :role)
@@ -80,4 +81,27 @@ public interface UserRepository extends JpaRepository<User, Long> {
     ORDER BY u.prenom ASC, u.nom ASC
 """)
     List<User> findAllActiveChefsProjet();
+
+    @Query("SELECT COUNT(u) FROM User u WHERE u.deleted = false")
+    long countByDeletedFalse();
+
+    @Query("SELECT r.nom, COUNT(u) FROM User u JOIN u.roles r WHERE u.deleted = false GROUP BY r.nom")
+    List<Object[]> countUsersByRole();
+
+    @Query("SELECT p.libelle, COUNT(u) FROM User u LEFT JOIN u.profile p WHERE u.deleted = false GROUP BY p.libelle")
+    List<Object[]> countUsersByProfile();
+
+    List<User> findTop5ByDeletedFalseOrderByCreatedAtDesc();
+
+
+
+    Optional<User> findByEmail(String email);
+    @Query("SELECT COUNT(u) FROM User u WHERE u.locked = false AND u.deleted = false")
+    long countActiveUsers();
+
+    @Query("SELECT COUNT(u) FROM User u WHERE u.locked = false AND u.deleted = false AND u.createdAt >= :date")
+    long countActiveUsersCreatedAfter(@Param("date") LocalDateTime date);
+
+    @Query("SELECT COUNT(u) FROM User u WHERE u.locked = false AND u.deleted = false AND u.createdAt BETWEEN :start AND :end")
+    long countActiveUsersCreatedBetween(@Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
 }

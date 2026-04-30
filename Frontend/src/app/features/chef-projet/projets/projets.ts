@@ -21,7 +21,11 @@ export class Projets implements OnInit {
   loading = false;
   error: string | null = null;
   formError: string | null = null;
-
+  // Ajoutez dans la classe Projets
+selectedTeamPreview: TeamDto | null = null;
+isAssigning = false;
+showDetailModal = false;
+detailProject: ProjectDto | null = null;
   currentPageProjets = 1;
   itemsPerPageProjets = 5;
   totalProjets = 0;
@@ -101,6 +105,17 @@ export class Projets implements OnInit {
       endDate: ''
     };
   }
+  openDetailModal(project: ProjectDto): void {
+  this.detailProject = project;
+  this.showDetailModal = true;
+  this.cdr.detectChanges();
+}
+
+closeDetailModal(): void {
+  this.showDetailModal = false;
+  this.detailProject = null;
+  this.cdr.detectChanges();
+}
 
   getInitialsFromName(fullName?: string): string {
     if (!fullName) return '?';
@@ -395,18 +410,29 @@ getTaskStatusClass(status?: string): string {
   }
 
   openAssignTeamModal(project: ProjectDto): void {
-    this.currentProjectForTeam = project;
-    this.selectedTeamId = null;
+  this.currentProjectForTeam = project;
+  this.selectedTeamId = null;
 
-    this.teamService.getMyTeams().subscribe({
-      next: (teams) => this.ngZone.run(() => {
-        this.teams = [...teams];
-        this.showTeamModal = true;
-        this.cdr.detectChanges();
-      }),
-      error: () => alert('Impossible de charger vos équipes.')
-    });
-  }
+  this.teamService.getMyTeams().subscribe({
+    next: (teams) => this.ngZone.run(() => {
+      // ✅ FILTRE : Ne conserver que les équipes ayant au moins un membre
+      this.teams = teams.filter(team => (team.members?.length || 0) > 0);
+      
+      // Optionnel : Afficher un message si aucune équipe n'a de membres
+      if (this.teams.length === 0) {
+        this.showToast('⚠️ Aucune équipe avec des membres disponible pour assignation.', 'error');
+        return;
+      }
+      
+      this.showTeamModal = true;
+      this.cdr.detectChanges();
+    }),
+    error: () => alert('Impossible de charger vos équipes.')
+  });
+}
+hasTeamMembers(team: TeamDto): boolean {
+  return (team.members?.length || 0) > 0;
+}
 
   confirmAssignTeam(): void {
     if (!this.selectedTeamId || !this.currentProjectForTeam?.id) return;
@@ -774,4 +800,8 @@ getTaskStatusClass(status?: string): string {
     }
     return pages;
   }
+getTeamMemberCount(team: TeamDto): number {
+  return (team as any).members?.length || (team as any).memberCount || 0;
+}
+
 }

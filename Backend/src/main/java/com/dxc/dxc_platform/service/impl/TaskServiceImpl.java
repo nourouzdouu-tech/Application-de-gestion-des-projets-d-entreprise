@@ -10,10 +10,12 @@ import com.dxc.dxc_platform.repository.ProjectRepository;
 import com.dxc.dxc_platform.repository.TaskRepository;
 import com.dxc.dxc_platform.repository.UserRepository;
 import com.dxc.dxc_platform.service.AuditService;
+import com.dxc.dxc_platform.service.EmailService;
 import com.dxc.dxc_platform.service.TaskService;
 import com.dxc.dxc_platform.shared.exception.BusinessException;
 import com.dxc.dxc_platform.shared.exception.ForbiddenException;
 import com.dxc.dxc_platform.shared.exception.NotFoundException;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -26,21 +28,25 @@ import java.util.stream.Collectors;
 
 @Service
 @Transactional
+@Slf4j
 public class TaskServiceImpl implements TaskService {
 
     private final TaskRepository taskRepository;
     private final UserRepository userRepository;
     private final ProjectRepository projectRepository;
     private final AuditService auditService;
+    private final EmailService emailService;
 
     public TaskServiceImpl(TaskRepository taskRepository,
                            UserRepository userRepository,
                            ProjectRepository projectRepository,
-                           AuditService auditService) {
+                           AuditService auditService,
+                           EmailService emailService) {
         this.taskRepository = taskRepository;
         this.userRepository = userRepository;
         this.projectRepository = projectRepository;
         this.auditService = auditService;
+        this.emailService = emailService;
     }
 
     private String getCurrentUserEmail() {
@@ -131,19 +137,27 @@ public class TaskServiceImpl implements TaskService {
         task.setAssignedTo(assignedUser);
         task.setProject(project);
         task.setPriority(dto.getPriority() != null ? dto.getPriority() : Priority.MOYENNE);
-
-        // ✅ Nouveau
         task.setRejected(false);
         task.setRejectionComment(null);
 
         Task saved = taskRepository.save(task);
+
+        // === NOTIFICATIONS EMAIL ===
+        try {
+            // Notifier le membre assigné
+            emailService.notifyTaskAssigned(saved, assignedUser, currentUser);
+            // Confirmation au chef de projet
+            emailService.notifyTaskCreated(saved, currentUser);
+        } catch (Exception e) {
+            log.error("Erreur lors de l'envoi des emails: {}", e.getMessage());
+        }
+
         auditService.log("CREATE_TASK", "TASK", saved.getId(),
                 "Création de la tâche '" + saved.getTitle() + "' pour le projet " + project.getName(),
                 getCurrentUserEmail(), null);
 
         return toDto(saved);
     }
-
     @Override
     public TaskDto updateTask(Long id, TaskDto dto) {
         Task task = taskRepository.findById(id)
@@ -159,6 +173,12 @@ public class TaskServiceImpl implements TaskService {
         }
 
         String oldTitle = task.getTitle();
+        User assignedUser = task.getAssignedTo();
+
+        // Sauvegarder l'ancienne assignation (si changée)
+        Long oldAssignedToId = task.getAssignedTo() != null ? task.getAssignedTo().getId() : null;
+        Long newAssignedToId = dto.getAssignedToId();
+
         task.setTitle(dto.getTitle());
         task.setDescription(dto.getDescription());
 
@@ -180,7 +200,20 @@ public class TaskServiceImpl implements TaskService {
             task.setPriority(dto.getPriority());
         }
 
-        // ✅ Si on modifie explicitement les infos de rejet
+        // Si l'assignation a changé, mettre à jour
+        if (newAssignedToId != null && !newAssignedToId.equals(oldAssignedToId)) {
+            User newAssignedUser = userRepository.findByIdAndDeletedFalse(newAssignedToId)
+                    .orElseThrow(() -> new NotFoundException("USER_NOT_FOUND", "Utilisateur cible introuvable"));
+            task.setAssignedTo(newAssignedUser);
+
+            // Notifier le nouveau membre
+            try {
+                emailService.notifyTaskAssigned(task, newAssignedUser, currentUser);
+            } catch (Exception e) {
+                log.error("Erreur envoi email au nouveau membre: {}", e.getMessage());
+            }
+        }
+
         if (dto.getRejected() != null) {
             task.setRejected(dto.getRejected());
         }
@@ -189,6 +222,14 @@ public class TaskServiceImpl implements TaskService {
         }
 
         Task updated = taskRepository.save(task);
+
+        // === NOTIFICATION EMAIL DE MODIFICATION ===
+        try {
+            emailService.notifyTaskUpdated(updated, currentUser, assignedUser);
+        } catch (Exception e) {
+            log.error("Erreur lors de l'envoi de l'email de modification: {}", e.getMessage());
+        }
+
         auditService.log("UPDATE_TASK", "TASK", id,
                 "Modification de la tâche '" + oldTitle + "' → '" + updated.getTitle() + "'",
                 getCurrentUserEmail(), null);
@@ -311,13 +352,23 @@ public class TaskServiceImpl implements TaskService {
         Status oldStatus = task.getStatus();
         task.setStatus(status);
 
-        // ✅ Si le membre resoumet la tâche ou l'avance, on enlève l'état rejeté
         if (status == Status.Validation) {
             task.setRejected(false);
             task.setRejectionComment(null);
         }
 
         Task updated = taskRepository.save(task);
+
+        // === NOTIFICATION EMAIL SI SOUMISSION ===
+        if (status == Status.Validation && task.getProject() != null &&
+                task.getProject().getTeam() != null && task.getProject().getTeam().getProjectManager() != null) {
+            try {
+                User chefProjet = task.getProject().getTeam().getProjectManager();
+                emailService.notifyTaskSubmittedForValidation(updated, currentUser, chefProjet);
+            } catch (Exception e) {
+                log.error("Erreur envoi email notification chef: {}", e.getMessage());
+            }
+        }
 
         auditService.log("UPDATE_TASK_STATUS", "TASK", taskId,
                 "Membre équipe '" + currentUser.getEmail() + "' a changé le statut de la tâche '" +
@@ -359,6 +410,17 @@ public class TaskServiceImpl implements TaskService {
 
         Task updated = taskRepository.save(task);
 
+        // === NOTIFICATION EMAIL AU CHEF DE PROJET ===
+        if (task.getProject() != null && task.getProject().getTeam() != null &&
+                task.getProject().getTeam().getProjectManager() != null) {
+            try {
+                User chefProjet = task.getProject().getTeam().getProjectManager();
+                emailService.notifyTaskSubmittedForValidation(updated, currentUser, chefProjet);
+            } catch (Exception e) {
+                log.error("Erreur envoi email: {}", e.getMessage());
+            }
+        }
+
         auditService.log("SUBMIT_TASK", "TASK", taskId,
                 "Membre équipe '" + currentUser.getEmail() + "' a soumis la tâche '" +
                         task.getTitle() + "' pour validation",
@@ -398,6 +460,15 @@ public class TaskServiceImpl implements TaskService {
 
         Task updated = taskRepository.save(task);
 
+        // === NOTIFICATION EMAIL AU MEMBRE ===
+        if (task.getAssignedTo() != null) {
+            try {
+                emailService.notifyTaskValidated(updated, task.getAssignedTo(), commentaire);
+            } catch (Exception e) {
+                log.error("Erreur envoi email: {}", e.getMessage());
+            }
+        }
+
         auditService.log("VALIDATE_TASK", "TASK", taskId,
                 "Chef de projet '" + currentUser.getEmail() + "' a validé la tâche '" +
                         task.getTitle() + "'. Commentaire: " + (commentaire != null ? commentaire : ""),
@@ -431,12 +502,20 @@ public class TaskServiceImpl implements TaskService {
             throw new BusinessException("INVALID_STATUS", "Cette tâche n'est pas en attente de validation");
         }
 
-        // ✅ Retour à EN_COURS + marquage rejet
         task.setStatus(Status.En_cours);
         task.setRejected(true);
         task.setRejectionComment(commentaire != null ? commentaire.trim() : null);
 
         Task updated = taskRepository.save(task);
+
+        // === NOTIFICATION EMAIL AU MEMBRE ===
+        if (task.getAssignedTo() != null) {
+            try {
+                emailService.notifyTaskRejected(updated, task.getAssignedTo(), commentaire);
+            } catch (Exception e) {
+                log.error("Erreur envoi email: {}", e.getMessage());
+            }
+        }
 
         auditService.log("REJECT_TASK", "TASK", taskId,
                 "Chef de projet '" + currentUser.getEmail() + "' a rejeté la tâche '" +
@@ -445,7 +524,6 @@ public class TaskServiceImpl implements TaskService {
 
         return toDto(updated);
     }
-
     @Override
     public void deleteTask(Long id) {
         Task task = taskRepository.findById(id)
@@ -461,6 +539,17 @@ public class TaskServiceImpl implements TaskService {
         }
 
         String taskTitle = task.getTitle();
+        User assignedUser = task.getAssignedTo();
+
+        // === NOTIFICATION EMAIL DE SUPPRESSION (avant suppression) ===
+        if (assignedUser != null) {
+            try {
+                emailService.notifyTaskDeleted(task, currentUser, assignedUser);
+            } catch (Exception e) {
+                log.error("Erreur lors de l'envoi de l'email de suppression: {}", e.getMessage());
+            }
+        }
+
         task.setDeleted(true);
 
         auditService.log("DELETE_TASK", "TASK", id,
@@ -469,7 +558,6 @@ public class TaskServiceImpl implements TaskService {
 
         taskRepository.save(task);
     }
-
     private TaskDto toDto(Task task) {
         TaskDto dto = new TaskDto();
         dto.setId(task.getId());
@@ -477,12 +565,10 @@ public class TaskServiceImpl implements TaskService {
         dto.setDescription(task.getDescription());
         dto.setStatus(task.getStatus());
         dto.setCreatedAt(task.getCreatedAt());
-
         dto.setStartDate(task.getStartDate());
         dto.setCriticite(task.getCriticite());
         dto.setDureeEstimee(task.getDureeEstimee());
         dto.setEstimatedEndDate(task.getEstimatedEndDate());
-
         dto.setPriority(task.getPriority());
 
         if (task.getAssignedTo() != null) {
@@ -496,8 +582,6 @@ public class TaskServiceImpl implements TaskService {
         }
 
         dto.setDeleted(task.isDeleted());
-
-        // ✅ Nouveau
         dto.setRejected(task.isRejected());
         dto.setRejectionComment(task.getRejectionComment());
 

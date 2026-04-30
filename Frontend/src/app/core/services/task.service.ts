@@ -90,4 +90,8 @@ export class TaskService {
   updateTask(id: number, task: TaskDto): Observable<TaskDto> {
     return this.http.put<TaskDto>(`${this.apiUrl}/${id}`, task);
   }
+  getTeamMembers(): Observable<any[]> {
+  // À adapter selon votre API
+  return this.http.get<any[]>('http://localhost:8080/api/teams/my-team/members');
+}
 }

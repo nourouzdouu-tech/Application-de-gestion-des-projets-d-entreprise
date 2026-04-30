@@ -11,6 +11,7 @@ import java.util.Optional;
 public interface ClientRepository extends JpaRepository<Client, Long> {
     boolean existsByNomAndDeletedFalse(String nom);
     Optional<Client> findByIdAndDeletedFalse(Long id);
+    java.util.List<Client> findAllByDeletedFalse();
 
     @Query("SELECT c FROM Client c WHERE c.deleted = false AND LOWER(c.nom) LIKE LOWER(CONCAT('%', :q, '%'))")
     Page<Client> search(@Param("q") String q, Pageable pageable);

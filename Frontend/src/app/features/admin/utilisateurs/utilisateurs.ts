@@ -5,6 +5,7 @@ import { AdminService, UserResponse, RoleResponse } from '../../../core/services
 import { AuthService } from '../../../core/services/auth.service';
 import { ProfileDto, ProfileService } from '../../../core/services/profile.service';
 import { Router } from '@angular/router';
+import { forkJoin } from 'rxjs';
 @Component({
   selector: 'app-utilisateurs',
   standalone: true,
@@ -38,8 +39,13 @@ export class Utilisateurs implements OnInit {
   itemsPerPage = 5;
   loading = signal(false);
 
-  activeCount = computed(() => this.users().filter(u => !u.locked).length);
-  lockedCount = computed(() => this.users().filter(u => u.locked).length);
+  totalUsersCount = signal(0);
+  activeUsersCount = signal(0);
+  inactiveUsersCount = signal(0);
+
+  activeCount = computed(() => this.activeUsersCount());
+  lockedCount = computed(() => this.inactiveUsersCount());
+  activeRolesCount = computed(() => this.roles().length);
   pages = computed(() =>
     Array.from({ length: this.totalPages() }, (_, i) => i + 1)
   );
@@ -76,6 +82,7 @@ editGenre = signal<'HOMME' | 'FEMME'>('FEMME');
 
   ngOnInit() {
     this.loadUsers();
+    this.loadGlobalStats();
     this.loadRoles();
     this.loadProfiles();
   }
@@ -96,6 +103,21 @@ editGenre = signal<'HOMME' | 'FEMME'>('FEMME');
         this.loading.set(false);
       },
       error: () => this.loading.set(false)
+    });
+  }
+
+  loadGlobalStats() {
+    forkJoin({
+      total: this.adminService.getUsers(1, 1),
+      active: this.adminService.getUsers(1, 1, '', '', false),
+      inactive: this.adminService.getUsers(1, 1, '', '', true)
+    }).subscribe({
+      next: ({ total, active, inactive }) => {
+        this.totalUsersCount.set(total.totalElements);
+        this.activeUsersCount.set(active.totalElements);
+        this.inactiveUsersCount.set(inactive.totalElements);
+      },
+      error: (err) => console.error('Erreur chargement stats utilisateurs', err)
     });
   }
 
@@ -162,6 +184,7 @@ editGenre = signal<'HOMME' | 'FEMME'>('FEMME');
         next: () => {
           this.showSuccess('Utilisateur activé avec succès !');
           this.loadUsers();
+          this.loadGlobalStats();
         },
         error: () => this.showError('Erreur lors de l\'activation')
       });
@@ -170,6 +193,7 @@ editGenre = signal<'HOMME' | 'FEMME'>('FEMME');
         next: () => {
           this.showSuccess('Utilisateur désactivé avec succès !');
           this.loadUsers();
+          this.loadGlobalStats();
         },
         error: () => this.showError('Erreur lors de la désactivation')
       });
@@ -183,6 +207,7 @@ editGenre = signal<'HOMME' | 'FEMME'>('FEMME');
         next: () => {
           this.showSuccess('Utilisateur supprimé avec succès !');
           this.loadUsers();
+          this.loadGlobalStats();
         },
         error: () => this.showError('Erreur lors de la suppression')
       });
@@ -233,6 +258,7 @@ submitModal() {
     next: () => {
       this.closeModal();
       this.loadUsers();
+      this.loadGlobalStats();
       this.showSuccess('Utilisateur créé avec succès !');
     },
     error: (err) => {
@@ -289,6 +315,7 @@ closeEditModal() {
     next: () => {
       this.closeEditModal();
       this.loadUsers();
+      this.loadGlobalStats();
       this.showSuccess('Utilisateur modifié avec succès !');
     },
     error: (err) => {

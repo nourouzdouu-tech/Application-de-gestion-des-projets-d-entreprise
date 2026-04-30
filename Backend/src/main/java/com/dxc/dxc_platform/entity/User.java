@@ -188,4 +188,12 @@ public class User {
     public void setProfile(Profile profile) {
         this.profile = profile;
     }
+
+    // Dans User.java, ajoutez cette méthode
+    public String getFullName() {
+        return (prenom != null ? prenom : "") + " " + (nom != null ? nom : "");
     }
+    // Dans User.java, ajoutez cette méthode (ou utilisez le champ existant)
+    public boolean isEnabled() {
+        return !isLocked() && !isDeleted();
+    }}

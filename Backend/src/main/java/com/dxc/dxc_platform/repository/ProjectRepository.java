@@ -3,7 +3,10 @@ package com.dxc.dxc_platform.repository;
 import com.dxc.dxc_platform.entity.Project;
 import com.dxc.dxc_platform.enums.ProjectStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -35,4 +38,19 @@ public interface ProjectRepository extends JpaRepository<Project, Long> {
     List<Project> findAllByTeamIdAndDeletedFalse(Long teamId);
 
     List<Project> findAllByTeamIdAndDeletedFalseAndStatus(Long teamId, ProjectStatus status);
+    long countByStatus(String status);
+    long countByCreatedAtAfter(LocalDateTime date);
+    long countByDeletedFalseAndCreatedAtAfter(LocalDateTime date);
+    List<Project> findTop5ByDeletedFalseOrderByCreatedAtDesc();
+    List<Project> findByManagerIdAndStatus(Long managerId, String status);
+    List<Project> findByManagerIdAndStatusIn(Long managerId, List<String> statuses);
+    int countByManagerId(Long managerId);
+    int countByManagerIdAndStatus(Long managerId, String status);
+    List<Project> findByManagerId(Long managerId);
+    List<Project> findByChefProjetId(Long chefProjetId);
+    @Query("SELECT COUNT(p) FROM Project p WHERE p.deleted = false AND MONTH(p.createdAt) = :month")
+    long countByMonth(@Param("month") int month);
+
+    @Query("SELECT COUNT(DISTINCT p.client) FROM Project p WHERE p.deleted = false AND p.client IS NOT NULL AND p.client != ''")
+    long countDistinctClient();
 }

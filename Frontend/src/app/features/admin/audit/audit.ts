@@ -414,10 +414,10 @@ private authService = inject(AuthService);
   // ══════════════════════════════════════════════════
 
   exportLogs(format: 'csv' | 'excel'): void {
-    const headers = ['ID', 'Date', 'Heure', 'Utilisateur', 'Email', 'Action', 'Détails',  'Niveau', 'Statut'];
+    const headers = [ 'Date', 'Heure', 'Utilisateur', 'Email', 'Action', 'Détails',  'Niveau', 'Statut'];
     
     const rows = this.filteredLogs.map(l => [
-      l.id,
+      
       new Date(l.timestamp).toLocaleDateString('fr-FR'),
       new Date(l.timestamp).toLocaleTimeString('fr-FR'),
       `${l.userPrenom} ${l.userNom}`,

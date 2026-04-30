@@ -20,16 +20,17 @@ import { TjmCalculatorComponent } from './features/responsable-contract/tjm-calc
 import { ManagerLayoutComponent } from './features/manager/manager';
 import { ReviewProjetsComponent } from './features/manager/projets/projets';
 
-
 import { MembreEquipe } from './features/membre-equipe/membre-equipe';
 import { MembreEquipeProjets } from './features/membre-equipe/projets/projets';
 import { MembreEquipeTaches } from './features/membre-equipe/taches/taches';
-
 
 import { SharedMessagesComponent } from './shared/components/messages/messages';
 import { SharedCalendarComponent } from './shared/components/calendar/calendar';
 import { AuditComponent } from './features/admin/audit/audit';
 import { ManagerAuditComponent } from './features/manager/audit/audit';
+
+// Import du composant Reporting
+import { Reporting } from './shared/components/reporting/reporting';
 
 export const routes: Routes = [
   {
@@ -48,11 +49,12 @@ export const routes: Routes = [
     component: Admin,
     children: [
       { path: 'dashboard', component: Dashboard },
+      { path: 'reporting', component: Reporting },  // Route ajoutée pour admin
       { path: 'utilisateurs', component: Utilisateurs },
       { path: 'roles', component: Roles },
       { path: 'clients', component: Clients },
       { path: 'profile', component: Profiles },
-      { path: 'audit',        component: AuditComponent },
+      { path: 'audit', component: AuditComponent },
       { path: '', redirectTo: 'dashboard', pathMatch: 'full' }
     ]
   },
@@ -61,6 +63,7 @@ export const routes: Routes = [
     component: ChefProjet,
     children: [
       { path: 'dashboard', component: Dashboard },
+      { path: 'reporting', component: Reporting },  // Route ajoutée pour chef-projet
       { path: 'projets', component: Projets },
       { path: 'taches', component: TachesComponent },
       { path: 'equipes', component: Equipes },
@@ -74,8 +77,11 @@ export const routes: Routes = [
     component: ResponsableContract,
     children: [
       { path: 'dashboard', component: Dashboard },
+      { path: 'reporting', component: Reporting },  // Route ajoutée pour responsable contrat
       { path: 'projets', component: ResponsableProjets },
+
      // { path: 'facturation', component: Facturation },
+
       { path: 'facturation/:projectId', component: TjmCalculatorComponent },
       { path: '', redirectTo: 'dashboard', pathMatch: 'full' }
     ]
@@ -85,10 +91,11 @@ export const routes: Routes = [
     component: ManagerLayoutComponent,
     children: [
       { path: 'dashboard', component: Dashboard },
+      { path: 'reporting', component: Reporting },  // Route ajoutée pour manager
       { path: 'projets', component: ReviewProjetsComponent },
       { path: 'calendrier', component: SharedCalendarComponent },
       { path: 'messages', component: SharedMessagesComponent },
-      { path: 'audit',   component: ManagerAuditComponent },
+      { path: 'audit', component: ManagerAuditComponent },
       { path: '', redirectTo: 'dashboard', pathMatch: 'full' }
     ]
   },
@@ -97,6 +104,7 @@ export const routes: Routes = [
     component: MembreEquipe,
     children: [
       { path: 'dashboard', component: Dashboard },
+      { path: 'reporting', component: Reporting },  // Route ajoutée pour membre équipe
       { path: 'projets', component: MembreEquipeProjets },
       { path: 'taches', component: MembreEquipeTaches },
       { path: 'calendrier', component: SharedCalendarComponent },

@@ -209,7 +209,7 @@
   flex: 1;
   min-width: 0;
   overflow-x: auto;
-  overflow-y: hidden;   /* ← ajoute ça */
+    /* ← ajoute ça */
   height: 100vh;        /* ← ajoute ça */
   background: #f9fafb;
 }

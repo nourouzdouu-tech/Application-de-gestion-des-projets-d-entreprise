@@ -10,6 +10,8 @@ import java.util.Optional;
 public interface RoleRepository extends JpaRepository<Role, Long> {
     boolean existsByNom(String nom);
     Optional<Role> findByNom(String nom);
+    long countByActiveTrue();
+
     @Query("SELECT COUNT(u) FROM User u JOIN u.roles r WHERE r.id = :roleId AND u.deleted = false")
     Long countUsersForRole(@Param("roleId") Long roleId);
 }
