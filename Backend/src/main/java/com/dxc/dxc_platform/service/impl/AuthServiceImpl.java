@@ -165,6 +165,8 @@ public class AuthServiceImpl implements AuthService {
 
         user.setPasswordHash(passwordEncoder.encode(request.newPassword()));
         user.setMustChangePassword(false);
+        user.setLocked(false);
+        user.setFailedAttempts(0);
         userRepository.saveAndFlush(user);
 
         // ✅ Audit pour changement de mot de passe

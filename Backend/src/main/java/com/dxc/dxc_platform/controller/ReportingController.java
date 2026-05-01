@@ -13,11 +13,15 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/reporting")
 @CrossOrigin(origins = "http://localhost:4200")
-@RequiredArgsConstructor
 public class ReportingController {
 
     private final ReportingService reportingService;
     private final UserRepository userRepository;
+
+    public ReportingController(ReportingService reportingService, UserRepository userRepository) {
+        this.reportingService = reportingService;
+        this.userRepository = userRepository;
+    }
 
     @GetMapping("/complete")
     public ResponseEntity<ReportingDataDto> getCompleteReporting() {

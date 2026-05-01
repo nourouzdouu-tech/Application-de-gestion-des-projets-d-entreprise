@@ -10,10 +10,13 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/notifications")
 @CrossOrigin(origins = "http://localhost:4200")
-@RequiredArgsConstructor
+
 public class NotificationController {
 
     private final EmailService emailService;
+    public NotificationController(EmailService emailService) {
+        this.emailService = emailService;
+    }
 
     @PostMapping("/test")
     public ResponseEntity<?> testEmail(@RequestBody Map<String, String> request) {

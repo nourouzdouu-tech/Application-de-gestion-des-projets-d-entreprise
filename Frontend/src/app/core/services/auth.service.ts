@@ -66,20 +66,21 @@ export class AuthService {
     return this.http.post(`http://localhost:8080/api/admin/users/${email}/unlock`, {});
   }
 
-  saveUser(user: AuthResponse): void {
-    localStorage.setItem('auth_user', JSON.stringify({
-      id: user.id,
-      email: user.email,
-      prenom: user.prenom,
-      nom: user.nom,
-      roles: user.roles
-    }));
-  }
+ saveUser(user: AuthResponse): void {
+  localStorage.setItem('auth_user', JSON.stringify({
+    id: user.id,
+    email: user.email,
+    prenom: user.prenom,
+    nom: user.nom,
+    roles: user.roles,
+    mustChangePassword: user.mustChangePassword  
+  }));
+}
 
-  getUser(): { id?: number; email: string; prenom: string; nom: string; roles: string[] } | null {
-    const user = localStorage.getItem('auth_user');
-    return user ? JSON.parse(user) : null;
-  }
+  getUser(): { id?: number; email: string; prenom: string; nom: string; roles: string[]; mustChangePassword?: boolean } | null {
+  const user = localStorage.getItem('auth_user');
+  return user ? JSON.parse(user) : null;
+}
 
   getCurrentUserId(): number {
     return this.getUser()?.id ?? 0;

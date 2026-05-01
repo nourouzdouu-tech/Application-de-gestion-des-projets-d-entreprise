@@ -133,6 +133,11 @@ export interface ClientUpdateRequestOld {
   email: string;
   telephone: string;
 }
+export interface ResetPasswordResponse {
+  userId: number;
+  tempPassword: string;
+  mustChangePassword: boolean;
+}
 
 @Injectable({ providedIn: 'root' })
 export class AdminService {
@@ -245,4 +250,10 @@ export class AdminService {
   deleteClient(id: number): Observable<void> {
     return this.http.delete<void>(`${this.clientApiUrl}/${id}`);
   }
+  resetPassword(userId: number): Observable<ResetPasswordResponse> {
+  return this.http.post<ResetPasswordResponse>(
+    `${this.apiUrl}/${userId}/reset-password`,
+    {}
+  );
+}
 }

@@ -181,6 +181,7 @@
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-thymeleaf</artifactId>
 		</dependency>
+
 	</dependencies>
 
 	<build>
@@ -193,6 +194,7 @@
 						<path>
 							<groupId>org.projectlombok</groupId>
 							<artifactId>lombok</artifactId>
+							<optional>true</optional>
 						</path>
 						<path>
 							<groupId>org.mapstruct</groupId>

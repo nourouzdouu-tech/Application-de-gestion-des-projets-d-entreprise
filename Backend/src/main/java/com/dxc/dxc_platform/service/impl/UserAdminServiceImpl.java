@@ -19,7 +19,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
+import com.dxc.dxc_platform.service.EmailService;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -29,26 +29,28 @@ import java.util.stream.Collectors;
 @Service
 @Transactional
 public class UserAdminServiceImpl implements UserAdminService {
-
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
     private final ProfileRepository profileRepository;
     private final PasswordEncoder passwordEncoder;
     private final UserMapper userMapper;
     private final AuditService auditService;
+    private final EmailService emailService;
 
     public UserAdminServiceImpl(UserRepository userRepository,
                                 RoleRepository roleRepository,
                                 ProfileRepository profileRepository,
                                 PasswordEncoder passwordEncoder,
                                 UserMapper userMapper,
-                                AuditService auditService) {
+                                AuditService auditService,
+                                EmailService emailService) {
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
         this.profileRepository = profileRepository;
         this.passwordEncoder = passwordEncoder;
         this.userMapper = userMapper;
         this.auditService = auditService;
+        this.emailService = emailService;
     }
 
     private String getCurrentUserEmail() {
@@ -199,10 +201,17 @@ public class UserAdminServiceImpl implements UserAdminService {
         user.setMustChangePassword(true);
         userRepository.save(user);
 
+        emailService.notifyTemporaryPassword(user, tempPassword);
+
         auditService.log("RESET_PASSWORD", "USER", id,
                 "Réinitialisation du mot de passe pour " + user.getEmail(),
                 getCurrentUserEmail(), null);
-        return null;
+
+        return new UserDto.ResetPasswordResponse(
+                user.getId(),
+                tempPassword,
+                user.isMustChangePassword()
+        );
     }
 
     @Override

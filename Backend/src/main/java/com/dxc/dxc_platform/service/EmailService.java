@@ -3,7 +3,6 @@ package com.dxc.dxc_platform.service;
 import com.dxc.dxc_platform.entity.Task;
 import com.dxc.dxc_platform.entity.User;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
@@ -13,14 +12,19 @@ import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
 
 import jakarta.mail.internet.MimeMessage;
-
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 @Service
-@RequiredArgsConstructor
-@Slf4j
 public class EmailService {
+
+    private static final Logger log = LoggerFactory.getLogger(EmailService.class);
 
     private final JavaMailSender mailSender;
     private final TemplateEngine templateEngine;
+    public EmailService(JavaMailSender mailSender, TemplateEngine templateEngine) {
+        this.mailSender = mailSender;
+        this.templateEngine = templateEngine;
+    }
 
     @Value("${spring.mail.username}")
     private String fromEmail;
@@ -283,5 +287,31 @@ public class EmailService {
                 task.getProject() != null ? task.getProject().getName() : "N/A"
         );
         sendSimpleEmail(assignedTo.getEmail(), subject, content);
+    }
+
+    public void notifyTemporaryPassword(User user, String tempPassword) {
+        String subject = "Réinitialisation du mot de passe - DXC Platform";
+
+        String content = String.format("""
+            Bonjour %s,
+
+            Votre mot de passe temporaire est :
+
+            %s
+
+            Email de connexion : %s
+
+            Connectez-vous avec ce mot de passe temporaire, puis changez-le dans votre profil.
+
+            ---
+            Cet email a été envoyé automatiquement.
+            DXC Platform
+            """,
+                user.getPrenom(),
+                tempPassword,
+                user.getEmail()
+        );
+
+        sendSimpleEmail(user.getEmail(), subject, content);
     }
 }

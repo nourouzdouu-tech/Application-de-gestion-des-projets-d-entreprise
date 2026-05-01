@@ -73,6 +73,7 @@ editGenre = signal<'HOMME' | 'FEMME'>('FEMME');
   editProfileId = signal<number | null>(null);
 
   showConfirmModal = signal(false);
+  confirmType = signal<'delete' | 'reset'>('delete');
   confirmMessage = signal('');
   confirmAction = signal<() => void>(() => {});
 
@@ -212,6 +213,7 @@ editGenre = signal<'HOMME' | 'FEMME'>('FEMME');
         error: () => this.showError('Erreur lors de la suppression')
       });
     });
+    this.confirmType.set('delete');
     this.showConfirmModal.set(true);
   }
 
@@ -272,6 +274,30 @@ submitModal() {
     }
   });
 }
+
+resetPassword(user: UserResponse) {
+  this.confirmMessage.set(
+    `Voulez-vous réinitialiser le mot de passe de ${user.prenom} ${user.nom} ? Un mot de passe temporaire sera envoyé par email.`
+  );
+
+  this.confirmAction.set(() => {
+    this.adminService.resetPassword(user.id).subscribe({
+      next: () => {
+        this.showSuccess(`Mot de passe temporaire envoyé à ${user.email}`);
+        this.loadUsers();
+      },
+      error: () => {
+        this.showError('Erreur lors de la réinitialisation du mot de passe');
+      }
+    });
+  });
+this.confirmType.set('reset');
+  this.showConfirmModal.set(true);
+}
+
+oldPassword = signal('');
+newProfilePassword = signal('');
+confirmProfilePassword = signal('');
 
  openEditModal(user: UserResponse) {
   this.editId.set(user.id);
@@ -379,7 +405,33 @@ closeEditModal() {
     this.profileEmail.set(user?.email || '');
     this.profilePassword.set('');
     this.showProfileModal.set(true);
+    this.oldPassword.set('');
+this.newProfilePassword.set('');
+this.confirmProfilePassword.set('');
   }
+  changeProfilePassword() {
+  if (!this.oldPassword() || !this.newProfilePassword() || !this.confirmProfilePassword()) {
+    this.showError('Veuillez remplir les champs mot de passe');
+    return;
+  }
+
+  this.authService.changePassword({
+    oldPassword: this.oldPassword(),
+    newPassword: this.newProfilePassword(),
+    confirmPassword: this.confirmProfilePassword()
+  }).subscribe({
+    next: () => {
+      this.showSuccess('Mot de passe modifié avec succès');
+      this.oldPassword.set('');
+      this.newProfilePassword.set('');
+      this.confirmProfilePassword.set('');
+      this.closeProfile();
+    },
+    error: (err) => {
+      this.showError(err.error?.message || 'Erreur lors du changement de mot de passe');
+    }
+  });
+}
 
   closeProfile() {
     this.showProfileModal.set(false);

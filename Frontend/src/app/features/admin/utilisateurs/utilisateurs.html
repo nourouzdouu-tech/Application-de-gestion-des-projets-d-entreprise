@@ -58,7 +58,7 @@
       </div>
       <div class="stat-info">
         <p class="stat-label">TOTAL UTILISATEURS</p>
-        <p class="stat-value">{{ totalUsersCount() }}</p>
+        <p class="stat-value">{{ totalElements() }}</p>
       </div>
     </div>
 
@@ -97,7 +97,7 @@
       </div>
       <div class="stat-info">
         <p class="stat-label">RÔLES ADMIN</p>
-        <p class="stat-value">{{ activeRolesCount() }}</p>
+        <p class="stat-value">{{ totalPages() }}</p>
       </div>
     </div>
   </div>
@@ -154,13 +154,25 @@
               </td>
 
               <td>
-                <span class="status-badge"
-                  [class.status-actif]="!user.locked"
-                  [class.status-inactif]="user.locked">
-                  <span class="status-dot"></span>
-                  {{ user.locked ? 'Inactif' : 'Actif' }}
-                </span>
-              </td>
+  <span class="status-badge"
+    [class.status-actif]="!user.locked"
+    [class.status-inactif]="user.locked">
+    <span class="status-dot"></span>
+    {{ user.locked ? 'Inactif' : 'Actif' }}
+  </span>
+
+  @if (user.failedAttempts > 0 && !user.locked) {
+    <span class="attempt-badge attempt-warning">
+      {{ user.failedAttempts }}/3 tentatives
+    </span>
+  }
+
+  @if (user.locked) {
+    <span class="attempt-badge attempt-danger">
+      Bloqué après {{ user.failedAttempts }}/3
+    </span>
+  }
+</td>
 
               <td>
                 <div class="actions-cell">
@@ -171,6 +183,32 @@
                       <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
                     </svg>
                   </button>
+                  <button
+  class="action-btn action-reset"
+  title="Réinitialiser le mot de passe"
+  [disabled]="!user.locked"
+  (click)="resetPassword(user)">
+  <svg viewBox="0 0 24 24"
+     fill="none"
+     stroke="currentColor"
+     stroke-width="2"
+     stroke-linecap="round"
+     stroke-linejoin="round"
+     width="15"
+     height="15">
+
+  <!-- tête -->
+  <circle cx="7" cy="15" r="3"></circle>
+
+  <!-- corps -->
+  <path d="M10 15h10"></path>
+
+  <!-- dents -->
+  <path d="M17 15v2"></path>
+  <path d="M20 15v2"></path>
+
+</svg>
+</button>
 
                   <button class="action-btn action-delete" title="Supprimer" (click)="deleteUser(user.id)">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
@@ -468,19 +506,36 @@
 @if (showConfirmModal()) {
   <div class="modal-overlay" (click)="confirmNo()">
     <div class="confirm-modal" (click)="$event.stopPropagation()">
-      <div class="confirm-icon">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="28" height="28">
-          <polyline points="3 6 5 6 21 6" />
-          <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
-          <path d="M10 11v6M14 11v6" />
-          <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
-        </svg>
-      </div>
-      <h3 class="confirm-title">Confirmer la suppression</h3>
+ 
+      @if (confirmType() === 'reset') {
+        <div class="confirm-icon confirm-icon--purple">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="28" height="28">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+            <path d="M7 11V7a5 5 0 0 1 9.9-1"/>
+          </svg>
+        </div>
+        <h3 class="confirm-title">Réinitialiser le mot de passe</h3>
+      } @else {
+        <div class="confirm-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="28" height="28">
+            <polyline points="3 6 5 6 21 6" />
+            <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+          </svg>
+        </div>
+        <h3 class="confirm-title">Confirmer la suppression</h3>
+      }
+ 
       <p class="confirm-message">{{ confirmMessage() }}</p>
+ 
       <div class="confirm-actions">
         <button class="confirm-btn-cancel" (click)="confirmNo()">Annuler</button>
-        <button class="confirm-btn-delete" (click)="confirmYes()">Supprimer</button>
+        @if (confirmType() === 'reset') {
+          <button class="confirm-btn-reset" (click)="confirmYes()">
+            Envoyer le mot de passe temporaire
+          </button>
+        } @else {
+          <button class="confirm-btn-delete" (click)="confirmYes()">Supprimer</button>
+        }
       </div>
     </div>
   </div>

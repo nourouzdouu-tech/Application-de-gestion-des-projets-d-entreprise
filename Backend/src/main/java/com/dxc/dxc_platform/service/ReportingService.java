@@ -5,8 +5,6 @@ import com.dxc.dxc_platform.entity.*;
 import com.dxc.dxc_platform.enums.ProjectStatus;
 import com.dxc.dxc_platform.enums.Status;
 import com.dxc.dxc_platform.repository.*;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -17,8 +15,6 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
-@RequiredArgsConstructor
-@Slf4j
 public class ReportingService {
 
     private final UserRepository userRepository;
@@ -28,6 +24,21 @@ public class ReportingService {
     private final RoleRepository roleRepository;
     private final ProfileRepository profileRepository;
 
+    public ReportingService(
+            UserRepository userRepository,
+            ProjectRepository projectRepository,
+            TaskRepository taskRepository,
+            ClientRepository clientRepository,
+            RoleRepository roleRepository,
+            ProfileRepository profileRepository
+    ) {
+        this.userRepository = userRepository;
+        this.projectRepository = projectRepository;
+        this.taskRepository = taskRepository;
+        this.clientRepository = clientRepository;
+        this.roleRepository = roleRepository;
+        this.profileRepository = profileRepository;
+    }
     @Transactional(readOnly = true)
     public ReportingDataDto getCompleteReporting(User currentUser) {
         ReportingDataDto dto = new ReportingDataDto();
