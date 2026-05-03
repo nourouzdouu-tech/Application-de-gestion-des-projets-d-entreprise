@@ -379,8 +379,12 @@ export class ReviewProjetsComponent implements OnInit {
         return 'En cours de validation';
       case 'PRE_VALIDE':
         return 'Assigné';
+      case 'EN_COURS':
+        return 'Assigné';
       case 'VALIDE':
         return 'Assigné';
+      case 'CLOTURE':
+        return 'Clôturé';
       case 'REJETE':
         return 'REJETE';
       default:

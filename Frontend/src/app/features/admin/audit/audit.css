@@ -333,6 +333,8 @@
 .level-dot { width:7px; height:7px; border-radius:50%; flex-shrink:0; }
 .level-INFO     { color:#6b7280; }
 .level-INFO     .level-dot { background:#9ca3af; }
+.level-SUCCESS  { color:#15803d; }
+.level-SUCCESS  .level-dot { background:#22c55e; }
 .level-WARNING  { color:#b45309; }
 .level-WARNING  .level-dot { background:#f59e0b; }
 .level-ERROR    { color:#dc2626; }

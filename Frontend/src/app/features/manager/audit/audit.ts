@@ -169,10 +169,10 @@ onDocumentClick(): void {
 
 // Export
 exportLogs(format: 'csv' | 'excel'): void {
-  const headers = ['ID', 'Date', 'Heure', 'Acteur', 'Email', 'Rôle', 'Phase', 'Action', 'Projet', 'Détails', 'Statut'];
+  const headers = [ 'Date', 'Heure', 'Acteur', 'Email', 'Rôle', 'Phase', 'Action', 'Projet', 'Détails', 'Statut'];
   
   const rows = this.filteredLogs.map(l => [
-    l.id,
+    
     new Date(l.timestamp).toLocaleDateString('fr-FR'),
     new Date(l.timestamp).toLocaleTimeString('fr-FR'),
     l.actorName,

@@ -35,15 +35,13 @@ public class LoginAttemptService {
         int attempts = user.getFailedAttempts() + 1;
         System.out.println(">>> TENTATIVE " + attempts + " pour " + email);
 
-        if (attempts >= MAX_FAILED_ATTEMPTS) {
-
-                user.setLocked(true);
-                userRepository.save(user);
-            String failedAttempts = "";
+        if (attempts == MAX_FAILED_ATTEMPTS) {
+            user.setLocked(true);
+            userRepository.save(user);
             auditService.log("ACCOUNT_LOCKED", "USER", user.getId(),
-                    "Compte verrouillé après " + failedAttempts + " tentatives échouées",
+                    "Compte verrouillé après " + attempts + " tentatives échouées",
                     email, null);
-            }
+        }
 
 
         userRepository.incrementFailedAttempts(email);

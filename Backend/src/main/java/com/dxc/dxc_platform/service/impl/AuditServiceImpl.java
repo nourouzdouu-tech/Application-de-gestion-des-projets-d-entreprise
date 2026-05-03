@@ -2,16 +2,24 @@ package com.dxc.dxc_platform.service.impl;
 
 import com.dxc.dxc_platform.dto.AuditLogDto;
 import com.dxc.dxc_platform.entity.AuditLog;
+import com.dxc.dxc_platform.entity.Project;
 import com.dxc.dxc_platform.repository.AuditLogRepository;
+import com.dxc.dxc_platform.repository.ProjectRepository;
+import com.dxc.dxc_platform.repository.TaskRepository;
+import com.dxc.dxc_platform.repository.UserRepository;
 import com.dxc.dxc_platform.service.AuditService;
+import com.dxc.dxc_platform.shared.exception.NotFoundException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -40,9 +48,18 @@ public class AuditServiceImpl implements AuditService {
     );
 
     private final AuditLogRepository auditLogRepository;
+    private final UserRepository userRepository;
+    private final ProjectRepository projectRepository;
+    private final TaskRepository taskRepository;
 
-    public AuditServiceImpl(AuditLogRepository auditLogRepository) {
+    public AuditServiceImpl(AuditLogRepository auditLogRepository,
+                            UserRepository userRepository,
+                            ProjectRepository projectRepository,
+                            TaskRepository taskRepository) {
         this.auditLogRepository = auditLogRepository;
+        this.userRepository = userRepository;
+        this.projectRepository = projectRepository;
+        this.taskRepository = taskRepository;
     }
 
     @Override
@@ -69,12 +86,20 @@ public class AuditServiceImpl implements AuditService {
     public Page<AuditLogDto> getWorkflowLogs(String action, String performedBy,
                                              LocalDateTime startDate, LocalDateTime endDate, Pageable pageable) {
         Page<AuditLog> allLogs = auditLogRepository.findAllOrderByPerformedAtDesc(pageable);
+        List<AuditLogDto> filtered;
 
-        var filtered = allLogs.getContent().stream()
-                .filter(log -> WORKFLOW_ACTIONS.contains(log.getAction()))
-                .collect(Collectors.toList());
+        if (performedBy != null && !performedBy.isBlank()) {
+            filtered = getManagerWorkflowLogs(allLogs.getContent(), performedBy, action, startDate, endDate);
+        } else {
+            filtered = allLogs.getContent().stream()
+                    .filter(log -> WORKFLOW_ACTIONS.contains(log.getAction()))
+                    .filter(log -> matchesAction(log, action))
+                    .filter(log -> matchesDateRange(log, startDate, endDate))
+                    .map(this::toDto)
+                    .collect(Collectors.toList());
+        }
 
-        return new PageImpl<>(filtered.stream().map(this::toDto).collect(Collectors.toList()), pageable, filtered.size());
+        return new PageImpl<>(filtered, pageable, filtered.size());
     }
 
     public Page<AuditLogDto> getUserManagementLogs(String action, String performedBy,
@@ -137,6 +162,84 @@ public class AuditServiceImpl implements AuditService {
                 log.getPerformedAt(),
                 log.getIpAddress()
         );
+    }
+
+    private boolean matchesAction(AuditLog log, String action) {
+        return action == null || action.isBlank() || action.equalsIgnoreCase(log.getAction());
+    }
+
+    private boolean matchesPerformedBy(AuditLog log, String performedBy) {
+        return performedBy == null || performedBy.isBlank()
+                || (log.getPerformedBy() != null && performedBy.equalsIgnoreCase(log.getPerformedBy()));
+    }
+
+    private boolean matchesDateRange(AuditLog log, LocalDateTime startDate, LocalDateTime endDate) {
+        LocalDateTime performedAt = log.getPerformedAt();
+        if (performedAt == null) {
+            return false;
+        }
+        if (startDate != null && performedAt.isBefore(startDate)) {
+            return false;
+        }
+        if (endDate != null && performedAt.isAfter(endDate)) {
+            return false;
+        }
+        return true;
+    }
+
+    private List<AuditLogDto> getManagerWorkflowLogs(List<AuditLog> logs,
+                                                     String managerEmail,
+                                                     String action,
+                                                     LocalDateTime startDate,
+                                                     LocalDateTime endDate) {
+        Long managerId = userRepository.findByEmailAndDeletedFalse(managerEmail)
+                .orElseThrow(() -> new NotFoundException("USER_NOT_FOUND", "Manager introuvable"))
+                .getId();
+
+        List<Project> managerProjects = projectRepository.findAllByDeletedFalseAndManagerId(managerId);
+        if (managerProjects.isEmpty()) {
+            return List.of();
+        }
+
+        Set<Long> projectIds = managerProjects.stream()
+                .map(Project::getId)
+                .collect(Collectors.toSet());
+
+        Set<Long> teamIds = managerProjects.stream()
+                .map(Project::getTeam)
+                .filter(team -> team != null)
+                .map(team -> team.getId())
+                .collect(Collectors.toSet());
+
+        Set<Long> taskIds = new HashSet<>(
+                taskRepository.findAllByProjectIdInAndDeletedFalse(List.copyOf(projectIds)).stream()
+                        .map(task -> task.getId())
+                        .collect(Collectors.toSet())
+        );
+
+        return logs.stream()
+                .filter(log -> WORKFLOW_ACTIONS.contains(log.getAction()))
+                .filter(log -> matchesAction(log, action))
+                .filter(log -> matchesDateRange(log, startDate, endDate))
+                .filter(log -> belongsToManagerWorkflow(log, projectIds, teamIds, taskIds))
+                .map(this::toDto)
+                .collect(Collectors.toList());
+    }
+
+    private boolean belongsToManagerWorkflow(AuditLog log,
+                                             Set<Long> projectIds,
+                                             Set<Long> teamIds,
+                                             Set<Long> taskIds) {
+        if (log.getEntityId() == null || log.getEntityType() == null) {
+            return false;
+        }
+
+        return switch (log.getEntityType()) {
+            case "PROJECT" -> projectIds.contains(log.getEntityId());
+            case "TEAM" -> teamIds.contains(log.getEntityId());
+            case "TASK" -> taskIds.contains(log.getEntityId());
+            default -> false;
+        };
     }
 
     // Classe DTO pour les stats

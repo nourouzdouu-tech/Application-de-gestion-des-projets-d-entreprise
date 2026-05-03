@@ -332,6 +332,10 @@ export class Dashboard implements OnInit {
     })
       .pipe(
         switchMap(({ projects, teams }) => {
+          const currentUserId = this.currentUser()?.id;
+          // Filter teams to only those managed by the current chef projet
+          const filteredTeams = teams?.filter(team => team.projectManagerId === currentUserId) || [];
+          
           const mappedProjects: DashboardProject[] = (projects || []).map(p => ({
             id: p.id ?? 0,
             name: p.name ?? '',
@@ -344,7 +348,7 @@ export class Dashboard implements OnInit {
             endDate: p.endDate ? new Date(p.endDate) : new Date(),
             deleted: p.deleted ?? false,
             teamId: p.teamId,
-            teamName: teams.find(t => t.id === p.teamId)?.name,
+            teamName: filteredTeams.find(t => t.id === p.teamId)?.name,
             createdAt: p.createdAt,
             updatedAt: p.updatedAt,
             managerId: p.managerId,
@@ -354,7 +358,7 @@ export class Dashboard implements OnInit {
           }));
           
           this.projects.set(mappedProjects);
-          this.allTeams.set(teams ?? []);
+          this.allTeams.set(filteredTeams);
 
           const validProjects = mappedProjects.filter(p => p.id != null);
           if (!validProjects.length) return of([] as TaskDto[]);

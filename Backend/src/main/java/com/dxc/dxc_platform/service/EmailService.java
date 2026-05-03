@@ -1,8 +1,9 @@
 package com.dxc.dxc_platform.service;
 
+import com.dxc.dxc_platform.entity.Project;
 import com.dxc.dxc_platform.entity.Task;
+import com.dxc.dxc_platform.entity.Team;
 import com.dxc.dxc_platform.entity.User;
-import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
@@ -118,6 +119,9 @@ public class EmailService {
      */
     public void notifyTaskValidated(Task task, User member, String commentaire) {
         String subject = "✅ Tâche validée - " + task.getTitle();
+        String commentaireText = (commentaire != null && !commentaire.trim().isEmpty()) 
+            ? "Commentaire : " + commentaire 
+            : "";
         String content = String.format("""
             Bonjour %s,
             
@@ -125,8 +129,7 @@ public class EmailService {
             
             Tâche : %s
             Projet : %s
-            
-            Commentaire : %s
+            %s
             
             Bien continuer !
             
@@ -137,7 +140,7 @@ public class EmailService {
                 member.getPrenom(),
                 task.getTitle(),
                 task.getProject() != null ? task.getProject().getName() : "N/A",
-                commentaire != null ? commentaire : "Aucun commentaire"
+                commentaireText
         );
         sendSimpleEmail(member.getEmail(), subject, content);
     }
@@ -147,6 +150,9 @@ public class EmailService {
      */
     public void notifyTaskRejected(Task task, User member, String commentaire) {
         String subject = "❌ Tâche à reprendre - " + task.getTitle();
+        String motifText = (commentaire != null && !commentaire.trim().isEmpty()) 
+            ? "Motif du rejet : " + commentaire 
+            : "Motif du rejet : Non spécifié";
         String content = String.format("""
             Bonjour %s,
             
@@ -155,7 +161,7 @@ public class EmailService {
             Tâche : %s
             Projet : %s
             
-            Motif du rejet : %s
+            %s
             
             Veuillez la reprendre et la soumettre à nouveau une fois corrigée.
             
@@ -166,7 +172,7 @@ public class EmailService {
                 member.getPrenom(),
                 task.getTitle(),
                 task.getProject() != null ? task.getProject().getName() : "N/A",
-                commentaire != null ? commentaire : "Non spécifié"
+                motifText
         );
         sendSimpleEmail(member.getEmail(), subject, content);
     }
@@ -227,7 +233,110 @@ public class EmailService {
         );
         sendSimpleEmail(chefProjet.getEmail(), subject, content);
     }
-    // ================= AJOUTEZ DANS EmailService.java =================
+
+    /**
+     * Notification d'assignation à une équipe
+     */
+    public void notifyTeamAssigned(User member, Team team, User assignedBy) {
+        String subject = "👥 Vous avez été ajouté à l'équipe " + team.getName();
+        String content = String.format("""
+            Bonjour %s,
+
+            Vous avez été affecté(e) à l'équipe "%s".
+
+            Chef de projet : %s
+            Équipe : %s
+
+            Connectez-vous à la plateforme pour consulter vos projets et tâches.
+
+            ---
+            Cet email a été envoyé automatiquement. Merci de ne pas y répondre.
+            © DXC Technology - Plateforme de gestion de projets
+            """,
+                member.getPrenom(),
+                team.getName(),
+                assignedBy != null ? assignedBy.getFullName() : "Votre chef de projet",
+                team.getName()
+        );
+        sendSimpleEmail(member.getEmail(), subject, content);
+    }
+
+    /**
+     * Notification d'assignation d'un projet pour l'équipe
+     */
+    public void notifyTeamAssignedToProject(Team team, Project project, User assignedBy) {
+        if (team.getMembers() == null || team.getMembers().isEmpty()) {
+            return;
+        }
+
+        String subject = "🧩 Votre équipe a été affectée au projet : " + project.getName();
+
+        for (User member : team.getMembers()) {
+            String content = String.format("""
+                Bonjour %s,
+
+                Votre équipe "%s" a été affectée au projet suivant :
+
+                Projet : %s
+                Client : %s
+                Statut : %s
+                Description : %s
+                Chef de projet : %s
+
+                Connectez-vous à la plateforme pour consulter les tâches et les détails du projet.
+
+                ---
+                Cet email a été envoyé automatiquement. Merci de ne pas y répondre.
+                © DXC Technology - Plateforme de gestion de projets
+                """,
+                    member.getPrenom(),
+                    team.getName(),
+                    project.getName(),
+                    project.getClient() != null ? project.getClient() : "N/A",
+                    project.getStatus() != null ? project.getStatus().name() : "N/A",
+                    project.getDescription() != null ? project.getDescription() : "Aucune description",
+                    assignedBy != null ? assignedBy.getFullName() : "Votre chef de projet"
+            );
+            sendSimpleEmail(member.getEmail(), subject, content);
+        }
+    }
+
+    /**
+     * Notification lorsqu'un chef de projet est affecté à un projet par le manager
+     */
+    public void notifyChefProjetAssigned(Project project, User chefProjet, User manager, String commentaire) {
+        String subject = "👨‍💼 Vous êtes affecté(e) au projet : " + project.getName();
+        String commentaireText = (commentaire != null && !commentaire.isBlank())
+                ? "Commentaire du manager : " + commentaire
+                : "";
+        String content = String.format("""
+            Bonjour %s,
+
+            Vous avez été affecté(e) en tant que chef de projet pour le projet suivant :
+
+            Projet : %s
+            Client : %s
+            Statut : %s
+            Description : %s
+            Manager : %s
+            %s
+
+            Connectez-vous à la plateforme pour consulter le projet et démarrer l'organisation.
+
+            ---
+            Cet email a été envoyé automatiquement. Merci de ne pas y répondre.
+            © DXC Technology - Plateforme de gestion de projets
+            """,
+                chefProjet.getPrenom(),
+                project.getName(),
+                project.getClient() != null ? project.getClient() : "N/A",
+                project.getStatus() != null ? project.getStatus().name() : "N/A",
+                project.getDescription() != null ? project.getDescription() : "Aucune description",
+                manager != null ? manager.getFullName() : "Votre manager",
+                commentaireText
+        );
+        sendSimpleEmail(chefProjet.getEmail(), subject, content);
+    }
 
     /**
      * Notification de modification de tâche

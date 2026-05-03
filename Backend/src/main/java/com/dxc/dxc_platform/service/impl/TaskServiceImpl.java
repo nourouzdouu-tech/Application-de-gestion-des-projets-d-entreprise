@@ -174,6 +174,8 @@ public class TaskServiceImpl implements TaskService {
 
         String oldTitle = task.getTitle();
         User assignedUser = task.getAssignedTo();
+        Status oldStatus = task.getStatus();
+        boolean wasRejected = task.isRejected();
 
         // Sauvegarder l'ancienne assignation (si changée)
         Long oldAssignedToId = task.getAssignedTo() != null ? task.getAssignedTo().getId() : null;
@@ -214,20 +216,42 @@ public class TaskServiceImpl implements TaskService {
             }
         }
 
+        // Déterminer si c'est une validation ou un rejet
+        boolean isValidation = false;
+        boolean isRejection = false;
+        String rejectionComment = null;
+
         if (dto.getRejected() != null) {
             task.setRejected(dto.getRejected());
+            isRejection = dto.getRejected() && !wasRejected;
         }
+
         if (dto.getRejectionComment() != null) {
             task.setRejectionComment(dto.getRejectionComment());
+            rejectionComment = dto.getRejectionComment();
+        }
+
+        // Si le statut passe de "Validation" à "Terminé" et la tâche n'est pas rejetée, c'est une validation
+        if (oldStatus == Status.Validation && task.getStatus() == Status.Terminé && !task.isRejected()) {
+            isValidation = true;
         }
 
         Task updated = taskRepository.save(task);
 
-        // === NOTIFICATION EMAIL DE MODIFICATION ===
+        // === NOTIFICATION EMAIL APPROPRIÉE ===
         try {
-            emailService.notifyTaskUpdated(updated, currentUser, assignedUser);
+            if (isValidation) {
+                // C'est une validation de tâche
+                emailService.notifyTaskValidated(updated, assignedUser, rejectionComment);
+            } else if (isRejection) {
+                // C'est un rejet de tâche
+                emailService.notifyTaskRejected(updated, assignedUser, rejectionComment);
+            } else {
+                // C'est une modification simple
+                emailService.notifyTaskUpdated(updated, currentUser, assignedUser);
+            }
         } catch (Exception e) {
-            log.error("Erreur lors de l'envoi de l'email de modification: {}", e.getMessage());
+            log.error("Erreur lors de l'envoi de l'email: {}", e.getMessage());
         }
 
         auditService.log("UPDATE_TASK", "TASK", id,

@@ -9,6 +9,7 @@ import java.util.List;
 
 public interface TaskRepository extends JpaRepository<Task, Long> {
     List<Task> findAllByProjectIdAndDeletedFalse(Long projectId);
+    List<Task> findAllByProjectIdInAndDeletedFalse(List<Long> projectIds);
     List<Task> findAllByAssignedToIdAndDeletedFalse(Long userId);
     List<Task> findAllByAssignedToIdAndProjectTeamIdAndDeletedFalse(Long userId, Long teamId);
     long countByProjectIdAndDeletedFalse(Long projectId);

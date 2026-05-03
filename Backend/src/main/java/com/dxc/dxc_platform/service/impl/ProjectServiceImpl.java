@@ -17,6 +17,7 @@ import com.dxc.dxc_platform.repository.TeamRepository;
 import com.dxc.dxc_platform.repository.UserRepository;
 import com.dxc.dxc_platform.repository.TaskRepository;
 import com.dxc.dxc_platform.service.AuditService;
+import com.dxc.dxc_platform.service.EmailService;
 import com.dxc.dxc_platform.service.ProjectService;
 import com.dxc.dxc_platform.shared.exception.BusinessException;
 import com.dxc.dxc_platform.shared.exception.ConflictException;
@@ -43,6 +44,7 @@ public class ProjectServiceImpl implements ProjectService {
     private final UserMapper userMapper;
     private final TaskRepository taskRepository;
     private final AuditService auditService;
+    private final EmailService emailService;
 
     public ProjectServiceImpl(ProjectRepository projectRepository,
                               TeamRepository teamRepository,
@@ -50,7 +52,9 @@ public class ProjectServiceImpl implements ProjectService {
                               ProjectMapper projectMapper,
                               ManagerProjectMapper managerProjectMapper,
                               UserMapper userMapper,
-                              TaskRepository taskRepository, AuditService auditService) {
+                              TaskRepository taskRepository,
+                              AuditService auditService,
+                              EmailService emailService) {
         this.projectRepository = projectRepository;
         this.teamRepository = teamRepository;
         this.userRepository = userRepository;
@@ -59,6 +63,7 @@ public class ProjectServiceImpl implements ProjectService {
         this.userMapper = userMapper;
         this.taskRepository = taskRepository;
         this.auditService = auditService;
+        this.emailService = emailService;
     }
     private String getCurrentUserEmail() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
@@ -287,10 +292,7 @@ public class ProjectServiceImpl implements ProjectService {
             throw new ForbiddenException("FORBIDDEN", "Accès réservé au manager");
         }
 
-        return projectRepository.findAllByDeletedFalseAndManagerIdAndStatusIn(
-                        currentUser.getId(),
-                        List.of(ProjectStatus.EN_VALIDATION, ProjectStatus.PRE_VALIDE, ProjectStatus.REJETE)
-                ).stream()
+        return projectRepository.findAllByDeletedFalseAndManagerId(currentUser.getId()).stream()
                 .map(managerProjectMapper::toDto)
                 .collect(Collectors.toList());
     }
@@ -348,6 +350,8 @@ public class ProjectServiceImpl implements ProjectService {
             User chefProjet = findValidChefProjetById(request.getChefProjetId());
             assignChefProjetToProject(project, chefProjet);
             project.setStatus(ProjectStatus.PRE_VALIDE);
+
+            emailService.notifyChefProjetAssigned(project, chefProjet, currentUser, request.getCommentaire());
 
             // ✅ AUDIT 1: Validation du projet par le manager
             auditService.log("VALIDATE_PROJECT", "PROJECT", project.getId(),
@@ -408,6 +412,15 @@ public class ProjectServiceImpl implements ProjectService {
         auditService.log("ASSIGN_TEAM_TO_PROJECT", "PROJECT", projectId,
                 "Assignation de l'équipe " + team.getName() + " au projet " + project.getName(),
                 getCurrentUserEmail(), null);
+
+        try {
+            emailService.notifyTeamAssignedToProject(team, saved, currentUser);
+        } catch (Exception e) {
+            // Ne pas empêcher l'assignation du projet si l'email échoue
+            // On laisse simplement le projet enregistré et on journalise l'erreur.
+            System.err.println("Erreur notification assignation projet : " + e.getMessage());
+        }
+
         return projectMapper.toDto(saved);
     }
 

@@ -9,12 +9,15 @@ import com.dxc.dxc_platform.mapper.TeamMapper;
 import com.dxc.dxc_platform.repository.TeamRepository;
 import com.dxc.dxc_platform.repository.UserRepository;
 import com.dxc.dxc_platform.service.AuditService;
+import com.dxc.dxc_platform.service.EmailService;
 import com.dxc.dxc_platform.service.TeamService;
 import com.dxc.dxc_platform.shared.exception.BusinessException;
 import com.dxc.dxc_platform.shared.exception.ConflictException;
 import com.dxc.dxc_platform.shared.exception.ForbiddenException;
 import com.dxc.dxc_platform.shared.exception.NotFoundException;
 import jakarta.transaction.Transactional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -28,18 +31,24 @@ import static com.dxc.dxc_platform.shared.exception.ErrorCodes.*;
 @Transactional
 public class TeamServiceImpl implements TeamService {
 
+    private static final Logger log = LoggerFactory.getLogger(TeamServiceImpl.class);
+
     private final TeamRepository teamRepository;
     private final UserRepository userRepository;
     private final TeamMapper teamMapper;
     private final AuditService auditService;
+    private final EmailService emailService;
 
     public TeamServiceImpl(TeamRepository teamRepository,
                            UserRepository userRepository,
-                           TeamMapper teamMapper, AuditService auditService) {
+                           TeamMapper teamMapper,
+                           AuditService auditService,
+                           EmailService emailService) {
         this.teamRepository = teamRepository;
         this.userRepository = userRepository;
         this.teamMapper = teamMapper;
         this.auditService = auditService;
+        this.emailService = emailService;
     }
     private String getCurrentUserEmail() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
@@ -307,6 +316,15 @@ public class TeamServiceImpl implements TeamService {
 
         user.setTeam(team);
         userRepository.save(user);
+
+        try {
+            // Notification par email au membre nouvellement affecté à l'équipe
+            emailService.notifyTeamAssigned(user, team, currentUser);
+        } catch (Exception e) {
+            // Si l'email échoue, on conserve l'assignation sans interrompre le processus
+            log.error("Erreur lors de l'envoi de la notification d'assignation à l'équipe : {}", e.getMessage());
+        }
+
         auditService.log("ASSIGN_MEMBER_TO_TEAM", "TEAM", teamId,
                 "Assignation de " + user.getEmail() + " à l'équipe " + team.getName(),
                 getCurrentUserEmail(),  null);

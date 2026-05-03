@@ -61,10 +61,6 @@ public class AuthServiceImpl implements AuthService {
                             "USER_NOT_FOUND", "Utilisateur introuvable"));
 
             if (user.isLocked()) {
-                // ✅ Audit pour compte verrouillé
-                auditService.log("ACCOUNT_LOCKED", "USER", user.getId(),
-                        "Tentative de connexion sur compte verrouillé: " + email,
-                        email, ipAddress);
                 throw new LockedException(
                         "Compte verrouillé après 3 tentatives. Contactez l'administrateur.");
             }
@@ -75,6 +71,11 @@ public class AuthServiceImpl implements AuthService {
                 );
             } catch (BadCredentialsException e) {
                 int remaining = loginAttemptService.registerFailedAttempt(email);
+
+                if (remaining <= 0) {
+                    throw new LockedException(
+                            "Compte verrouillé après 3 tentatives. Contactez l'administrateur.");
+                }
 
                 // ✅ Audit pour échec de connexion
                 auditService.log("LOGIN_FAILED", "AUTH", user.getId(),

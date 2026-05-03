@@ -17,7 +17,7 @@ export interface AuditLog {
   category: 'auth' | 'users' | 'security';
   details: string;
   ipAddress: string;
-  level: 'INFO' | 'WARNING' | 'ERROR' | 'CRITICAL';
+  level: 'INFO' | 'SUCCESS' | 'WARNING' | 'ERROR' | 'CRITICAL';
   success: boolean;
 }
 
@@ -159,7 +159,8 @@ private authService = inject(AuthService);
     return 'users';
   }
 
-  private getLevelFromAction(action: string): 'INFO' | 'WARNING' | 'ERROR' | 'CRITICAL' {
+  private getLevelFromAction(action: string): 'INFO' | 'SUCCESS' | 'WARNING' | 'ERROR' | 'CRITICAL' {
+    if (action === 'ACCOUNT_UNLOCKED') return 'SUCCESS';
     if (action === 'LOGIN_FAILED') return 'WARNING';
     if (action === 'DISABLE_USER') return 'WARNING';
     if (action === 'DELETE_USER') return 'WARNING';
@@ -171,7 +172,8 @@ private authService = inject(AuthService);
     const successActions = [
       'LOGIN_SUCCESS', 'CREATE_USER', 'UPDATE_USER', 'ENABLE_USER',
       'RESET_PASSWORD', 'CREATE_ROLE', 'UPDATE_ROLE', 'ACTIVATE_ROLE',
-      'CREATE_PROJECT', 'UPDATE_PROJECT', 'CREATE_TASK', 'UPDATE_TASK'
+      'CREATE_PROJECT', 'UPDATE_PROJECT', 'CREATE_TASK', 'UPDATE_TASK',
+      'ACCOUNT_UNLOCKED'
     ];
     return successActions.includes(action);
   }
