@@ -5,22 +5,12 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="d6d90c51-4d5c-4da4-945a-1cea9d95d7af" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/compiler.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/compiler.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Backend/src/main/java/com/dxc/dxc_platform/controller/AuditManagerController.java" beforeDir="false" afterPath="$PROJECT_DIR$/Backend/src/main/java/com/dxc/dxc_platform/controller/AuditManagerController.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Backend/src/main/java/com/dxc/dxc_platform/entity/Message.java" beforeDir="false" afterPath="$PROJECT_DIR$/Backend/src/main/java/com/dxc/dxc_platform/entity/Message.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Backend/src/main/java/com/dxc/dxc_platform/repository/TaskRepository.java" beforeDir="false" afterPath="$PROJECT_DIR$/Backend/src/main/java/com/dxc/dxc_platform/repository/TaskRepository.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Backend/src/main/java/com/dxc/dxc_platform/service/EmailService.java" beforeDir="false" afterPath="$PROJECT_DIR$/Backend/src/main/java/com/dxc/dxc_platform/service/EmailService.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Backend/src/main/java/com/dxc/dxc_platform/service/impl/AuditServiceImpl.java" beforeDir="false" afterPath="$PROJECT_DIR$/Backend/src/main/java/com/dxc/dxc_platform/service/impl/AuditServiceImpl.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Backend/src/main/java/com/dxc/dxc_platform/service/impl/AuthServiceImpl.java" beforeDir="false" afterPath="$PROJECT_DIR$/Backend/src/main/java/com/dxc/dxc_platform/service/impl/AuthServiceImpl.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Backend/src/main/java/com/dxc/dxc_platform/service/impl/LoginAttemptService.java" beforeDir="false" afterPath="$PROJECT_DIR$/Backend/src/main/java/com/dxc/dxc_platform/service/impl/LoginAttemptService.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Backend/src/main/java/com/dxc/dxc_platform/service/impl/ProjectServiceImpl.java" beforeDir="false" afterPath="$PROJECT_DIR$/Backend/src/main/java/com/dxc/dxc_platform/service/impl/ProjectServiceImpl.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Backend/src/main/java/com/dxc/dxc_platform/service/impl/TaskServiceImpl.java" beforeDir="false" afterPath="$PROJECT_DIR$/Backend/src/main/java/com/dxc/dxc_platform/service/impl/TaskServiceImpl.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Backend/src/main/java/com/dxc/dxc_platform/service/impl/TeamServiceImpl.java" beforeDir="false" afterPath="$PROJECT_DIR$/Backend/src/main/java/com/dxc/dxc_platform/service/impl/TeamServiceImpl.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Frontend/src/app/features/admin/audit/audit.css" beforeDir="false" afterPath="$PROJECT_DIR$/Frontend/src/app/features/admin/audit/audit.css" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Frontend/src/app/features/admin/audit/audit.ts" beforeDir="false" afterPath="$PROJECT_DIR$/Frontend/src/app/features/admin/audit/audit.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Frontend/src/app/features/manager/projets/projets.ts" beforeDir="false" afterPath="$PROJECT_DIR$/Frontend/src/app/features/manager/projets/projets.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Frontend/src/app/shared/components/dashboard/dashboard.ts" beforeDir="false" afterPath="$PROJECT_DIR$/Frontend/src/app/shared/components/dashboard/dashboard.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Backend/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/Backend/.gitignore" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Backend/src/main/java/com/dxc/dxc_platform/config/FileStorageConfig.java" beforeDir="false" afterPath="$PROJECT_DIR$/Backend/src/main/java/com/dxc/dxc_platform/config/FileStorageConfig.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Backend/src/main/resources/application.properties" beforeDir="false" afterPath="$PROJECT_DIR$/Backend/src/main/resources/application.properties" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/C:/Users/Nour/Documents/PFE/Files/chat/88fb980a-5c7d-447a-8729-c60d62458088_1759333950924-2.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/uploads/chat/6d1bd2ee-740f-4197-ae07-426381266ae2_TP1-Storage Virtualization-20.pdf" beforeDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />

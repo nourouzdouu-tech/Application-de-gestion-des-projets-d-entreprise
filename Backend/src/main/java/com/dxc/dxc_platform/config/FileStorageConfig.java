@@ -5,6 +5,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
@@ -17,6 +18,14 @@ public class FileStorageConfig implements WebMvcConfigurer {
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
         Path uploadPath = Paths.get(uploadDir).toAbsolutePath().normalize();
+
+        // Créer le dossier s'il n'existe pas
+        try {
+            Files.createDirectories(uploadPath);
+            System.out.println("Dossier d'upload créé : " + uploadPath);
+        } catch (Exception e) {
+            System.err.println("Erreur création dossier upload : " + e.getMessage());
+        }
 
         registry.addResourceHandler("/uploads/**")
                 .addResourceLocations("file:" + uploadPath.toString() + "/");
