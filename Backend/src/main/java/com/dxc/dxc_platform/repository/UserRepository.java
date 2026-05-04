@@ -104,4 +104,9 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     @Query("SELECT COUNT(u) FROM User u WHERE u.locked = false AND u.deleted = false AND u.createdAt BETWEEN :start AND :end")
     long countActiveUsersCreatedBetween(@Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
+
+    @Query("SELECT u FROM User u WHERE u.deleted = false AND EXISTS (SELECT r FROM u.roles r WHERE r.nom = 'ADMIN')")
+    List<User> findAllAdmins();
+
 }
+

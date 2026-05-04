@@ -25,10 +25,14 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Service
 @Transactional
 public class UserAdminServiceImpl implements UserAdminService {
+    private static final Logger log = LoggerFactory.getLogger(UserAdminServiceImpl.class);
+
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
     private final ProfileRepository profileRepository;
@@ -160,16 +164,22 @@ public class UserAdminServiceImpl implements UserAdminService {
         return userMapper.toResponse(user);
     }
 
+
     @Override
     public void disable(Long id) {
         User user = userRepository.findByIdAndDeletedFalse(id)
                 .orElseThrow(() -> new NotFoundException("USER_NOT_FOUND", "Utilisateur introuvable: " + id));
+
         user.setLocked(true);
         userRepository.save(user);
 
+        // ✅ Appel à EmailService au lieu de la méthode locale
+        List<User> admins = userRepository.findAllAdmins();
+        emailService.notifyAllAdminsAccountDisabled(user, admins, getCurrentUserEmail());
+
         auditService.log("DISABLE_USER", "USER", id,
                 "Désactivation de l'utilisateur " + user.getEmail(),
-                getCurrentUserEmail(),  null);
+                getCurrentUserEmail(), null);
     }
 
     @Override
@@ -180,20 +190,22 @@ public class UserAdminServiceImpl implements UserAdminService {
         user.setLocked(false);
         userRepository.save(user);
 
+        // ✅ Appel à EmailService au lieu de la méthode locale
+        List<User> admins = userRepository.findAllAdmins();
+        emailService.notifyAllAdminsAccountEnabled(user, admins, getCurrentUserEmail());
+
         auditService.log("ACCOUNT_UNLOCKED", "USER", id,
                 "Compte déverrouillé de l'utilisateur " + user.getEmail(),
                 getCurrentUserEmail(), null);
     }
-
     @Override
     public UserDto.ResetPasswordResponse resetPassword(Long id, UserDto.ResetPasswordRequest req) {
         User user = userRepository.findByIdAndDeletedFalse(id)
                 .orElseThrow(() -> new NotFoundException("USER_NOT_FOUND", "Utilisateur introuvable: " + id));
 
-        String tempPassword =
-                (req != null && req.tempPassword() != null && !req.tempPassword().isBlank())
-                        ? req.tempPassword()
-                        : generateTempPassword();
+        String tempPassword = (req != null && req.tempPassword() != null && !req.tempPassword().isBlank())
+                ? req.tempPassword()
+                : generateTempPassword();
 
         user.setPasswordHash(passwordEncoder.encode(tempPassword));
         user.setFailedAttempts(0);
@@ -213,7 +225,6 @@ public class UserAdminServiceImpl implements UserAdminService {
                 user.isMustChangePassword()
         );
     }
-
     @Override
     public void softDelete(Long id) {
         User user = userRepository.findByIdAndDeletedFalse(id)

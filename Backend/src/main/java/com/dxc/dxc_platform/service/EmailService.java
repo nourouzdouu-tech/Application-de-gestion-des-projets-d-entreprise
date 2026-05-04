@@ -15,6 +15,11 @@ import org.thymeleaf.context.Context;
 import jakarta.mail.internet.MimeMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.List;
+
 @Service
 public class EmailService {
 
@@ -22,6 +27,7 @@ public class EmailService {
 
     private final JavaMailSender mailSender;
     private final TemplateEngine templateEngine;
+
     public EmailService(JavaMailSender mailSender, TemplateEngine templateEngine) {
         this.mailSender = mailSender;
         this.templateEngine = templateEngine;
@@ -119,9 +125,9 @@ public class EmailService {
      */
     public void notifyTaskValidated(Task task, User member, String commentaire) {
         String subject = "✅ Tâche validée - " + task.getTitle();
-        String commentaireText = (commentaire != null && !commentaire.trim().isEmpty()) 
-            ? "Commentaire : " + commentaire 
-            : "";
+        String commentaireText = (commentaire != null && !commentaire.trim().isEmpty())
+                ? "Commentaire : " + commentaire
+                : "";
         String content = String.format("""
             Bonjour %s,
             
@@ -150,9 +156,9 @@ public class EmailService {
      */
     public void notifyTaskRejected(Task task, User member, String commentaire) {
         String subject = "❌ Tâche à reprendre - " + task.getTitle();
-        String motifText = (commentaire != null && !commentaire.trim().isEmpty()) 
-            ? "Motif du rejet : " + commentaire 
-            : "Motif du rejet : Non spécifié";
+        String motifText = (commentaire != null && !commentaire.trim().isEmpty())
+                ? "Motif du rejet : " + commentaire
+                : "Motif du rejet : Non spécifié";
         String content = String.format("""
             Bonjour %s,
             
@@ -398,6 +404,9 @@ public class EmailService {
         sendSimpleEmail(assignedTo.getEmail(), subject, content);
     }
 
+    /**
+     * Notification de mot de passe temporaire
+     */
     public void notifyTemporaryPassword(User user, String tempPassword) {
         String subject = "Réinitialisation du mot de passe - DXC Platform";
 
@@ -422,5 +431,222 @@ public class EmailService {
         );
 
         sendSimpleEmail(user.getEmail(), subject, content);
+    }
+
+    // ================= NOUVELLES NOTIFICATIONS ADMIN =================
+
+    /**
+     * Notification à un admin spécifique quand un compte est désactivé
+     */
+    public void notifyAdminAccountDisabled(User disabledUser, String adminEmail, String actionByEmail) {
+        String subject = "🔒 Compte utilisateur désactivé - " + disabledUser.getEmail();
+
+        String content = String.format("""
+            Bonjour Admin,
+            
+            Le compte utilisateur suivant a été désactivé par %s :
+            
+            ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+            📧 Email : %s
+            👤 Nom   : %s %s
+            🎭 Rôles : %s
+            🏷️ Statut : DÉSACTIVÉ
+            ⏰ Date   : %s
+            ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+            
+            Pour réactiver ce compte, connectez-vous à la plateforme et utilisez la fonction "Activer".
+            
+            ---
+            Cet email a été envoyé automatiquement.
+            © DXC Technology - Plateforme de gestion de projets
+            """,
+                actionByEmail,
+                disabledUser.getEmail(),
+                disabledUser.getPrenom() != null ? disabledUser.getPrenom() : "",
+                disabledUser.getNom() != null ? disabledUser.getNom() : "",
+                disabledUser.getRoles().stream()
+                        .map(role -> role.getNom())
+                        .reduce((a, b) -> a + ", " + b)
+                        .orElse("Aucun"),
+                LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss"))
+        );
+
+        sendSimpleEmail(adminEmail, subject, content);
+    }
+
+    /**
+     * Notification à l'utilisateur que son compte est verrouillé avec nouveau mot de passe
+     */
+    public void notifyUserAccountLocked(User lockedUser, String tempPassword) {
+        String subject = "🔐 Votre compte a été verrouillé - Nouveau mot de passe temporaire";
+
+        String content = String.format("""
+        Bonjour %s,
+        
+        Votre compte a été automatiquement verrouillé après 3 tentatives de connexion échouées.
+        
+        🔑 Votre nouveau mot de passe temporaire est : %s
+        
+        Pour vous connecter :
+        1. Utilisez votre email habituel : %s
+        2. Utilisez ce mot de passe temporaire
+        3. Vous devrez changer votre mot de passe à la première connexion
+        
+        Si vous n'êtes pas à l'origine de ces tentatives, veuillez contacter immédiatement votre administrateur.
+        
+        ---
+        Cet email a été envoyé automatiquement pour des raisons de sécurité.
+        © DXC Technology - Plateforme de gestion de projets
+        """,
+                lockedUser.getPrenom(),
+                tempPassword,
+                lockedUser.getEmail()
+        );
+
+        sendSimpleEmail(lockedUser.getEmail(), subject, content);
+    }
+
+    /**
+     * Notification à un admin spécifique quand un compte est réactivé
+     */
+    public void notifyAdminAccountEnabled(User enabledUser, String adminEmail, String actionByEmail) {
+        String subject = "✅ Compte utilisateur réactivé - " + enabledUser.getEmail();
+
+        String content = String.format("""
+            Bonjour Admin,
+            
+            Le compte utilisateur suivant a été réactivé par %s :
+            
+            ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+            📧 Email : %s
+            👤 Nom   : %s %s
+            🎭 Rôles : %s
+            🏷️ Statut : ACTIF
+            ⏰ Date   : %s
+            ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+            
+            ---
+            Cet email a été envoyé automatiquement.
+            © DXC Technology - Plateforme de gestion de projets
+            """,
+                actionByEmail,
+                enabledUser.getEmail(),
+                enabledUser.getPrenom() != null ? enabledUser.getPrenom() : "",
+                enabledUser.getNom() != null ? enabledUser.getNom() : "",
+                enabledUser.getRoles().stream()
+                        .map(role -> role.getNom())
+                        .reduce((a, b) -> a + ", " + b)
+                        .orElse("Aucun"),
+                LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss"))
+        );
+
+        sendSimpleEmail(adminEmail, subject, content);
+    }
+
+    /**
+     * Notification à TOUS les admins quand un compte est désactivé
+     */
+    public void notifyAllAdminsAccountDisabled(User disabledUser, List<User> admins, String actionByEmail) {
+        if (admins == null || admins.isEmpty()) {
+            log.warn("Aucun admin trouvé pour la notification de désactivation");
+            return;
+        }
+
+        for (User admin : admins) {
+            notifyAdminAccountDisabled(disabledUser, admin.getEmail(), actionByEmail);
+            log.info("Email de désactivation envoyé à l'admin: {}", admin.getEmail());
+        }
+    }
+
+    /**
+     * Notification à TOUS les admins quand un compte est réactivé
+     */
+    public void notifyAllAdminsAccountEnabled(User enabledUser, List<User> admins, String actionByEmail) {
+        if (admins == null || admins.isEmpty()) {
+            log.warn("Aucun admin trouvé pour la notification de réactivation");
+            return;
+        }
+
+        for (User admin : admins) {
+            notifyAdminAccountEnabled(enabledUser, admin.getEmail(), actionByEmail);
+            log.info("Email de réactivation envoyé à l'admin: {}", admin.getEmail());
+        }
+    }
+
+
+    // Dans EmailService.java, ajoutez cette méthode
+
+    /**
+     * Notification quand quelqu'un reçoit un nouveau message
+     * (Sans montrer le contenu du message)
+     */
+    public void notifyNewMessageReceived(User sender, User receiver) {
+        String subject = "💬 Nouveau message sur DXC Platform";
+
+        String content = String.format("""
+        Bonjour %s,
+        
+        %s %s vous a envoyé un message sur la plateforme DXC.
+        
+        ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        📨 De : %s %s
+        📅 Reçu le : %s
+        🔔 Statut : Non lu
+        ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        
+        Pour consulter votre message, connectez-vous à la plateforme et rendez-vous dans votre messagerie.
+        
+        
+        ---
+        Cet email a été envoyé automatiquement. Merci de ne pas y répondre.
+        © DXC Technology - Plateforme de gestion de projets
+        """,
+                receiver.getPrenom(),
+                sender.getPrenom(),
+                sender.getNom(),
+                sender.getPrenom(),
+                sender.getNom(),
+                java.time.LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss")),
+                "http://localhost:8080"  // ou votre base URL
+        );
+
+        sendSimpleEmail(receiver.getEmail(), subject, content);
+    }
+
+    /**
+     * Notification quand quelqu'un reçoit un fichier
+     */
+    public void notifyNewFileReceived(User sender, User receiver, String fileName) {
+        String subject = "📎 Nouveau fichier reçu sur DXC Platform";
+
+        String content = String.format("""
+        Bonjour %s,
+        
+        %s %s vous a envoyé un fichier sur la plateforme DXC.
+        
+        ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        📨 De : %s %s
+        📎 Fichier : %s
+        📅 Reçu le : %s
+        🔔 Statut : Non lu
+        ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        
+        Pour consulter ce fichier, connectez-vous à la plateforme et rendez-vous dans votre messagerie.
+                
+        ---
+        Cet email a été envoyé automatiquement. Merci de ne pas y répondre.
+        © DXC Technology - Plateforme de gestion de projets
+        """,
+                receiver.getPrenom(),
+                sender.getPrenom(),
+                sender.getNom(),
+                sender.getPrenom(),
+                sender.getNom(),
+                fileName,
+                java.time.LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss")),
+                "http://localhost:8080"
+        );
+
+        sendSimpleEmail(receiver.getEmail(), subject, content);
     }
 }

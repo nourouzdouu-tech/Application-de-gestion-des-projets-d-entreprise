@@ -69,15 +69,15 @@ public class AuthServiceImpl implements AuthService {
                 authenticationManager.authenticate(
                         new UsernamePasswordAuthenticationToken(email, request.password())
                 );
-            } catch (BadCredentialsException e) {
-                int remaining = loginAttemptService.registerFailedAttempt(email);
+            } // Dans la méthode login() de AuthServiceImpl, modifiez l'appel à registerFailedAttempt
+            catch (BadCredentialsException e) {
+                int remaining = loginAttemptService.registerFailedAttempt(email, ipAddress); // ← Ajoutez ipAddress
 
                 if (remaining <= 0) {
                     throw new LockedException(
-                            "Compte verrouillé après 3 tentatives. Contactez l'administrateur.");
+                            "Compte verrouillé après 3 tentatives. Un email a été envoyé à l'administrateur.");
                 }
 
-                // ✅ Audit pour échec de connexion
                 auditService.log("LOGIN_FAILED", "AUTH", user.getId(),
                         "Échec de connexion pour " + email + ". Mot de passe incorrect. Tentatives restantes: " + remaining,
                         email, ipAddress);
@@ -86,7 +86,6 @@ public class AuthServiceImpl implements AuthService {
                         "Mot de passe incorrect. " + remaining
                                 + " tentative(s) restante(s) avant verrouillage.");
             }
-
             loginAttemptService.resetAttempts(email);
 
             UserDetails userDetails = userDetailsService.loadUserByUsername(email);

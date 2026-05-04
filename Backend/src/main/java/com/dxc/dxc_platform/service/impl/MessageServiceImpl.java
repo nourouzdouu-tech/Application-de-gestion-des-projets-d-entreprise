@@ -24,16 +24,20 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
-
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import com.dxc.dxc_platform.service.EmailService;
 @Service
 public class MessageServiceImpl implements MessageService {
+
+    private static final Logger log = LoggerFactory.getLogger(MessageServiceImpl.class);
 
     private final ConversationRepository conversationRepository;
     private final MessageRepository messageRepository;
     private final UserRepository userRepository;
     private final FileStorageService fileStorageService;
     private final ObjectMapper objectMapper;
-
+    private final EmailService emailService;
     @Value("${app.base-url}")
     private String baseUrl;
 
@@ -41,12 +45,14 @@ public class MessageServiceImpl implements MessageService {
                               MessageRepository messageRepository,
                               UserRepository userRepository,
                               FileStorageService fileStorageService,
-                              ObjectMapper objectMapper) {
+                              ObjectMapper objectMapper,
+                              EmailService emailService) {  // ← AJOUTER CE PARAMÈTRE
         this.conversationRepository = conversationRepository;
         this.messageRepository = messageRepository;
         this.userRepository = userRepository;
         this.fileStorageService = fileStorageService;
         this.objectMapper = objectMapper;
+        this.emailService = emailService;
     }
 
     private User getCurrentUser() {
@@ -123,9 +129,17 @@ public class MessageServiceImpl implements MessageService {
 
         msg = messageRepository.save(msg);
 
+        // ✅ Envoyer une notification email au destinataire pour le fichier
+        try {
+            if (!sender.getId().equals(receiver.getId())) {
+                emailService.notifyNewFileReceived(sender, receiver, file.getOriginalFilename());
+            }
+        } catch (Exception e) {
+            log.error("Erreur lors de l'envoi de la notification de fichier: {}", e.getMessage());
+        }
+
         return toMessageDto(msg);
     }
-
     @Override
     @Transactional(readOnly = true)
     public List<ConversationDto> getUserConversations() {
@@ -279,7 +293,20 @@ public class MessageServiceImpl implements MessageService {
         msg.setClientTempId(clientTempId);
         msg.setReplyToMessage(replyTo);
 
-        return messageRepository.save(msg);
+        Message saved = messageRepository.save(msg);
+
+        // ✅ Envoyer une notification email au destinataire
+        try {
+            // Ne pas envoyer d'email si l'expéditeur est le destinataire (auto-envoi)
+            if (!sender.getId().equals(receiver.getId())) {
+                // Vérifier si le destinataire veut recevoir des notifications (optionnel)
+                emailService.notifyNewMessageReceived(sender, receiver);
+            }
+        } catch (Exception e) {
+            log.error("Erreur lors de l'envoi de la notification de message: {}", e.getMessage());
+        }
+
+        return saved;
     }
 
     private ConversationDto toConversationDto(Conversation conv, Long currentUserId) {
