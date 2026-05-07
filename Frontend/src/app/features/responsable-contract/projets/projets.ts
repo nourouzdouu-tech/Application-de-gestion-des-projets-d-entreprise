@@ -21,17 +21,17 @@ type WorkflowStepState = 'complete' | 'current' | 'upcoming' | 'rejected';
 type WorkflowStep = {
   key: string;
   label: string;
-  icon: 'create' | 'validate' | 'manager' | 'chef' | 'team' | 'progress' | 'close';
+  icon: 'create' | 'validate' | 'rejected' | 'manager' | 'chef' | 'team' | 'progress' | 'close';
   state: WorkflowStepState;
   date: string;
   time: string;
   reviewedAt?: string;
-updatedAt?: string;
-createdAt?: string;
-managerComment?: string;
-managerName?: string;
-chefProjetName?: string;
-managerId?: number;
+  updatedAt?: string;
+  createdAt?: string;
+  managerComment?: string;
+  managerName?: string;
+  chefProjetName?: string;
+  managerId?: number;
 };
 
 @Component({
@@ -44,7 +44,9 @@ managerId?: number;
 export class Projets implements OnInit, OnDestroy {
   projects: ProjectDto[] = [];
   clients: ClientSelectResponse[] = [];
+
   managers: ManagerSelectDto[] = [];
+  private allManagers: ManagerSelectDto[] = [];
 
   selectedRepresentants: RepresentantDto[] = [];
   selectedRepresentantId: number | null = null;
@@ -72,6 +74,8 @@ export class Projets implements OnInit, OnDestroy {
 
   currentPage = 1;
   itemsPerPage = 4;
+
+  minEndDate: string = '';
 
   private destroy$ = new Subject<void>();
 
@@ -102,7 +106,8 @@ export class Projets implements OnInit, OnDestroy {
       .pipe(takeUntil(this.destroy$))
       .subscribe({
         next: (data: ManagerSelectDto[]) => {
-          this.managers = data;
+          this.allManagers = data;
+          this.managers = [...data];
         },
         error: (err: any) => {
           console.error('Erreur managers:', err);
@@ -181,6 +186,17 @@ export class Projets implements OnInit, OnDestroy {
     this.selectedRepresentantId = null;
   }
 
+  onStartDateChange(): void {
+    if (this.projectForm.startDate) {
+      this.minEndDate = this.projectForm.startDate;
+      if (this.projectForm.endDate && this.projectForm.endDate < this.projectForm.startDate) {
+        this.projectForm.endDate = '';
+      }
+    } else {
+      this.minEndDate = '';
+    }
+  }
+
   getEmptyForm(): ProjectDto {
     return {
       name: '',
@@ -202,21 +218,59 @@ export class Projets implements OnInit, OnDestroy {
     this.selectedRepresentants = [];
     this.selectedRepresentantId = null;
     this.projectForm = this.getEmptyForm();
+    this.managers = [...this.allManagers];
+    this.minEndDate = '';
   }
-  isProjectInProgress(project: ProjectDto): boolean {
-  return (project.status ?? '').toUpperCase() === 'EN_COURS';
-}
 
-isRejectedEditMode(): boolean {
-  return this.isEditMode && (this.projectForm.status ?? '').toUpperCase() === 'REJETE';
-}
+  isProjectInProgress(project: ProjectDto): boolean {
+    return (project.status ?? '').toUpperCase() === 'EN_COURS';
+  }
+
+  isProjectRejected(project: ProjectDto | null): boolean {
+    const status = (project?.status ?? '').toString().toUpperCase();
+    return status === 'REJETE' || status === 'REJETÉ' || status === 'REJECTED';
+  }
+
+  isRejectedEditMode(): boolean {
+    return this.isEditMode && this.isProjectRejected(this.projectForm);
+  }
+
+  private refreshManagersForProject(project: ProjectDto | null): void {
+    const source = this.allManagers.length > 0 ? this.allManagers : this.managers;
+
+    if (!project || !this.isProjectRejected(project)) {
+      this.managers = [...source];
+      return;
+    }
+
+    const rejectedManagerId = Number((project as any).managerId);
+    const rejectedManagerName = ((project as any).managerName ?? '').toString().trim().toLowerCase();
+
+    this.managers = source.filter((manager: any) => {
+      const managerId = Number(manager.id);
+      const managerName = (manager.fullName ?? manager.name ?? '').toString().trim().toLowerCase();
+
+      if (rejectedManagerId && managerId === rejectedManagerId) {
+        return false;
+      }
+
+      if (rejectedManagerName && managerName === rejectedManagerName) {
+        return false;
+      }
+
+      return true;
+    });
+  }
 
   openEditForm(project: ProjectDto): void {
-  if (this.isProjectInProgress(project)) return;
+    if (this.isProjectInProgress(project)) return;
+
     this.showForm = true;
     this.isEditMode = true;
     this.editingProjectId = project.id ?? null;
     this.formError = null;
+
+    this.refreshManagersForProject(project);
 
     this.projectForm = {
       id: project.id,
@@ -227,12 +281,15 @@ isRejectedEditMode(): boolean {
       riskLevel: project.riskLevel ?? 'FAIBLE',
       startDate: project.startDate ?? '',
       endDate: project.endDate ?? '',
-      managerId: (project as any).managerId,
+      managerId: this.isProjectRejected(project) ? undefined : (project as any).managerId,
       status: project.status
     } as ProjectDto;
 
+    this.minEndDate = project.startDate ?? '';
+
     const selectedClient = this.clients.find(c => c.nom === this.projectForm.client);
     this.selectedRepresentants = selectedClient?.representants ?? [];
+    this.selectedRepresentantId = null;
   }
 
   closeForm(): void {
@@ -244,6 +301,8 @@ isRejectedEditMode(): boolean {
     this.selectedRepresentants = [];
     this.selectedRepresentantId = null;
     this.isSubmitting = false;
+    this.managers = [...this.allManagers];
+    this.minEndDate = '';
   }
 
   submitForm(): void {
@@ -314,11 +373,11 @@ isRejectedEditMode(): boolean {
   }
 
   confirmDelete(project: ProjectDto): void {
-  if (this.isProjectInProgress(project)) return;
+    if (this.isProjectInProgress(project)) return;
 
-  this.projectToDelete = project;
-  this.showDeleteConfirm = true;
-}
+    this.projectToDelete = project;
+    this.showDeleteConfirm = true;
+  }
 
   cancelDelete(): void {
     this.projectToDelete = null;
@@ -406,11 +465,11 @@ isRejectedEditMode(): boolean {
   getStatusLabel(status?: string): string {
     switch (status) {
       case 'EN_VALIDATION':
-        return 'En validation';
+        return 'En cours de validation';
       case 'PRE_VALIDE':
         return 'Pré-validé';
       case 'EN_COURS':
-        return 'En cours';
+        return 'En cours de réalisation';
       case 'VALIDE':
         return 'Validé';
       case 'REJETE':
@@ -470,7 +529,8 @@ isRejectedEditMode(): boolean {
   }
 
   getWorkflowSteps(project: ProjectDto | null): WorkflowStep[] {
-    const status = project?.status;
+    const status = (project?.status || '').toString().toUpperCase();
+
     const reviewedAt = (project as any)?.reviewedAt;
     const updatedAt = (project as any)?.updatedAt;
     const createdAt = (project as any)?.createdAt;
@@ -526,37 +586,39 @@ isRejectedEditMode(): boolean {
       }
     ];
 
-   switch (status) {
-  case 'EN_VALIDATION':
-    // seulement la création est faite
-    break;
+    switch (status) {
+      case 'EN_VALIDATION':
+        break;
 
-  case 'PRE_VALIDE':
-  case 'VALIDE':
-    steps[1].state = 'complete';
-    steps[2].state = 'current';
-    break;
+      case 'PRE_VALIDE':
+      case 'VALIDE':
+        steps[1].state = 'complete';
+        steps[2].state = 'current';
+        break;
 
-  case 'EN_COURS':
-    steps[1].state = 'complete';
-    steps[2].state = 'complete';
-    steps[3].state = 'current';
-    break;
+      case 'EN_COURS':
+        steps[1].state = 'complete';
+        steps[2].state = 'complete';
+        steps[3].state = 'current';
+        break;
 
-  case 'CLOTURE':
-    steps[1].state = 'complete';
-    steps[2].state = 'complete';
-    steps[3].state = 'complete';
-    steps[4].state = 'current';
-    break;
+      case 'CLOTURE':
+        steps[1].state = 'complete';
+        steps[2].state = 'complete';
+        steps[3].state = 'complete';
+        steps[4].state = 'current';
+        break;
 
-  case 'REJETE':
-    steps[1].state = 'rejected';
-    break;
+      case 'REJETE':
+      case 'REJETÉ':
+      case 'REJECTED':
+        steps[1].state = 'rejected';
+        steps[1].icon = 'rejected';
+        break;
 
-  default:
-    break;
-}
+      default:
+        break;
+    }
 
     steps.forEach(step => {
       if (step.state === 'upcoming') {

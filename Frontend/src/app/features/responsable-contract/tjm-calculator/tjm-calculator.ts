@@ -51,8 +51,8 @@ export class TjmCalculatorComponent implements OnInit {
 
   billingLines: BillingLine[] = [];
 
-  totalGeneral = 0; // HT
-  tvaRate = 0.2; // 20%
+  totalGeneral = 0;
+  tvaRate = 0.2;
   tvaAmount = 0;
   totalTTC = 0;
 
@@ -87,6 +87,25 @@ export class TjmCalculatorComponent implements OnInit {
 
       this.loadBillingData();
     });
+  }
+
+  getRoleLabel(role: string | undefined | null): string {
+    switch ((role || '').toUpperCase()) {
+      case 'MANAGER':
+        return 'Manager';
+      case 'CHEF_PROJET':
+        return 'Chef de projet';
+      case 'MEMBER':
+        return 'Membre équipe';
+      case 'MEMBRE_EQUIPE':
+        return 'Membre équipe';
+      case 'ADMIN':
+        return 'Administrateur';
+      case 'RESPONSABLE_CONTRACT':
+        return 'Responsable contrat';
+      default:
+        return role || '-';
+    }
   }
 
   loadBillingData(): void {
@@ -126,7 +145,7 @@ export class TjmCalculatorComponent implements OnInit {
             id: manager.id,
             fullName: `${manager.prenom} ${manager.nom}`,
             email: manager.email,
-            roleName: 'MANAGER',
+            roleName: this.getRoleLabel('MANAGER'),
             profileLibelle: manager.profileLibelle ?? 'Profil non défini',
             tjm: Number(manager.tjm ?? 0),
             nombreJours: 0,
@@ -140,7 +159,7 @@ export class TjmCalculatorComponent implements OnInit {
             id: chef.id,
             fullName: `${chef.prenom} ${chef.nom}`,
             email: chef.email,
-            roleName: 'CHEF_PROJET',
+            roleName: this.getRoleLabel('CHEF_PROJET'),
             profileLibelle: chef.profileLibelle ?? 'Profil non défini',
             tjm: Number(chef.tjm ?? 0),
             nombreJours: 0,
@@ -154,7 +173,7 @@ export class TjmCalculatorComponent implements OnInit {
             id: m.id,
             fullName: m.fullName,
             email: m.email,
-            roleName: m.roleName,
+            roleName: this.getRoleLabel(m.roleName),
             profileLibelle: m.profileLibelle ?? 'Profil non défini',
             tjm: Number(m.tjm ?? 0),
             nombreJours: 0,
@@ -269,6 +288,9 @@ export class TjmCalculatorComponent implements OnInit {
 
   generatePdf(): void {
     const doc = new jsPDF('p', 'mm', 'a4');
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const margin = 14;
+    const contentWidth = pageWidth - margin * 2;
 
     const projectName = this.project?.name || 'Projet';
     const description = this.project?.description || 'Aucune description disponible.';
@@ -276,80 +298,169 @@ export class TjmCalculatorComponent implements OnInit {
     const manager = (this.project as any)?.managerName || '-';
     const chef = (this.project as any)?.chefProjetName || '-';
     const teamName = this.team?.name || (this.project as any)?.teamName || 'Non affectée';
-    const status = this.project?.status || 'N/A';
+    const status = this.getStatusLabel(this.project?.status);
     const generatedAt = new Date().toLocaleString('fr-FR');
 
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(18);
-    doc.text('Facture du projet', 14, 18);
+    const MAUVE   = [124, 58, 237] as [number, number, number];
+    const WHITE   = [255, 255, 255] as [number, number, number];
+    const DARK    = [15, 23, 42]   as [number, number, number];
+    const MUTED   = [100, 116, 139] as [number, number, number];
+    const LIGHT   = [248, 250, 252] as [number, number, number];
+    const BORDER  = [226, 232, 240] as [number, number, number];
 
-    doc.setFontSize(14);
-    doc.text(projectName, 14, 28);
+    // ── EN-TÊTE ──────────────────────────────────────────────────────────────
+    doc.setFillColor(...MAUVE);
+    doc.rect(0, 0, pageWidth, 28, 'F');
+
+    doc.setTextColor(...WHITE);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(16);
+    doc.text('FACTURE PROJET', margin, 13);
 
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(10);
-    doc.text(`Description : ${description}`, 14, 36);
-    doc.text(`Client : ${client}`, 14, 43);
-    doc.text(`Statut : ${status}`, 14, 50);
-    doc.text(`Manager : ${manager}`, 14, 57);
-    doc.text(`Chef de projet : ${chef}`, 14, 64);
-    doc.text(`Équipe : ${teamName}`, 14, 71);
-    doc.text(`Date de génération : ${generatedAt}`, 14, 78);
+    doc.setFontSize(8);
+    doc.text(`Générée le ${generatedAt}`, margin, 21);
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(12);
+    doc.text(projectName, pageWidth - margin, 13, { align: 'right' });
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8);
+    doc.text(`Statut : ${status}`, pageWidth - margin, 21, { align: 'right' });
+
+    // ── CARTE INFOS PROJET (2 colonnes) ───────────────────────────────────────
+    const cardY = 34;
+    const cardH = 48;
+    const col1X = margin;
+    const col2X = margin + contentWidth / 2 + 4;
+    const colW  = contentWidth / 2 - 4;
+
+    doc.setFillColor(...LIGHT);
+    doc.setDrawColor(...BORDER);
+    doc.setLineWidth(0.3);
+    doc.roundedRect(margin, cardY, contentWidth, cardH, 3, 3, 'FD');
+
+    doc.setDrawColor(...BORDER);
+    doc.line(margin + contentWidth / 2, cardY + 6, margin + contentWidth / 2, cardY + cardH - 6);
+
+    const leftItems = [
+      ['Client', client],
+      ['Manager', manager],
+      ['Chef de projet', chef],
+    ];
+
+    leftItems.forEach(([label, value], i) => {
+      const rowY = cardY + 12 + i * 12;
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(7.5);
+      doc.setTextColor(...MUTED);
+      doc.text(label, col1X + 6, rowY);
+
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(8.5);
+      doc.setTextColor(...DARK);
+      doc.text(value, col1X + 6, rowY + 5);
+    });
+
+    const rightItems = [
+      ['Équipe', teamName],
+      ['Description', description],
+    ];
+
+    rightItems.forEach(([label, value], i) => {
+      const rowY = cardY + 12 + i * 18;
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(7.5);
+      doc.setTextColor(...MUTED);
+      doc.text(label, col2X, rowY);
+
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(8.5);
+      doc.setTextColor(...DARK);
+      const lines = doc.splitTextToSize(value, colW - 4);
+      doc.text(lines.slice(0, 2), col2X, rowY + 5);
+    });
+
+    const tableY = cardY + cardH + 8;
 
     const body = this.billingLines.map(line => [
       line.fullName,
-      line.roleName,
+      this.getRoleLabel(line.roleName),
       line.profileLibelle || '-',
-      this.formatMoney(line.tjm) + ' MAD',
+      `${this.formatMoney(line.tjm)} MAD`,
       `${Number(line.nombreJours ?? 0)}`,
-      `${this.formatMoney(line.montant)} MAD`
+      `${this.formatMoney(line.montant)} MAD`,
     ]);
 
     autoTable(doc, {
-      startY: 88,
-      head: [[
-        'Ressource',
-        'Rôle',
-        'Profil',
-        'TJM',
-        'Nombre de jours',
-        'Montant HT'
-      ]],
-      body: body.length ? body : [[
-        'Aucune ressource', '-', '-', '0,00 MAD', '0', '0,00 MAD'
-      ]],
-      styles: {
-        fontSize: 9
-      },
+      startY: tableY,
+      margin: { left: margin, right: margin },
+      head: [['Ressource', 'Rôle', 'Profil', 'TJM', 'Jours', 'Montant HT']],
+      body: body.length ? body : [['Aucune ressource', '-', '-', '0,00 MAD', '0', '0,00 MAD']],
+      theme: 'striped',
       headStyles: {
-        fillColor: [124, 58, 237]
-      }
-    });
-
-    const finalY = (doc as any).lastAutoTable.finalY || 100;
-
-    const profileRows = this.profileTotals.map(item => [
-      `Total ${item.profile}`,
-      `${this.formatMoney(item.total)} MAD`
-    ]);
-
-    autoTable(doc, {
-      startY: finalY + 10,
-      body: [
-        ...profileRows,
-        ['Total HT', `${this.formatMoney(this.totalGeneral)} MAD`],
-        ['TVA (20%)', `${this.formatMoney(this.tvaAmount)} MAD`],
-        ['Total TTC', `${this.formatMoney(this.totalTTC)} MAD`]
-      ],
-      theme: 'grid',
+        fillColor: MAUVE,
+        textColor: WHITE,
+        fontStyle: 'bold',
+        fontSize: 8,
+        halign: 'center',
+      },
       styles: {
-        fontSize: 10
+        fontSize: 8.5,
+        textColor: DARK,
+        cellPadding: 4,
       },
       columnStyles: {
-        0: { fontStyle: 'bold' },
-        1: { halign: 'right' }
-      }
+        3: { halign: 'right' },
+        4: { halign: 'center' },
+        5: { halign: 'right', fontStyle: 'bold' },
+      },
     });
+
+    const finalY = (doc as any).lastAutoTable.finalY + 10;
+
+    const totalsBody = [
+      ...this.profileTotals.map(item => [`Total ${item.profile}`, `${this.formatMoney(item.total)} MAD`]),
+      ['Total HT',  `${this.formatMoney(this.totalGeneral)} MAD`],
+      ['TVA (20%)', `${this.formatMoney(this.tvaAmount)} MAD`],
+      ['Total TTC', `${this.formatMoney(this.totalTTC)} MAD`],
+    ];
+
+    autoTable(doc, {
+      startY: finalY,
+      margin: { left: pageWidth / 2, right: margin },
+      body: totalsBody,
+      theme: 'plain',
+      styles: {
+        fontSize: 9,
+        cellPadding: 3,
+        textColor: DARK,
+      },
+      columnStyles: {
+        0: { fontStyle: 'bold', textColor: MUTED },
+        1: { halign: 'right', fontStyle: 'bold' },
+      },
+      didParseCell: (data: any) => {
+        if (data.row.raw?.[0] === 'Total TTC') {
+          data.cell.styles.fillColor = MAUVE;
+          data.cell.styles.textColor = WHITE;
+          data.cell.styles.fontStyle = 'bold';
+          data.cell.styles.fontSize = 10;
+        }
+      },
+    });
+
+    const pageCount = doc.getNumberOfPages();
+    for (let i = 1; i <= pageCount; i++) {
+      doc.setPage(i);
+      doc.setFontSize(7.5);
+      doc.setTextColor(148, 163, 184);
+      doc.text(
+        `Page ${i}/${pageCount} — Document généré automatiquement`,
+        pageWidth / 2, 289, { align: 'center' }
+      );
+    }
 
     doc.save(this.buildPdfFileName());
   }
@@ -374,11 +485,11 @@ export class TjmCalculatorComponent implements OnInit {
   }
 
   formatMoney(value: number): string {
-  return Number(value || 0)
-    .toFixed(2)                // 20000.00
-    .replace('.', ',')         // 20000,00
-    .replace(/\B(?=(\d{3})+(?!\d))/g, ' '); // 20 000,00
-}
+    return Number(value || 0)
+      .toFixed(2)
+      .replace('.', ',')
+      .replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+  }
 
   get storageKey(): string {
     return `billing_project_${this.projectId}`;
@@ -409,4 +520,24 @@ export class TjmCalculatorComponent implements OnInit {
       this.successMessage = null;
     }, 2500);
   }
+
+ getStatusLabel(status: string | undefined | null): string {
+  switch ((status || '').toUpperCase()) {
+    case 'EN_VALIDATION':
+      return 'En cours de validation';  // ← Changé
+    case 'PRE_VALIDE':
+      return 'Pré-validé';
+    case 'EN_COURS':
+      return 'En cours de réalisation';  // ← Changé
+    case 'VALIDE':
+      return 'Validé';
+    case 'REJETE':
+    case 'REJETÉ':
+      return 'Rejeté';
+    case 'CLOTURE':
+      return 'Clôturé';
+    default:
+      return status || '-';
+  }
+}
 }

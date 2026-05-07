@@ -5,12 +5,27 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="d6d90c51-4d5c-4da4-945a-1cea9d95d7af" name="Changes" comment="">
+      <change beforePath="$PROJECT_DIR$/.idea/compiler.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/compiler.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Backend/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/Backend/.gitignore" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Backend/src/main/java/com/dxc/dxc_platform/config/FileStorageConfig.java" beforeDir="false" afterPath="$PROJECT_DIR$/Backend/src/main/java/com/dxc/dxc_platform/config/FileStorageConfig.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Backend/src/main/java/com/dxc/dxc_platform/entity/Message.java" beforeDir="false" afterPath="$PROJECT_DIR$/Backend/src/main/java/com/dxc/dxc_platform/entity/Message.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Backend/src/main/resources/application.properties" beforeDir="false" afterPath="$PROJECT_DIR$/Backend/src/main/resources/application.properties" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/C:/Users/Nour/Documents/PFE/Files/chat/88fb980a-5c7d-447a-8729-c60d62458088_1759333950924-2.pdf" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/uploads/chat/6d1bd2ee-740f-4197-ae07-426381266ae2_TP1-Storage Virtualization-20.pdf" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Frontend/package-lock.json" beforeDir="false" afterPath="$PROJECT_DIR$/Frontend/package-lock.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Frontend/package.json" beforeDir="false" afterPath="$PROJECT_DIR$/Frontend/package.json" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Frontend/src/app/app.routes.ts" beforeDir="false" afterPath="$PROJECT_DIR$/Frontend/src/app/app.routes.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Frontend/src/app/features/admin/audit/audit.css" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Frontend/src/app/features/admin/audit/audit.html" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Frontend/src/app/features/admin/audit/audit.spec.ts" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Frontend/src/app/features/admin/audit/audit.ts" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Frontend/src/app/features/manager/audit/audit.css" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Frontend/src/app/features/manager/audit/audit.html" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Frontend/src/app/features/manager/audit/audit.spec.ts" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Frontend/src/app/features/manager/audit/audit.ts" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Frontend/src/app/features/responsable-contract/projets/projets.html" beforeDir="false" afterPath="$PROJECT_DIR$/Frontend/src/app/features/responsable-contract/projets/projets.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Frontend/src/app/features/responsable-contract/projets/projets.ts" beforeDir="false" afterPath="$PROJECT_DIR$/Frontend/src/app/features/responsable-contract/projets/projets.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Frontend/src/app/features/responsable-contract/tjm-calculator/tjm-calculator.html" beforeDir="false" afterPath="$PROJECT_DIR$/Frontend/src/app/features/responsable-contract/tjm-calculator/tjm-calculator.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Frontend/src/app/features/responsable-contract/tjm-calculator/tjm-calculator.ts" beforeDir="false" afterPath="$PROJECT_DIR$/Frontend/src/app/features/responsable-contract/tjm-calculator/tjm-calculator.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Frontend/src/app/shared/components/sidebar/sidebar.html" beforeDir="false" afterPath="$PROJECT_DIR$/Frontend/src/app/shared/components/sidebar/sidebar.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Frontend/src/app/shared/components/sidebar/sidebar.ts" beforeDir="false" afterPath="$PROJECT_DIR$/Frontend/src/app/shared/components/sidebar/sidebar.ts" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -46,6 +61,10 @@
       </MavenGeneralSettings>
     </option>
   </component>
+  <component name="McpProjectServerCommands">
+    <commands />
+    <urls />
+  </component>
   <component name="ProjectColorInfo">{
   &quot;associatedIndex&quot;: 3
 }</component>
@@ -64,12 +83,16 @@
     &quot;RequestMappingsPanelOrder1&quot;: &quot;1&quot;,
     &quot;RequestMappingsPanelWidth0&quot;: &quot;75&quot;,
     &quot;RequestMappingsPanelWidth1&quot;: &quot;75&quot;,
+    &quot;RunOnceActivity.MCP Project settings loaded&quot;: &quot;true&quot;,
     &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
     &quot;RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252&quot;: &quot;true&quot;,
     &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.typescript.service.memoryLimit.init&quot;: &quot;true&quot;,
     &quot;Spring Boot.DxcPlatformApplication.executor&quot;: &quot;Run&quot;,
+    &quot;com.intellij.ml.llm.matterhorn.ej.ui.settings.DefaultModelSelectionForGA.v1&quot;: &quot;true&quot;,
     &quot;git-widget-placeholder&quot;: &quot;main&quot;,
     &quot;ignore.virus.scanning.warn.message&quot;: &quot;true&quot;,
+    &quot;junie.onboarding.icon.badge.shown&quot;: &quot;true&quot;,
     &quot;kotlin-language-version-configured&quot;: &quot;true&quot;,
     &quot;last_opened_file_path&quot;: &quot;/Users/air/Application-de-gestion-des-projets-d-entreprise&quot;,
     &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
@@ -81,6 +104,7 @@
     &quot;project.structure.proportion&quot;: &quot;0.15&quot;,
     &quot;project.structure.side.proportion&quot;: &quot;0.0&quot;,
     &quot;settings.editor.selected.configurable&quot;: &quot;reference.projectsettings.compiler.annotationProcessors&quot;,
+    &quot;to.speed.mode.migration.done&quot;: &quot;true&quot;,
     &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
   }
 }</component>
@@ -93,6 +117,10 @@
     <configuration name="DxcPlatformApplication" type="SpringBootApplicationConfigurationType" factoryName="Spring Boot" nameIsGenerated="true">
       <option name="ALTERNATIVE_JRE_PATH" value="17" />
       <option name="ALTERNATIVE_JRE_PATH_ENABLED" value="true" />
+      <envs>
+        <env name="MAIL_USERNAME" value="plateformetest128@gmail.com" />
+        <env name="MAIL_PASSWORD" value="f k f j m q e s r n w c j v a p" />
+      </envs>
       <option name="FRAME_DEACTIVATION_UPDATE_POLICY" value="UpdateClassesAndResources" />
       <module name="dxc-platform" />
       <option name="SPRING_BOOT_MAIN_CLASS" value="com.dxc.dxc_platform.DxcPlatformApplication" />
@@ -104,7 +132,8 @@
   <component name="SharedIndexes">
     <attachedChunks>
       <set>
-        <option value="bundled-jdk-30f59d01ecdd-2fc7cc6b9a17-intellij.indexing.shared.core-IU-253.30387.90" />
+        <option value="bundled-jdk-30f59d01ecdd-2fc7cc6b9a17-intellij.indexing.shared.core-IU-253.31033.145" />
+        <option value="bundled-js-predefined-d6986cc7102b-9b0f141eb926-JavaScript-IU-253.31033.145" />
       </set>
     </attachedChunks>
   </component>
@@ -122,6 +151,9 @@
       <workItem from="1772459509148" duration="6069000" />
       <workItem from="1772642261157" duration="1955000" />
       <workItem from="1773098119315" duration="27632000" />
+      <workItem from="1777899878808" duration="1276000" />
+      <workItem from="1777934258827" duration="890000" />
+      <workItem from="1777971799075" duration="5264000" />
     </task>
     <servers />
   </component>

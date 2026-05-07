@@ -26,8 +26,9 @@ import { MembreEquipeTaches } from './features/membre-equipe/taches/taches';
 
 import { SharedMessagesComponent } from './shared/components/messages/messages';
 import { SharedCalendarComponent } from './shared/components/calendar/calendar';
-import { AuditComponent } from './features/admin/audit/audit';
-import { ManagerAuditComponent } from './features/manager/audit/audit';
+
+// ✅ NOUVEAU : Import du composant AUDIT partagé (plus les anciens imports supprimés)
+import { AuditComponent } from './shared/components/audit/audit';
 
 // Import du composant Reporting
 import { Reporting } from './shared/components/reporting/reporting';
@@ -49,12 +50,13 @@ export const routes: Routes = [
     component: Admin,
     children: [
       { path: 'dashboard', component: Dashboard },
-      { path: 'reporting', component: Reporting },  // Route ajoutée pour admin
+      { path: 'reporting', component: Reporting },
       { path: 'utilisateurs', component: Utilisateurs },
       { path: 'roles', component: Roles },
       { path: 'clients', component: Clients },
       { path: 'profile', component: Profiles },
-      { path: 'audit', component: AuditComponent },
+      // ✅ MODIFIÉ : utilise le composant partagé avec viewType 'security'
+      { path: 'audit', component: AuditComponent, data: { viewType: 'security' } },
       { path: '', redirectTo: 'dashboard', pathMatch: 'full' }
     ]
   },
@@ -63,7 +65,7 @@ export const routes: Routes = [
     component: ChefProjet,
     children: [
       { path: 'dashboard', component: Dashboard },
-      { path: 'reporting', component: Reporting },  // Route ajoutée pour chef-projet
+      { path: 'reporting', component: Reporting },
       { path: 'projets', component: Projets },
       { path: 'taches', component: TachesComponent },
       { path: 'equipes', component: Equipes },
@@ -77,11 +79,8 @@ export const routes: Routes = [
     component: ResponsableContract,
     children: [
       { path: 'dashboard', component: Dashboard },
-      { path: 'reporting', component: Reporting },  // Route ajoutée pour responsable contrat
+      { path: 'reporting', component: Reporting },
       { path: 'projets', component: ResponsableProjets },
-
-     // { path: 'facturation', component: Facturation },
-
       { path: 'facturation/:projectId', component: TjmCalculatorComponent },
       { path: '', redirectTo: 'dashboard', pathMatch: 'full' }
     ]
@@ -91,11 +90,12 @@ export const routes: Routes = [
     component: ManagerLayoutComponent,
     children: [
       { path: 'dashboard', component: Dashboard },
-      { path: 'reporting', component: Reporting },  // Route ajoutée pour manager
+      { path: 'reporting', component: Reporting },
       { path: 'projets', component: ReviewProjetsComponent },
       { path: 'calendrier', component: SharedCalendarComponent },
       { path: 'messages', component: SharedMessagesComponent },
-      { path: 'audit', component: ManagerAuditComponent },
+      // ✅ MODIFIÉ : utilise le composant partagé avec viewType 'workflow'
+      { path: 'audit', component: AuditComponent, data: { viewType: 'workflow' } },
       { path: '', redirectTo: 'dashboard', pathMatch: 'full' }
     ]
   },
@@ -104,7 +104,7 @@ export const routes: Routes = [
     component: MembreEquipe,
     children: [
       { path: 'dashboard', component: Dashboard },
-      { path: 'reporting', component: Reporting },  // Route ajoutée pour membre équipe
+      { path: 'reporting', component: Reporting },
       { path: 'projets', component: MembreEquipeProjets },
       { path: 'taches', component: MembreEquipeTaches },
       { path: 'calendrier', component: SharedCalendarComponent },

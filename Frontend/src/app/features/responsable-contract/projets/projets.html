@@ -47,7 +47,7 @@
       </button>
 
       <button type="button" class="tab-btn" [class.active]="isStatusActive('EN_VALIDATION')" (click)="setStatusFilter('EN_VALIDATION')">
-        En validation
+        En cours de validation
       </button>
 
       <button type="button" class="tab-btn" [class.active]="isStatusActive('PRE_VALIDE')" (click)="setStatusFilter('PRE_VALIDE')">
@@ -55,7 +55,7 @@
       </button>
 
       <button type="button" class="tab-btn" [class.active]="isStatusActive('EN_COURS')" (click)="setStatusFilter('EN_COURS')">
-        En cours
+        En cours de réalisation
       </button>
 
       <button type="button" class="tab-btn" [class.active]="isStatusActive('REJETE')" (click)="setStatusFilter('REJETE')">
@@ -295,9 +295,16 @@
         <div class="form-group">
           <label>Manager</label>
           <select name="projectManager" [(ngModel)]="projectForm.managerId">
-            <option [ngValue]="undefined">Choisir un manager</option>
-            <option *ngFor="let manager of managers" [ngValue]="manager.id">{{ manager.fullName }}</option>
+            <option [ngValue]="undefined">
+              {{ isRejectedEditMode() ? 'Choisir un nouveau manager' : 'Choisir un manager' }}
+            </option>
+            <option *ngFor="let manager of managers" [ngValue]="manager.id">
+              {{ manager.fullName }}
+            </option>
           </select>
+          <small *ngIf="isRejectedEditMode()" style="color:#dc2626; font-size:12px; font-weight:600;">
+            Le manager qui a rejeté ce projet n'est plus affiché dans la liste.
+          </small>
         </div>
 
         <div class="form-group">
@@ -306,6 +313,7 @@
             type="date"
             name="projectStartDate"
             [(ngModel)]="projectForm.startDate"
+            (ngModelChange)="onStartDateChange()"
             [disabled]="isRejectedEditMode()"
           />
         </div>
@@ -316,6 +324,7 @@
             type="date"
             name="projectEndDate"
             [(ngModel)]="projectForm.endDate"
+            [min]="minEndDate"
             [disabled]="isRejectedEditMode()"
           />
         </div>
@@ -347,6 +356,76 @@
     </div>
 
     <div class="modal-body modal-details-body" *ngIf="selectedProjectDetails as project">
+      
+
+      <div class="details-workflow-card">
+        <div class="details-workflow-head">
+          <h3>Workflow du projet</h3>
+          <p>Étapes de validation et d'avancement</p>
+        </div>
+
+        <div class="workflow-timeline">
+          <div
+            class="workflow-step"
+            *ngFor="let step of getWorkflowSteps(project); let i = index"
+            [class.is-complete]="step.state === 'complete'"
+            [class.is-current]="step.state === 'current'"
+            [class.is-upcoming]="step.state === 'upcoming'"
+            [class.is-rejected]="step.state === 'rejected'"
+          >
+            <div class="workflow-line" *ngIf="i < getWorkflowSteps(project).length - 1"></div>
+
+            <div class="workflow-marker" [attr.data-stage]="i + 1">
+              <ng-container [ngSwitch]="step.icon">
+                <svg *ngSwitchCase="'create'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="3" y="4" width="18" height="16" rx="3"></rect>
+                  <path d="M8 2v4M16 2v4M3 10h18"></path>
+                </svg>
+
+                <svg *ngSwitchCase="'validate'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+
+                <svg *ngSwitchCase="'rejected'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                  <line x1="18" y1="6" x2="6" y2="18"></line>
+                  <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+
+                <svg *ngSwitchCase="'manager'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M20 21a8 8 0 0 0-16 0"></path>
+                  <circle cx="12" cy="8" r="4"></circle>
+                </svg>
+
+                <svg *ngSwitchCase="'chef'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M20 21a8 8 0 0 0-16 0"></path>
+                  <circle cx="12" cy="8" r="4"></circle>
+                </svg>
+
+                <svg *ngSwitchCase="'team'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                  <circle cx="9" cy="7" r="4"></circle>
+                  <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                  <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                </svg>
+
+                <svg *ngSwitchCase="'progress'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polygon points="7 4 19 12 7 20 7 4"></polygon>
+                </svg>
+
+                <svg *ngSwitchCase="'close'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M5 5v14"></path>
+                  <path d="M5 5h10l-2.5 4L15 13H5"></path>
+                </svg>
+              </ng-container>
+            </div>
+
+            <div class="workflow-index">{{ i + 1 }}</div>
+            <div class="workflow-title">{{ step.label }}</div>
+            <div class="workflow-date">{{ step.date }}</div>
+            <div class="workflow-time">{{ step.time }}</div>
+          </div>
+        </div>
+      </div>
       <div class="details-top-grid">
         <div class="detail-info-card">
           <div class="detail-info-item">
@@ -459,62 +538,6 @@
               <span class="detail-label">Date de traitement</span>
               <strong>{{ formatDateTime(project.reviewedAt || project.updatedAt || project.createdAt) }}</strong>
             </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="details-workflow-card">
-        <div class="details-workflow-head">
-          <h3>Workflow du projet</h3>
-          <p>Étapes de validation et d'avancement</p>
-        </div>
-
-        <div class="workflow-timeline">
-          <div
-            class="workflow-step"
-            *ngFor="let step of getWorkflowSteps(project); let i = index"
-            [class.is-complete]="step.state === 'complete'"
-            [class.is-current]="step.state === 'current'"
-            [class.is-upcoming]="step.state === 'upcoming'"
-            [class.is-rejected]="step.state === 'rejected'"
-          >
-            <div class="workflow-line" *ngIf="i < getWorkflowSteps(project).length - 1"></div>
-
-            <div class="workflow-marker" [attr.data-stage]="i + 1">
-              <svg *ngIf="step.icon === 'create'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <rect x="3" y="4" width="18" height="16" rx="3"></rect>
-                <path d="M8 2v4M16 2v4M3 10h18"></path>
-              </svg>
-              <svg *ngIf="step.icon === 'validate'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <polyline points="20 6 9 17 4 12"></polyline>
-              </svg>
-              <svg *ngIf="step.icon === 'manager'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M20 21a8 8 0 0 0-16 0"></path>
-                <circle cx="12" cy="8" r="4"></circle>
-              </svg>
-              <svg *ngIf="step.icon === 'chef'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M20 21a8 8 0 0 0-16 0"></path>
-                <circle cx="12" cy="8" r="4"></circle>
-              </svg>
-              <svg *ngIf="step.icon === 'team'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-                <circle cx="9" cy="7" r="4"></circle>
-                <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
-                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-              </svg>
-              <svg *ngIf="step.icon === 'progress'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <polygon points="7 4 19 12 7 20 7 4"></polygon>
-              </svg>
-              <svg *ngIf="step.icon === 'close'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M5 5v14"></path>
-                <path d="M5 5h10l-2.5 4L15 13H5"></path>
-              </svg>
-            </div>
-
-            <div class="workflow-index">{{ i + 1 }}</div>
-            <div class="workflow-title">{{ step.label }}</div>
-            <div class="workflow-date">{{ step.date }}</div>
-            <div class="workflow-time">{{ step.time }}</div>
           </div>
         </div>
       </div>

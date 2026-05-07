@@ -38,7 +38,7 @@
           <h2>{{ project.name }}</h2>
           <p>{{ project.description || 'Aucune description disponible.' }}</p>
         </div>
-        <span class="project-status">{{ project.status || 'N/A' }}</span>
+        <span class="project-status">{{ getStatusLabel(project.status) }}</span>
       </div>
 
       <div class="project-meta">
@@ -101,7 +101,7 @@
                     </div>
                   </div>
                 </td>
-                <td><span class="role-badge role-manager">{{ line.roleName }}</span></td>
+                <td><span class="role-badge role-chef">{{ getRoleLabel(line.roleName) }}</span></td>
                 <td>{{ line.profileLibelle || '-' }}</td>
                 <td class="money-cell">{{ formatMoney(line.tjm) }} MAD</td>
                 <td>
@@ -131,7 +131,7 @@
                     </div>
                   </div>
                 </td>
-                <td><span class="role-badge role-chef">{{ line.roleName }}</span></td>
+                <td><span class="role-badge role-manager">{{ getRoleLabel(line.roleName) }}</span></td>
                 <td>{{ line.profileLibelle || '-' }}</td>
                 <td class="money-cell">{{ formatMoney(line.tjm) }} MAD</td>
                 <td>
@@ -161,7 +161,7 @@
                     </div>
                   </div>
                 </td>
-                <td><span class="role-badge">{{ line.roleName }}</span></td>
+                <td><span class="role-badge">{{ getRoleLabel(line.roleName) }}</span></td>
                 <td>{{ line.profileLibelle || '-' }}</td>
                 <td class="money-cell">{{ formatMoney(line.tjm) }} MAD</td>
                 <td>
@@ -186,21 +186,21 @@
     </div>
 
     <div class="summary-grid">
-  <div class="summary-card" *ngFor="let item of profileTotals">
-    <span class="summary-label">Total {{ item.profile }}</span>
-    <span class="summary-value">{{ formatMoney(item.total) }} MAD</span>
-  </div>
+      <div class="summary-card" *ngFor="let item of profileTotals">
+        <span class="summary-label">Total {{ item.profile }}</span>
+        <span class="summary-value">{{ formatMoney(item.total) }} MAD</span>
+      </div>
 
-  <div class="summary-card">
-    <span class="summary-label">Total HT</span>
-    <span class="summary-value">{{ formatMoney(totalGeneral) }} MAD</span>
-  </div>
+      <div class="summary-card">
+        <span class="summary-label">Total HT</span>
+        <span class="summary-value">{{ formatMoney(totalGeneral) }} MAD</span>
+      </div>
 
-  <div class="summary-card summary-card-main">
-    <span class="summary-label">Total TTC</span>
-    <span class="summary-value">{{ formatMoney(totalTTC) }} MAD</span>
-  </div>
-</div>
+      <div class="summary-card summary-card-main">
+        <span class="summary-label">Total TTC</span>
+        <span class="summary-value">{{ formatMoney(totalTTC) }} MAD</span>
+      </div>
+    </div>
 
   </ng-container>
 </div>

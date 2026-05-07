@@ -1,0 +1,874 @@
+<div class="audit-page">
+
+  <!-- Breadcrumb -->
+  <div class="breadcrumb">
+    <span class="breadcrumb-parent" style="cursor:pointer;" (click)="goToDashboard()">Tableau de bord</span>
+    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+      <polyline points="9 18 15 12 9 6" />
+    </svg>
+    <span class="breadcrumb-current">Audit</span>
+  </div>
+
+  <!-- Page Header -->
+ <!-- Page Header -->
+<div class="page-header">
+  <div>
+    <!-- Titre dynamique selon le type d'audit -->
+    <ng-container *ngIf="currentAuditType === 'security'">
+      <h1 class="page-title">Audit &amp; Sécurité</h1>
+      <p class="page-subtitle">Consultez l'historique complet des actions, connexions et événements selon le type d'audit.</p>
+    </ng-container>
+    <ng-container *ngIf="currentAuditType === 'workflow'">
+      <h1 class="page-title">Audit du Workflow</h1>
+      <p class="page-subtitle">Suivez l'historique complet : création de projets, validations, assignations et gestion des tâches.</p>
+    </ng-container>
+  </div>
+  <div class="header-actions">
+    <div class="dropdown">
+      <button class="btn-export dropdown-btn" (click)="toggleDropdown($event)">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+          <polyline points="7 10 12 15 17 10"/>
+          <line x1="12" y1="15" x2="12" y2="3"/>
+        </svg>
+        Exporter
+        <svg class="dropdown-arrow" [class.open]="dropdownOpen" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="12" height="12">
+          <polyline points="6 9 12 15 18 9"/>
+        </svg>
+      </button>
+      <div class="dropdown-menu" *ngIf="dropdownOpen" (click)="$event.stopPropagation()">
+        <button (click)="exportLogs('excel')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+            <rect x="4" y="2" width="16" height="20" rx="2" ry="2"/>
+            <line x1="8" y1="7" x2="16" y2="7"/>
+            <line x1="8" y1="11" x2="16" y2="11"/>
+            <line x1="8" y1="15" x2="12" y2="15"/>
+          </svg>
+          Excel (XLSX)
+        </button>
+        <button (click)="exportLogs('csv')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+            <polyline points="14 2 14 8 20 8"/>
+            <line x1="16" y1="13" x2="8" y2="13"/>
+            <line x1="16" y1="17" x2="8" y2="17"/>
+          </svg>
+          CSV
+        </button>
+      </div>
+    </div>
+    <button class="btn-refresh" (click)="loadAll()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <polyline points="23 4 23 10 17 10"/>
+        <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+      </svg>
+      Actualiser
+    </button>
+  </div>
+</div>
+
+  <!-- ═══════════════════════════════════════════
+       ONGLETS POUR CHANGER LE TYPE D'AUDIT
+  ═══════════════════════════════════════════ -->
+  <!-- Boutons de choix uniquement si l'user a les 2 rôles -->
+<div class="audit-type-tabs" *ngIf="hasBothRoles">
+  <button 
+    class="audit-type-tab" 
+    [class.active]="currentAuditType === 'security'"
+    (click)="setAuditType('security')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+    </svg>
+    Audit Sécurité
+    <span class="tab-desc">Logs complets - Connexions, utilisateurs, sécurité</span>
+  </button>
+  <button 
+    class="audit-type-tab" 
+    [class.active]="currentAuditType === 'workflow'"
+    (click)="setAuditType('workflow')">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+      <polyline points="14 2 14 8 20 8"/>
+      <line x1="16" y1="13" x2="8" y2="13"/>
+      <line x1="16" y1="17" x2="8" y2="17"/>
+    </svg>
+    Audit Workflow
+    <span class="tab-desc">Suivi des projets, validations et tâches</span>
+  </button>
+</div>
+
+  <!-- ═══════════════════════════════════════════
+       VUE SECURITY
+  ═══════════════════════════════════════════ -->
+  <ng-container *ngIf="currentAuditType === 'security'">
+
+    <div class="stats-grid">
+      <div class="stat-card stat-card--blue">
+        <div class="stat-icon-wrap">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+            <circle cx="9" cy="7" r="4"/>
+            <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>
+          </svg>
+        </div>
+        <div class="stat-info">
+          <p class="stat-label">CONNEXIONS AUJOURD'HUI</p>
+          <p class="stat-value">{{ stats.loginsToday }}</p>
+          <p class="stat-trend trend-up">↑ {{ stats.loginsTrend }}% vs hier</p>
+        </div>
+      </div>
+      <div class="stat-card stat-card--green">
+        <div class="stat-icon-wrap">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+            <polyline points="22 4 12 14.01 9 11.01"/>
+          </svg>
+        </div>
+        <div class="stat-info">
+          <p class="stat-label">COMPTES ACTIFS</p>
+          <p class="stat-value">{{ stats.activeAccounts }}</p>
+          <p class="stat-trend trend-neutral">Sessions en cours</p>
+        </div>
+      </div>
+      <div class="stat-card stat-card--red">
+        <div class="stat-icon-wrap">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/>
+            <line x1="12" y1="8" x2="12" y2="12"/>
+            <line x1="12" y1="16" x2="12.01" y2="16"/>
+          </svg>
+        </div>
+        <div class="stat-info">
+          <p class="stat-label">TENTATIVES ÉCHOUÉES</p>
+          <p class="stat-value">{{ stats.failedLogins }}</p>
+          <p class="stat-trend trend-down">↑ Dernières 24h</p>
+        </div>
+      </div>
+      <div class="stat-card stat-card--orange">
+        <div class="stat-icon-wrap">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+            <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+          </svg>
+        </div>
+        <div class="stat-info">
+          <p class="stat-label">COMPTES VERROUILLÉS</p>
+          <p class="stat-value">{{ stats.lockedAccounts }}</p>
+          <p class="stat-trend trend-down">Nécessite attention</p>
+        </div>
+      </div>
+      <div class="stat-card stat-card--purple">
+        <div class="stat-icon-wrap">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+          </svg>
+        </div>
+        <div class="stat-info">
+          <p class="stat-label">RÉINITIALISATIONS MDP</p>
+          <p class="stat-value">{{ stats.passwordResets }}</p>
+          <p class="stat-trend trend-neutral">Ce mois</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="filters-bar">
+      <div class="search-wrapper">
+        <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="11" cy="11" r="8"/>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+        </svg>
+        <input type="text" class="search-input" placeholder="Rechercher par utilisateur, action, IP..."
+          [(ngModel)]="searchTerm" (input)="applyFilters()" />
+      </div>
+      <div class="filter-group">
+        <select class="filter-select" [(ngModel)]="filterAction" (change)="applyFilters()">
+          <option value="">Toutes les actions</option>
+          <option value="LOGIN_SUCCESS">Connexion réussie</option>
+          <option value="LOGIN_FAILED">Connexion échouée</option>
+          <option value="CREATE_USER">Utilisateur créé</option>
+          <option value="UPDATE_USER">Utilisateur modifié</option>
+          <option value="DELETE_USER">Utilisateur supprimé</option>
+          <option value="ACCOUNT_LOCKED">Compte verrouillé</option>
+        </select>
+        <select class="filter-select" [(ngModel)]="filterLevel" (change)="applyFilters()">
+          <option value="">Tous les niveaux</option>
+          <option value="INFO">INFO</option>
+          <option value="WARNING">WARNING</option>
+          <option value="ERROR">ERROR</option>
+          <option value="CRITICAL">CRITICAL</option>
+        </select>
+        <button class="btn-clear-filters" (click)="clearFilters()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+          Effacer
+        </button>
+      </div>
+    </div>
+
+    <div class="audit-tabs">
+      <button class="audit-tab" [class.active]="activeTab === 'all'" (click)="setTab('all')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+          <line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/>
+          <line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/>
+        </svg>
+        Tous les événements
+        <span class="tab-count">{{ filteredLogs.length }}</span>
+      </button>
+      <button class="audit-tab" [class.active]="activeTab === 'auth'" (click)="setTab('auth')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+          <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/>
+          <polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/>
+        </svg>
+        Authentification
+        <span class="tab-count">{{ getCountByCategory('auth') }}</span>
+      </button>
+      <button class="audit-tab" [class.active]="activeTab === 'users'" (click)="setTab('users')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+          <circle cx="9" cy="7" r="4"/>
+          <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>
+        </svg>
+        Gestion utilisateurs
+        <span class="tab-count">{{ getCountByCategory('users') }}</span>
+      </button>
+      <button class="audit-tab" [class.active]="activeTab === 'security'" (click)="setTab('security')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+        </svg>
+        Sécurité
+        <span class="tab-count">{{ getCountByCategory('security') }}</span>
+      </button>
+    </div>
+
+    <div class="table-card">
+      <div class="table-top-bar">
+        <span class="table-info">{{ filteredLogs.length }} événement(s) trouvé(s)</span>
+      </div>
+      <div *ngIf="loading()" class="loading-state">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="24" height="24">
+          <circle cx="12" cy="12" r="10"/>
+          <path d="M12 2a10 10 0 0 1 10 10" stroke="#7c3aed"/>
+        </svg>
+        Chargement des journaux d'audit...
+      </div>
+      <table class="audit-table" *ngIf="!loading()">
+        <thead>
+          <tr>
+            <th>HORODATAGE</th>
+            <th>UTILISATEUR</th>
+            <th>ACTION</th>
+            <th>NIVEAU</th>
+            <th>STATUT</th>
+            <th style="text-align:center">DÉTAILS</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let log of paginatedLogs; let i = index" [class.row-error]="log.level === 'ERROR' || log.level === 'CRITICAL'">
+            <td class="td-date">
+              <div class="date-block">
+                <span class="date-day">{{ log.timestamp | date:'dd/MM/yyyy' }}</span>
+                <span class="date-time">{{ log.timestamp | date:'HH:mm:ss' }}</span>
+              </div>
+            </td>
+            <td>
+              <div class="user-cell">
+                <div class="user-avatar-sm" [style.background]="getAvatarColor(i)">
+                  {{ getInitials(log.userPrenom, log.userNom) }}
+                </div>
+                <div>
+                  <div class="user-name-sm">{{ log.userPrenom }} {{ log.userNom }}</div>
+                  <div class="user-email-sm">{{ log.userEmail }}</div>
+                </div>
+              </div>
+            </td>
+            <td>
+              <span class="action-badge" [ngClass]="getActionClass(log.action)">{{ getActionLabel(log.action) }}</span>
+            </td>
+            <td>
+              <span class="level-badge" [ngClass]="getLevelClass(log.level)">
+                <span class="level-dot"></span>{{ log.level }}
+              </span>
+            </td>
+            <td>
+              <span class="status-chip" [ngClass]="log.success ? 'status-success' : 'status-fail'">
+                <svg *ngIf="log.success" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="12" height="12"><polyline points="20 6 9 17 4 12"/></svg>
+                <svg *ngIf="!log.success" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="12" height="12"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                {{ log.success ? 'Succès' : 'Échec' }}
+              </span>
+            </td>
+            <td class="td-eye">
+              <button class="btn-eye" (click)="openDetail(log)" title="Voir les détails">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                  <circle cx="12" cy="12" r="3"/>
+                </svg>
+              </button>
+            </td>
+          </tr>
+          <tr *ngIf="filteredLogs.length === 0">
+            <td colspan="6" class="empty-cell">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="36" height="36">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                <polyline points="14 2 14 8 20 8"/>
+              </svg>
+              <p>Aucun événement trouvé.</p>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="pagination-bar" *ngIf="filteredLogs.length > 0 && !loading()">
+        <span class="pagination-info">Affichage de {{ getRangeStart() }} à {{ getRangeEnd() }} sur {{ filteredLogs.length }} événements</span>
+        <div class="pagination-controls">
+          <button class="page-btn page-nav" [disabled]="currentPage === 1" (click)="setPage(currentPage - 1)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+          </button>
+          <button *ngFor="let p of getPageNumbers()" class="page-btn" [class.page-active]="p === currentPage" (click)="setPage(p)">
+            <span *ngIf="p !== -1">{{ p }}</span>
+            <span *ngIf="p === -1">...</span>
+          </button>
+          <button class="page-btn page-nav" [disabled]="currentPage === totalPages" (click)="setPage(currentPage + 1)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+          </button>
+        </div>
+      </div>
+    </div>
+
+  </ng-container>
+
+  <!-- ═══════════════════════════════════════════
+       VUE WORKFLOW
+  ═══════════════════════════════════════════ -->
+  <ng-container *ngIf="currentAuditType === 'workflow'">
+
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-icon icon-purple">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+            <polyline points="14 2 14 8 20 8"/>
+          </svg>
+        </div>
+        <div class="stat-info">
+          <p class="stat-label">PROJETS CRÉÉS</p>
+          <p class="stat-value">{{ workflowStats.projetsCreated }}</p>
+          <p class="stat-sub">Par responsable contrat</p>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon icon-blue">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+          </svg>
+        </div>
+        <div class="stat-info">
+          <p class="stat-label">EN ATTENTE</p>
+          <p class="stat-value">{{ workflowStats.enAttente }}</p>
+          <p class="stat-sub">Nécessite votre action</p>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon icon-green">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>
+          </svg>
+        </div>
+        <div class="stat-info">
+          <p class="stat-label">PROJETS VALIDÉS</p>
+          <p class="stat-value">{{ workflowStats.valides }}</p>
+          <p class="stat-sub">Chef de projet assigné</p>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon icon-red">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/>
+            <line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/>
+          </svg>
+        </div>
+        <div class="stat-info">
+          <p class="stat-label">PROJETS REJETÉS</p>
+          <p class="stat-value">{{ workflowStats.rejetes }}</p>
+          <p class="stat-sub">Retournés au responsable</p>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon icon-indigo">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+            <circle cx="9" cy="7" r="4"/>
+            <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>
+          </svg>
+        </div>
+        <div class="stat-info">
+          <p class="stat-label">CHEFS ASSIGNÉS</p>
+          <p class="stat-value">{{ workflowStats.chefsAssigned }}</p>
+          <p class="stat-sub">Projets actifs</p>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon icon-orange">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M9 11l3 3L22 4"/>
+            <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+          </svg>
+        </div>
+        <div class="stat-info">
+          <p class="stat-label">TÂCHES CRÉÉES</p>
+          <p class="stat-value">{{ workflowStats.tachesCreated }}</p>
+          <p class="stat-sub">Par chefs de projet</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="workflow-banner">
+      <div class="workflow-step">
+        <div class="step-icon step-blue">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+            <polyline points="14 2 14 8 20 8"/>
+          </svg>
+        </div>
+        <div class="step-info">
+          <span class="step-label">1. Responsable contrat</span>
+          <span class="step-desc">Crée le projet + client</span>
+        </div>
+      </div>
+      <div class="workflow-arrow">→</div>
+      <div class="workflow-step">
+        <div class="step-icon step-purple">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+          </svg>
+        </div>
+        <div class="step-info">
+          <span class="step-label">2. Manager</span>
+          <span class="step-desc">Valide & assigne chef</span>
+        </div>
+      </div>
+      <div class="workflow-arrow">→</div>
+      <div class="workflow-step">
+        <div class="step-icon step-green">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+            <circle cx="9" cy="7" r="4"/>
+          </svg>
+        </div>
+        <div class="step-info">
+          <span class="step-label">3. Chef de projet</span>
+          <span class="step-desc">Gère équipes & tâches</span>
+        </div>
+      </div>
+      <div class="workflow-arrow">→</div>
+      <div class="workflow-step">
+        <div class="step-icon step-orange">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M9 11l3 3L22 4"/>
+            <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+          </svg>
+        </div>
+        <div class="step-info">
+          <span class="step-label">4. Membres équipe</span>
+          <span class="step-desc">Exécutent les tâches</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="filters-bar">
+      <div class="search-wrap">
+        <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+        </svg>
+        <input type="text" placeholder="Rechercher par acteur, projet, action..."
+          [(ngModel)]="workflowSearchTerm" (input)="applyWorkflowFilters()" />
+      </div>
+      <div class="filter-group">
+        <select class="filter-select" [(ngModel)]="filterPhase" (change)="applyWorkflowFilters()">
+          <option value="">Toutes les phases</option>
+          <option value="creation">Création projet</option>
+          <option value="validation">Validation manager</option>
+          <option value="assignation">Assignation chef</option>
+          <option value="gestion">Gestion projet/tâches</option>
+          <option value="execution">Exécution tâches</option>
+        </select>
+        <select class="filter-select" [(ngModel)]="filterRole" (change)="applyWorkflowFilters()">
+          <option value="">Tous les rôles</option>
+          <option value="RESPONSABLE_CONTRAT">Responsable contrat</option>
+          <option value="MANAGER">Manager</option>
+          <option value="CHEF_PROJET">Chef de projet</option>
+          <option value="MEMBRE_EQUIPE">Membre équipe</option>
+        </select>
+        <button class="btn-clear-filters" (click)="clearFilters()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+            <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+          Effacer
+        </button>
+      </div>
+    </div>
+
+    <div class="tabs-row">
+      <button class="tab-btn" [class.active]="workflowActiveTab === 'all'" (click)="setWorkflowTab('all')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15">
+          <line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/>
+          <line x1="8" y1="18" x2="21" y2="18"/>
+        </svg>
+        Tous <span class="tab-badge">{{ filteredWorkflowLogs.length }}</span>
+      </button>
+      <button class="tab-btn" [class.active]="workflowActiveTab === 'creation'" (click)="setWorkflowTab('creation')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+          <polyline points="14 2 14 8 20 8"/>
+        </svg>
+        Création <span class="tab-badge">{{ getCountByPhase('creation') }}</span>
+      </button>
+      <button class="tab-btn" [class.active]="workflowActiveTab === 'validation'" (click)="setWorkflowTab('validation')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+        </svg>
+        Validation <span class="tab-badge">{{ getCountByPhase('validation') }}</span>
+      </button>
+      <button class="tab-btn" [class.active]="workflowActiveTab === 'assignation'" (click)="setWorkflowTab('assignation')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15">
+          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+        </svg>
+        Assignation <span class="tab-badge">{{ getCountByPhase('assignation') }}</span>
+      </button>
+      <button class="tab-btn" [class.active]="workflowActiveTab === 'gestion'" (click)="setWorkflowTab('gestion')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15">
+          <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/>
+          <rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
+        </svg>
+        Gestion <span class="tab-badge">{{ getCountByPhase('gestion') }}</span>
+      </button>
+      <button class="tab-btn" [class.active]="workflowActiveTab === 'execution'" (click)="setWorkflowTab('execution')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="15" height="15">
+          <path d="M9 11l3 3L22 4"/>
+          <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+        </svg>
+        Tâches <span class="tab-badge">{{ getCountByPhase('execution') }}</span>
+      </button>
+    </div>
+
+    <div class="table-card">
+      <div class="table-topbar">
+        <span class="table-count">{{ filteredWorkflowLogs.length }} événement(s)</span>
+      </div>
+      <div *ngIf="loading()" class="loading-row">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="22" height="22">
+          <circle cx="12" cy="12" r="10"/><path d="M12 2a10 10 0 0 1 10 10" stroke="#7c3aed"/>
+        </svg>
+        Chargement...
+      </div>
+      <table class="audit-table" *ngIf="!loading()">
+        <thead>
+          <tr>
+            <th>HORODATAGE</th>
+            <th>ACTEUR</th>
+            <th>RÔLE</th>
+            <th>PHASE</th>
+            <th>ACTION</th>
+            <th>STATUT</th>
+            <th style="text-align:center">DÉTAILS</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let log of paginatedWorkflowLogs; let i = index" [class.row-warn]="log.statusType === 'rejected'">
+            <td class="td-date">
+              <span class="date-day">{{ log.timestamp | date:'dd/MM/yyyy' }}</span>
+              <span class="date-time">{{ log.timestamp | date:'HH:mm' }}</span>
+            </td>
+            <td>
+              <div class="actor-cell">
+                <div class="actor-avatar" [style.background]="getAvatarColor(i)">{{ getWorkflowInitials(log.actorName) }}</div>
+                <div>
+                  <div class="actor-name">{{ log.actorName }}</div>
+                  <div class="actor-email">{{ log.actorEmail }}</div>
+                </div>
+              </div>
+            </td>
+            <td>
+              <span class="role-chip" [ngClass]="getRoleClass(log.actorRole)">{{ getRoleLabel(log.actorRole) }}</span>
+            </td>
+            <td>
+              <span class="phase-chip" [ngClass]="getPhaseClass(log.phase)">{{ getPhaseLabel(log.phase) }}</span>
+            </td>
+            <td>
+              <span class="action-badge" [ngClass]="getActionClass(log.action)">{{ getWorkflowActionLabel(log.action) }}</span>
+            </td>
+            <td>
+              <span class="status-chip" [ngClass]="getStatusClass(log.statusType)">
+                <svg *ngIf="log.statusType === 'success'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="11" height="11"><polyline points="20 6 9 17 4 12"/></svg>
+                <svg *ngIf="log.statusType === 'rejected'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="11" height="11"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                {{ getStatusLabel(log.statusType) }}
+              </span>
+            </td>
+            <td class="td-eye">
+              <button class="btn-eye" (click)="openDetail(log)" title="Voir les détails">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16">
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                  <circle cx="12" cy="12" r="3"/>
+                </svg>
+              </button>
+            </td>
+          </tr>
+          <tr *ngIf="filteredWorkflowLogs.length === 0">
+            <td colspan="7" class="empty-cell">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="36" height="36">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                <polyline points="14 2 14 8 20 8"/>
+              </svg>
+              <p>Aucun événement trouvé.</p>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="pagination-bar" *ngIf="filteredWorkflowLogs.length > 0 && !loading()">
+        <span class="page-info">{{ getWorkflowRangeStart() }}–{{ getWorkflowRangeEnd() }} sur {{ filteredWorkflowLogs.length }}</span>
+        <div class="page-controls">
+          <button class="page-btn nav" [disabled]="workflowCurrentPage === 1" (click)="setWorkflowPage(workflowCurrentPage - 1)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg>
+          </button>
+          <button *ngFor="let p of getWorkflowPageNumbers()" class="page-btn" [class.active]="p === workflowCurrentPage" (click)="setWorkflowPage(p)">
+            <span *ngIf="p !== -1">{{ p }}</span>
+            <span *ngIf="p === -1">...</span>
+          </button>
+          <button class="page-btn nav" [disabled]="workflowCurrentPage === workflowTotalPages" (click)="setWorkflowPage(workflowCurrentPage + 1)">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+          </button>
+        </div>
+      </div>
+    </div>
+
+  </ng-container>
+
+</div>
+
+<!-- MODAL DÉTAILS -->
+<div class="detail-overlay" *ngIf="selectedLog" (click)="closeDetail()">
+  <div class="detail-modal" (click)="$event.stopPropagation()">
+
+    <div class="detail-header">
+      <div class="detail-header-left">
+        <div class="detail-modal-icon"
+             [ngClass]="currentAuditType === 'security'
+               ? getDetailIconClass($any(selectedLog).category)
+               : getDetailIconClass($any(selectedLog).phase)">
+          <ng-container *ngIf="currentAuditType === 'security'">
+            <svg *ngIf="$any(selectedLog).category === 'auth'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/>
+              <polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/>
+            </svg>
+            <svg *ngIf="$any(selectedLog).category === 'users'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+              <circle cx="9" cy="7" r="4"/>
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>
+            </svg>
+            <svg *ngIf="$any(selectedLog).category === 'security'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+            </svg>
+          </ng-container>
+          <ng-container *ngIf="currentAuditType === 'workflow'">
+            <svg *ngIf="$any(selectedLog).phase === 'creation'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            <svg *ngIf="$any(selectedLog).phase === 'validation'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            <svg *ngIf="$any(selectedLog).phase === 'assignation'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+            <svg *ngIf="$any(selectedLog).phase === 'gestion'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+            <svg *ngIf="$any(selectedLog).phase === 'execution'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+          </ng-container>
+        </div>
+        <div>
+          <h3 class="detail-title">Détails de l'événement</h3>
+          <p class="detail-subtitle">
+            {{ currentAuditType === 'security' ? getActionLabel(selectedLog.action) : getWorkflowActionLabel(selectedLog.action) }}
+            — {{ selectedLog.timestamp | date:'dd/MM/yyyy à HH:mm' }}
+          </p>
+        </div>
+      </div>
+      <button class="detail-close" (click)="closeDetail()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </button>
+    </div>
+
+    <div class="detail-body">
+
+      <!-- VUE SECURITY -->
+      <ng-container *ngIf="currentAuditType === 'security'">
+
+        <div class="detail-section">
+          <h4 class="detail-section-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+            </svg>
+            Utilisateur
+          </h4>
+          <div class="detail-actor-row">
+            <div class="detail-avatar" [style.background]="getAvatarColor(selectedLog.id % 8)">
+              {{ getInitials($any(selectedLog).userPrenom, $any(selectedLog).userNom) }}
+            </div>
+            <div class="detail-actor-info">
+              <div class="detail-actor-name">{{ $any(selectedLog).userPrenom }} {{ $any(selectedLog).userNom }}</div>
+              <div class="detail-actor-email">{{ $any(selectedLog).userEmail }}</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="detail-section">
+          <h4 class="detail-section-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+              <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5.586a1 1 0 0 1 .707.293l5.414 5.414a1 1 0 0 1 .293.707V19a2 2 0 0 1-2 2z"/>
+            </svg>
+            Description
+          </h4>
+          <div class="detail-description-box">
+            {{ selectedLog.details || 'Aucun détail disponible.' }}
+          </div>
+        </div>
+
+        <div class="detail-section">
+          <h4 class="detail-section-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+              <circle cx="12" cy="12" r="10"/>
+              <line x1="12" y1="8" x2="12" y2="12"/>
+              <line x1="12" y1="16" x2="12.01" y2="16"/>
+            </svg>
+            Informations
+          </h4>
+          <div class="detail-meta-grid">
+            <div class="detail-meta-item">
+              <span class="detail-meta-label">Action</span>
+              <span class="action-badge" [ngClass]="getActionClass(selectedLog.action)">{{ getActionLabel(selectedLog.action) }}</span>
+            </div>
+            <div class="detail-meta-item">
+              <span class="detail-meta-label">Statut</span>
+              <span class="status-chip" [ngClass]="$any(selectedLog).success ? 'status-success' : 'status-fail'">
+                <svg *ngIf="$any(selectedLog).success" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="11" height="11"><polyline points="20 6 9 17 4 12"/></svg>
+                <svg *ngIf="!$any(selectedLog).success" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="11" height="11"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                {{ $any(selectedLog).success ? 'Succès' : 'Échec' }}
+              </span>
+            </div>
+            <div class="detail-meta-item">
+              <span class="detail-meta-label">Niveau</span>
+              <span class="level-badge" [ngClass]="getLevelClass($any(selectedLog).level)">
+                <span class="level-dot"></span>{{ $any(selectedLog).level }}
+              </span>
+            </div>
+            <div class="detail-meta-item">
+              <span class="detail-meta-label">Date & Heure</span>
+              <span class="detail-meta-value">{{ selectedLog.timestamp | date:'dd/MM/yyyy HH:mm:ss' }}</span>
+            </div>
+          </div>
+        </div>
+
+      </ng-container>
+
+      <!-- VUE WORKFLOW -->
+      <ng-container *ngIf="currentAuditType === 'workflow'">
+
+        <div class="detail-section">
+          <h4 class="detail-section-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+            </svg>
+            Acteur
+          </h4>
+          <div class="detail-actor-row">
+            <div class="detail-avatar" [style.background]="getAvatarColor(selectedLog.id % 8)">
+              {{ getWorkflowInitials($any(selectedLog).actorName) }}
+            </div>
+            <div class="detail-actor-info">
+              <div class="detail-actor-name">{{ $any(selectedLog).actorName }}</div>
+              <div class="detail-actor-email">{{ $any(selectedLog).actorEmail }}</div>
+            </div>
+            <span class="role-chip" [ngClass]="getRoleClass($any(selectedLog).actorRole)">
+              {{ getRoleLabel($any(selectedLog).actorRole) }}
+            </span>
+          </div>
+        </div>
+
+        <div class="detail-section" *ngIf="$any(selectedLog).projectName">
+          <h4 class="detail-section-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+              <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5.586a1 1 0 0 1 .707.293l5.414 5.414a1 1 0 0 1 .293.707V19a2 2 0 0 1-2 2z"/>
+            </svg>
+            Projet concerné
+          </h4>
+          <div class="detail-project-box">
+            <div class="detail-project-code">{{ buildCode($any(selectedLog).projectName) }}</div>
+            <div>
+              <div class="detail-project-name">{{ $any(selectedLog).projectName }}</div>
+              <div class="detail-project-phase">Phase : {{ getPhaseLabel($any(selectedLog).phase) }}</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="detail-section">
+          <h4 class="detail-section-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+              <circle cx="12" cy="12" r="10"/>
+              <line x1="12" y1="8" x2="12" y2="12"/>
+              <line x1="12" y1="16" x2="12.01" y2="16"/>
+            </svg>
+            Action & Statut
+          </h4>
+          <div class="detail-meta-grid">
+            <div class="detail-meta-item">
+              <span class="detail-meta-label">Action</span>
+              <span class="action-badge" [ngClass]="getActionClass(selectedLog.action)">{{ getWorkflowActionLabel(selectedLog.action) }}</span>
+            </div>
+            <div class="detail-meta-item">
+              <span class="detail-meta-label">Statut</span>
+              <span class="status-chip" [ngClass]="getStatusClass($any(selectedLog).statusType)">
+                <svg *ngIf="$any(selectedLog).statusType === 'success'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="11" height="11"><polyline points="20 6 9 17 4 12"/></svg>
+                <svg *ngIf="$any(selectedLog).statusType === 'rejected'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="11" height="11"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                {{ getStatusLabel($any(selectedLog).statusType) }}
+              </span>
+            </div>
+            <div class="detail-meta-item">
+              <span class="detail-meta-label">Phase</span>
+              <span class="phase-chip" [ngClass]="getPhaseClass($any(selectedLog).phase)">{{ getPhaseLabel($any(selectedLog).phase) }}</span>
+            </div>
+            <div class="detail-meta-item">
+              <span class="detail-meta-label">Date & Heure</span>
+              <span class="detail-meta-value">{{ selectedLog.timestamp | date:'dd/MM/yyyy HH:mm:ss' }}</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="detail-section">
+          <h4 class="detail-section-title">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+              <line x1="17" y1="10" x2="3" y2="10"/><line x1="21" y1="6" x2="3" y2="6"/>
+              <line x1="21" y1="14" x2="3" y2="14"/><line x1="17" y1="18" x2="3" y2="18"/>
+            </svg>
+            Description complète
+          </h4>
+          <div class="detail-description-box">
+            {{ selectedLog.details || 'Aucun détail disponible.' }}
+          </div>
+        </div>
+
+      </ng-container>
+
+    </div>
+
+    <div class="detail-footer">
+      <button class="btn-close-modal" (click)="closeDetail()">Fermer</button>
+    </div>
+
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast-container" *ngIf="showToast">
+  <div class="toast" [class.toast-success]="toastType === 'success'" [class.toast-error]="toastType === 'error'">
+    <svg *ngIf="toastType === 'success'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="18" height="18">
+      <polyline points="20 6 9 17 4 12"/>
+    </svg>
+    <svg *ngIf="toastType === 'error'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" width="18" height="18">
+      <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+    </svg>
+    {{ toastMessage }}
+  </div>
+</div>
