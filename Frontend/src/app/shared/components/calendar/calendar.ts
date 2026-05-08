@@ -4,6 +4,8 @@ import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../../core/services/auth.service';
 import { UserService, User } from '../../../core/services/user.service';
 import { ProjectService, ProjectDto } from '../../../core/services/project.service';
+import { HttpClient } from '@angular/common/http';
+
 
 interface CalendarEvent {
   id: number;
@@ -66,7 +68,8 @@ export class SharedCalendarComponent implements OnInit {
   constructor(
     private authService: AuthService,
     private userService: UserService,
-    private projectService: ProjectService
+    private projectService: ProjectService,
+    private http: HttpClient
   ) {}
 
   ngOnInit(): void {
@@ -323,60 +326,45 @@ export class SharedCalendarComponent implements OnInit {
     this.showEventModal = true;
   }
 
-  saveEvent(): void {
-    if (!this.eventForm.title || !this.eventForm.date) {
-      this.showToastMessage('Veuillez remplir les champs obligatoires', 'error');
-      return;
-    }
 
-    if (
-      this.eventForm.startTime &&
-      this.eventForm.endTime &&
-      this.eventForm.endTime < this.eventForm.startTime
-    ) {
-      this.showToastMessage("L'heure de fin doit être après l'heure de début", 'error');
-      return;
-    }
+saveEvent(): void {
+  if (!this.eventForm.title || !this.eventForm.date) {
+    this.showToastMessage('Veuillez remplir les champs obligatoires', 'error');
+    return;
+  }
 
-    const eventDate = new Date(this.eventForm.date);
-    const startTime = this.eventForm.startTime || '00:00';
-    const endTime = this.eventForm.endTime || startTime;
+  if (
+    this.eventForm.startTime &&
+    this.eventForm.endTime &&
+    this.eventForm.endTime < this.eventForm.startTime
+  ) {
+    this.showToastMessage("L'heure de fin doit être après l'heure de début", 'error');
+    return;
+  }
 
-    const invitedUsers = this.usersList.filter(user =>
-      this.eventForm.invitedUserIds.includes(user.id)
-    );
+  const eventDate = new Date(this.eventForm.date);
+  const startTime = this.eventForm.startTime || '00:00';
+  const endTime = this.eventForm.endTime || startTime;
 
-    const selectedProject = this.myProjects.find(p => p.id === this.eventForm.projectId);
+  const invitedUsers = this.usersList.filter(user =>
+    this.eventForm.invitedUserIds.includes(user.id)
+  );
 
-    if (this.isEditing && this.editingEventId) {
-      const index = this.allEvents.findIndex(e => e.id === this.editingEventId);
+  const selectedProject = this.myProjects.find(p => p.id === this.eventForm.projectId);
 
-      if (index !== -1) {
-        const current = this.allEvents[index];
+  if (this.isEditing && this.editingEventId) {
+    const index = this.allEvents.findIndex(e => e.id === this.editingEventId);
 
-        if (current.ownerId !== this.currentUserId) {
-          this.showToastMessage('Modification non autorisée', 'error');
-          return;
-        }
+    if (index !== -1) {
+      const current = this.allEvents[index];
 
-        this.allEvents[index] = {
-          ...current,
-          title: this.eventForm.title,
-          description: this.eventForm.description,
-          date: eventDate,
-          startTime,
-          endTime,
-          projectId: selectedProject?.id ?? null,
-          projectName: selectedProject?.name ?? '',
-          invitedUserIds: [...this.eventForm.invitedUserIds],
-          invitedUserNames: invitedUsers.map(u => `${u.prenom} ${u.nom}`)
-        };
+      if (current.ownerId !== this.currentUserId) {
+        this.showToastMessage('Modification non autorisée', 'error');
+        return;
       }
 
-      this.showToastMessage('Événement modifié avec succès', 'success');
-    } else {
-      const newEvent: CalendarEvent = {
-        id: Date.now(),
+      this.allEvents[index] = {
+        ...current,
         title: this.eventForm.title,
         description: this.eventForm.description,
         date: eventDate,
@@ -384,20 +372,72 @@ export class SharedCalendarComponent implements OnInit {
         endTime,
         projectId: selectedProject?.id ?? null,
         projectName: selectedProject?.name ?? '',
-        ownerId: this.currentUserId,
-        ownerName: this.currentUserName,
         invitedUserIds: [...this.eventForm.invitedUserIds],
         invitedUserNames: invitedUsers.map(u => `${u.prenom} ${u.nom}`)
       };
-
-      this.allEvents.push(newEvent);
-      this.showToastMessage('Événement ajouté avec succès', 'success');
     }
 
+    this.showToastMessage('Événement modifié avec succès', 'success');
     this.saveAllEvents();
-    this.refreshVisibleEvents();
-    this.closeEventModal();
+    
+  } else {
+    const newEvent: CalendarEvent = {
+      id: Date.now(),
+      title: this.eventForm.title,
+      description: this.eventForm.description,
+      date: eventDate,
+      startTime,
+      endTime,
+      projectId: selectedProject?.id ?? null,
+      projectName: selectedProject?.name ?? '',
+      ownerId: this.currentUserId,
+      ownerName: this.currentUserName,
+      invitedUserIds: [...this.eventForm.invitedUserIds],
+      invitedUserNames: invitedUsers.map(u => `${u.prenom} ${u.nom}`)
+    };
+
+    this.allEvents.push(newEvent);
+    this.showToastMessage('Événement ajouté avec succès', 'success');
+    this.saveAllEvents();
+    
+    // ✅ ENVOYER LES NOTIFICATIONS EMAIL AU BACKEND
+    if (newEvent.invitedUserIds.length > 0) {
+      const invitationData = {
+        title: newEvent.title,
+        description: newEvent.description,
+        date: this.formatDateForBackend(newEvent.date),
+        startTime: newEvent.startTime,
+        endTime: newEvent.endTime,
+        projectId: newEvent.projectId,
+        projectName: newEvent.projectName,
+        ownerId: newEvent.ownerId,
+        ownerName: newEvent.ownerName,
+        invitedUserIds: newEvent.invitedUserIds
+      };
+      
+      this.http.post('http://localhost:8080/api/calendar/send-invitations', invitationData)
+        .subscribe({
+          next: (response: any) => {
+            console.log('Invitations envoyées:', response);
+          },
+          error: (error) => {
+            console.error('Erreur envoi invitations:', error);
+          }
+        });
+    }
   }
+
+  this.refreshVisibleEvents();
+  this.closeEventModal();
+}
+
+// Ajoutez cette méthode helper
+private formatDateForBackend(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
 
   deleteEvent(eventId: number): void {
     const event = this.allEvents.find(e => e.id === eventId);

@@ -19,7 +19,7 @@ import org.slf4j.LoggerFactory;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
-
+import java.time.LocalDate;
 @Service
 public class EmailService {
 
@@ -648,5 +648,54 @@ public class EmailService {
         );
 
         sendSimpleEmail(receiver.getEmail(), subject, content);
+    }
+
+    // Dans EmailService.java, ajoutez cette méthode
+
+    /**
+     * Notification quand quelqu'un est invité à un événement du calendrier
+     */
+    public void notifyCalendarInvitation(String invitedUserEmail, String invitedUserName,
+                                         String ownerName, String eventTitle,
+                                         LocalDate eventDate, String startTime,
+                                         String endTime, String description) {
+        String subject = "📅 Invitation à un événement - " + eventTitle;
+
+        String timeInfo = "";
+        if (startTime != null && !startTime.isEmpty()) {
+            timeInfo = " de " + startTime;
+            if (endTime != null && !endTime.isEmpty()) {
+                timeInfo += " à " + endTime;
+            }
+        }
+
+        String content = String.format("""
+        Bonjour %s,
+        
+        %s vous a invité à un événement sur la plateforme DXC.
+        
+        ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        📅 Événement : %s
+        📆 Date : %s%s
+        📝 Description : %s
+        👤 Organisé par : %s
+        ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        
+        Pour consulter cet événement, connectez-vous à la plateforme et rendez-vous dans le calendrier partagé.
+        
+        ---
+        Cet email a été envoyé automatiquement. Merci de ne pas y répondre.
+        © DXC Technology - Plateforme de gestion de projets
+        """,
+                invitedUserName,
+                ownerName,
+                eventTitle,
+                eventDate.format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy")),
+                timeInfo,
+                description != null && !description.isEmpty() ? description : "Aucune description",
+                ownerName
+        );
+
+        sendSimpleEmail(invitedUserEmail, subject, content);
     }
 }

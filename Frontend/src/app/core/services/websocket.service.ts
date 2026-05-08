@@ -5,16 +5,16 @@ import { AuthService } from './auth.service';
 import { Subject, Observable } from 'rxjs';
 
 export interface WebSocketMessage {
-  type?: 'message' | 'reaction';
+  type?: 'message' | 'reaction' | 'user_status' | 'connect' | 'disconnect' | 'status' | 'online_users_list';
 
   id?: number;
   clientTempId?: string;
   content?: string;
 
-  senderId: number;
-  senderName: string;
+  senderId?: number;
+  senderName?: string;
 
-  receiverId: number;
+  receiverId?: number;
   receiverName?: string;
 
   sentAt?: string;
@@ -25,6 +25,11 @@ export interface WebSocketMessage {
   messageId?: number;
   emoji?: string;
   isAdd?: boolean;
+  
+  online?: boolean;
+  userId?: number;
+  onlineUserIds?: number[];
+  onlineCount?: number;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -57,7 +62,7 @@ export class WebSocketService {
     this.stompClient.onConnect = () => {
       console.log('✅ WebSocket connecté');
 
-      // IMPORTANT: côté client Spring STOMP utilise /user/queue/messages
+      // S'abonner aux messages
       this.stompClient?.subscribe('/user/queue/messages', (message: StompMessage) => {
         try {
           const parsed = JSON.parse(message.body) as WebSocketMessage;
@@ -67,6 +72,9 @@ export class WebSocketService {
           console.error('Erreur parsing message:', error);
         }
       });
+      
+      // ✅ Envoyer le message de connexion après abonnement
+      this.sendConnectMessage();
     };
 
     this.stompClient.onStompError = (frame) => {
@@ -84,12 +92,29 @@ export class WebSocketService {
     this.stompClient.activate();
   }
 
-  disconnect(): void {
-    if (this.stompClient) {
-      this.stompClient.deactivate();
+disconnect(): void {
+  if (this.stompClient) {
+    // ✅ Envoyer d'abord le message de déconnexion
+    this.sendDisconnectMessage();
+    
+    // Petite pause pour laisser le message partir
+    setTimeout(() => {
+      this.stompClient?.deactivate();
       this.stompClient = null;
-    }
+      console.log('🔌 WebSocket déconnecté');
+    }, 100);
   }
+}
+private startHeartbeat(): void {
+  setInterval(() => {
+    if (this.stompClient?.connected) {
+      this.stompClient.publish({
+        destination: '/app/chat.ping',
+        body: JSON.stringify({ type: 'ping', timestamp: Date.now() })
+      });
+    }
+  }, 30000); // Toutes les 30 secondes
+}
 
   sendMessage(
     receiverId: number,
@@ -154,6 +179,52 @@ export class WebSocketService {
     });
 
     console.log('=== FRONT publish /app/chat.reaction OK ===');
+  }
+
+  // ✅ CORRIGÉ : Utiliser publish() au lieu de send()
+  private sendConnectMessage(): void {
+    const user = this.authService.getUser();
+    if (user && this.stompClient?.connected) {
+      this.stompClient.publish({
+        destination: '/app/chat.connect',
+        body: JSON.stringify({
+          type: 'connect',
+          userId: user.id,
+          online: true
+        })
+      });
+      console.log('🔌 Message de connexion envoyé pour user:', user.id);
+    }
+  }
+
+  // ✅ CORRIGÉ : Utiliser publish() au lieu de send()
+  private sendDisconnectMessage(): void {
+    const user = this.authService.getUser();
+    if (user && this.stompClient?.connected) {
+      this.stompClient.publish({
+        destination: '/app/chat.disconnect',
+        body: JSON.stringify({
+          type: 'disconnect',
+          userId: user.id,
+          online: false
+        })
+      });
+      console.log('🔌 Message de déconnexion envoyé pour user:', user.id);
+    }
+  }
+
+  // ✅ CORRIGÉ : Utiliser publish() au lieu de send()
+  checkUserStatus(userId: number): void {
+    if (this.stompClient?.connected) {
+      this.stompClient.publish({
+        destination: '/app/chat.status',
+        body: JSON.stringify({
+          type: 'status',
+          receiverId: userId
+        })
+      });
+      console.log('📊 Vérification statut demandée pour user:', userId);
+    }
   }
 
   getMessages(): Observable<WebSocketMessage> {

@@ -1,6 +1,7 @@
 package com.dxc.dxc_platform.dto;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 public class WebSocketMessageDto {
     private String type;
@@ -29,8 +30,28 @@ public class WebSocketMessageDto {
     private Long fileSize;
     private String fileData;
 
+    // Statut en ligne/déconnecté
+    private boolean online;
+    private List<Long> onlineUserIds;
+    private int onlineCount;
+    private Long userId;
+
     public WebSocketMessageDto() {}
 
+    // Getters et Setters pour le statut
+    public boolean isOnline() { return online; }
+    public void setOnline(boolean online) { this.online = online; }
+
+    public List<Long> getOnlineUserIds() { return onlineUserIds; }
+    public void setOnlineUserIds(List<Long> onlineUserIds) { this.onlineUserIds = onlineUserIds; }
+
+    public int getOnlineCount() { return onlineCount; }
+    public void setOnlineCount(int onlineCount) { this.onlineCount = onlineCount; }
+
+    public Long getUserId() { return userId; }
+    public void setUserId(Long userId) { this.userId = userId; }
+
+    // Getters et Setters existants
     public String getType() { return type; }
     public void setType(String type) { this.type = type; }
 

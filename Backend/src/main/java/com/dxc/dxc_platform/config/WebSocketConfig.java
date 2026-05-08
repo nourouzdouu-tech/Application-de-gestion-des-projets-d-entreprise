@@ -55,24 +55,41 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
                 StompHeaderAccessor accessor =
                         MessageHeaderAccessor.getAccessor(message, StompHeaderAccessor.class);
 
-                if (accessor != null && StompCommand.CONNECT.equals(accessor.getCommand())) {
-                    String authHeader = accessor.getFirstNativeHeader("Authorization");
-                    if (authHeader != null && authHeader.startsWith("Bearer ")) {
-                        String token = authHeader.substring(7);
-                        try {
-                            String email = jwtService.extractUsername(token);
-                            if (email != null) {
-                                UserDetails userDetails =
-                                        userDetailsService.loadUserByUsername(email);
-                                if (jwtService.isTokenValid(token, userDetails)) {
-                                    UsernamePasswordAuthenticationToken auth =
-                                            new UsernamePasswordAuthenticationToken(
-                                                    userDetails, null, userDetails.getAuthorities());
-                                    accessor.setUser(auth);
+                if (accessor != null) {
+                    if (StompCommand.CONNECT.equals(accessor.getCommand())) {
+                        String authHeader = accessor.getFirstNativeHeader("Authorization");
+                        System.out.println("🔑 WebSocket CONNECT - Auth header: " + (authHeader != null ? "présent" : "absent"));
+
+                        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+                            String token = authHeader.substring(7);
+                            try {
+                                String email = jwtService.extractUsername(token);
+                                System.out.println("  → Email extrait du token: " + email);
+
+                                if (email != null) {
+                                    UserDetails userDetails =
+                                            userDetailsService.loadUserByUsername(email);
+                                    if (jwtService.isTokenValid(token, userDetails)) {
+                                        UsernamePasswordAuthenticationToken auth =
+                                                new UsernamePasswordAuthenticationToken(
+                                                        userDetails, null, userDetails.getAuthorities());
+                                        accessor.setUser(auth);
+
+                                        // Stocker l'email dans les attributs de session
+                                        accessor.getSessionAttributes().put("email", email);
+                                        System.out.println("  ✅ Authentification WebSocket réussie pour: " + email);
+                                    }
                                 }
+                            } catch (Exception e) {
+                                System.err.println("❌ WebSocket JWT invalide : " + e.getMessage());
                             }
-                        } catch (Exception e) {
-                            System.err.println("WebSocket JWT invalide : " + e.getMessage());
+                        }
+                    }
+
+                    if (StompCommand.DISCONNECT.equals(accessor.getCommand())) {
+                        String email = (String) accessor.getSessionAttributes().get("email");
+                        if (email != null) {
+                            System.out.println("🔌 WebSocket DISCONNECT - Utilisateur: " + email);
                         }
                     }
                 }

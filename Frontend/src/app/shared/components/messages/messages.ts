@@ -66,10 +66,16 @@ export class SharedMessagesComponent implements OnInit, OnDestroy {
 
   readonly maxFileSizeBytes = 10 * 1024 * 1024;
 
-  // ✅ Recherche utilisateur
+  // Recherche utilisateur
   searchQuery = '';
   filteredUsers: User[] = [];
+  isUserSelected = false;
 
+  // ✅ Statut des utilisateurs en ligne
+  userStatusMap = new Map<number, boolean>();
+  
+
+  
   private wsSubscription?: Subscription;
 
   @ViewChild('chatMessages') private chatMessagesContainer!: ElementRef;
@@ -95,6 +101,12 @@ export class SharedMessagesComponent implements OnInit, OnDestroy {
 
       console.log('📩 WS component reçu:', wsMsg);
 
+      // Gérer les messages de statut
+      if (wsMsg.type === 'user_status') {
+        this.handleUserStatusUpdate(wsMsg);
+        return;
+      }
+
       if (wsMsg.type === 'reaction') {
         this.handleReactionMessage(wsMsg);
         return;
@@ -105,7 +117,7 @@ export class SharedMessagesComponent implements OnInit, OnDestroy {
         clientTempId: wsMsg.clientTempId,
         content: wsMsg.content || '',
         senderId: Number(wsMsg.senderId),
-        senderName: wsMsg.senderName,
+        senderName: wsMsg.senderName || '',
         receiverId: Number(wsMsg.receiverId),
         receiverName: wsMsg.receiverName || '',
         sentAt: wsMsg.sentAt || new Date().toISOString(),
@@ -128,7 +140,7 @@ export class SharedMessagesComponent implements OnInit, OnDestroy {
     this.wsService.disconnect();
   }
 
-  // ✅ Helpers pour éviter les erreurs de type dans le template
+  // Helpers pour éviter les erreurs de type dans le template
   getUserFullName(user: User): string {
     return `${user.prenom ?? ''} ${user.nom ?? ''}`.trim();
   }
@@ -139,23 +151,51 @@ export class SharedMessagesComponent implements OnInit, OnDestroy {
     return `${p}${n}`;
   }
 
-  // ✅ Recherche
+  // ✅ Méthodes pour le statut en ligne
+getUserStatusText(userId: number): string {
+  return this.userStatusMap.get(userId) ? 'En ligne' : 'Déconnecté';
+}
+
+getUserStatusDotClass(userId: number): string {
+  return this.userStatusMap.get(userId) ? 'msg-status-dot-online' : 'msg-status-dot-offline';
+}
+
+getUserStatusTextClass(userId: number): string {
+  return this.userStatusMap.get(userId) ? 'status-online' : 'status-offline';
+}
   filterUsers(): void {
-    const q = this.searchQuery.toLowerCase().trim();
+    const q = this.searchQuery?.trim().toLowerCase() || '';
+    
     if (!q) {
       this.filteredUsers = [];
+      this.isUserSelected = false;
+      this.cdr.detectChanges();
       return;
     }
-    this.filteredUsers = this.usersList.filter(u =>
-      this.getUserFullName(u).toLowerCase().includes(q) ||
-      (u.email ?? '').toLowerCase().includes(q)
-    );
+    
+    this.isUserSelected = false;
+    this.filteredUsers = this.usersList.filter(u => {
+      const fullName = `${u.prenom ?? ''} ${u.nom ?? ''}`.trim().toLowerCase();
+      const email = (u.email ?? '').toLowerCase();
+      return fullName.includes(q) || email.includes(q);
+    });
+    this.cdr.detectChanges();
   }
 
   selectUser(user: User): void {
     this.newMessageReceiverId = Number(user.id);
     this.searchQuery = this.getUserFullName(user);
+    this.isUserSelected = true;
     this.filteredUsers = [];
+    this.cdr.detectChanges();
+  }
+
+  clearSelectedUser(): void {
+    this.searchQuery = '';
+    this.newMessageReceiverId = null;
+    this.isUserSelected = false;
+    this.filteredUsers = [];
+    this.cdr.detectChanges();
   }
 
   renderMarkdown(text: string): SafeHtml {
@@ -324,30 +364,33 @@ export class SharedMessagesComponent implements OnInit, OnDestroy {
     this.openConversation(conv);
   }
 
-  private openConversation(conv: Conversation): void {
-    this.selectedConv = { ...conv, unreadCount: 0 };
-    this.replyingToMessage = null;
-    this.selectedFiles = [];
-    this.showEmojiPicker = false;
+ private openConversation(conv: Conversation): void {
+  this.selectedConv = { ...conv, unreadCount: 0 };
+  this.replyingToMessage = null;
+  this.selectedFiles = [];
+  this.showEmojiPicker = false;
 
-    this.conversations = this.conversations.map(c =>
-      c.id === conv.id ? { ...c, unreadCount: 0 } : c
-    );
+  this.conversations = this.conversations.map(c =>
+    c.id === conv.id ? { ...c, unreadCount: 0 } : c
+  );
 
-    this.messageService.getMessages(conv.id).subscribe({
-      next: (msgs: Message[]) => {
-        this.messages = msgs.map(msg => this.normalizeMessage(msg));
-        this.sortMessages();
-        this.cdr.detectChanges();
-        this.scrollToBottom();
-      },
-      error: (err) => {
-        console.error('Erreur chargement messages', err);
-        this.messages = [];
-        this.cdr.detectChanges();
-      }
-    });
-  }
+  this.messageService.getMessages(conv.id).subscribe({
+    next: (msgs: Message[]) => {
+      this.messages = msgs.map(msg => this.normalizeMessage(msg));
+      this.sortMessages();
+      this.cdr.detectChanges();
+      this.scrollToBottom();
+    },
+    error: (err) => {
+      console.error('Erreur chargement messages', err);
+      this.messages = [];
+      this.cdr.detectChanges();
+    }
+  });
+  
+  // ✅ Demander le statut initial de l'utilisateur
+  this.wsService.checkUserStatus(conv.otherParticipantId);
+}
 
   onKeydown(event: KeyboardEvent): void {
     if (event.key === 'Enter' && !event.shiftKey) {
@@ -553,7 +596,7 @@ export class SharedMessagesComponent implements OnInit, OnDestroy {
         : [...currentReactions, {
             emoji: wsMsg.emoji,
             userId: Number(wsMsg.senderId),
-            userName: wsMsg.senderName
+            userName: wsMsg.senderName || ''
           }];
     } else {
       updatedReactions = currentReactions.filter(
@@ -633,7 +676,7 @@ export class SharedMessagesComponent implements OnInit, OnDestroy {
       reactions: (msg.reactions ?? []).map((r: MessageReaction) => ({
         emoji: r.emoji,
         userId: Number(r.userId),
-        userName: r.userName
+        userName: r.userName || ''
       })),
       attachments,
       pending: (msg as LocalMessage).pending ?? false,
@@ -781,6 +824,8 @@ export class SharedMessagesComponent implements OnInit, OnDestroy {
     this.searchQuery = '';
     this.filteredUsers = [];
     this.newMessageReceiverId = null;
+    this.isUserSelected = false;
+    this.cdr.detectChanges();
   }
 
   closeNewMessageModal(): void {
@@ -788,6 +833,8 @@ export class SharedMessagesComponent implements OnInit, OnDestroy {
     this.newMessageReceiverId = null;
     this.searchQuery = '';
     this.filteredUsers = [];
+    this.isUserSelected = false;
+    this.cdr.detectChanges();
   }
 
   createNewConversation(): void {
@@ -866,4 +913,19 @@ export class SharedMessagesComponent implements OnInit, OnDestroy {
       error: (err) => console.error('Erreur reload messages après réaction', err)
     });
   }
+   private handleUserStatusUpdate(wsMsg: WebSocketMessage): void {
+    console.log('📡 Mise à jour statut reçue:', { userId: wsMsg.userId, online: wsMsg.online });
+    if (wsMsg.type === 'user_status' && wsMsg.userId !== undefined) {
+      this.userStatusMap.set(wsMsg.userId, wsMsg.online === true);
+      console.log('📊 userStatusMap mis à jour:', Array.from(this.userStatusMap.entries()));
+      this.cdr.detectChanges();
+    }
+  }
+
+  private loadInitialUserStatus(): void {
+  // Demander le statut de l'utilisateur de la conversation sélectionnée
+  if (this.selectedConv?.otherParticipantId) {
+    this.wsService.checkUserStatus(this.selectedConv.otherParticipantId);
+  }
+}
 }

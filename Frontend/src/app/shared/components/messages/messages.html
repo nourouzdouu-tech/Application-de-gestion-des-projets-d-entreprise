@@ -45,24 +45,28 @@
 
   <div class="msg-chat-panel" *ngIf="selectedConv; else emptyChatTpl">
 
-    <div class="msg-chat-header">
-      <div class="msg-chat-header-user">
-        <div class="msg-chat-avatar" [style.backgroundColor]="getAvatarColor(selectedConv.otherParticipantName)">
-          {{ selectedConv.otherParticipantName | slice:0:2 | uppercase }}
-        </div>
-        <div>
-          <div class="msg-chat-name">{{ selectedConv.otherParticipantName }}</div>
-          <div class="msg-chat-status">
-            <span class="msg-status-dot"></span> En ligne
-          </div>
-        </div>
-      </div>
-      <button class="msg-close-btn" (click)="closeChat()">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M18 6L6 18M6 6l12 12"/>
-        </svg>
-      </button>
+<div class="msg-chat-header">
+  <div class="msg-chat-header-user">
+    <div class="msg-chat-avatar" [style.backgroundColor]="getAvatarColor(selectedConv.otherParticipantName)">
+      {{ selectedConv.otherParticipantName | slice:0:2 | uppercase }}
     </div>
+    <div>
+      <div class="msg-chat-name">{{ selectedConv.otherParticipantName }}</div>
+      <div class="msg-chat-status">
+        <span [class]="getUserStatusDotClass(selectedConv.otherParticipantId)"></span>
+        <!-- ✅ Ajoute la classe pour la couleur du texte -->
+        <span [class]="getUserStatusTextClass(selectedConv.otherParticipantId)">
+          {{ getUserStatusText(selectedConv.otherParticipantId) }}
+        </span>
+      </div>
+    </div>
+  </div>
+  <button class="msg-close-btn" (click)="closeChat()">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M18 6L6 18M6 6l12 12"/>
+    </svg>
+  </button>
+</div>
 
     <div class="msg-messages" #chatMessages>
       <div
@@ -298,45 +302,61 @@
     </div>
 
     <div class="msg-modal-body">
-      <label class="msg-modal-label">Choisir un destinataire</label>
+  <label class="msg-modal-label">Choisir un destinataire</label>
 
-      <div class="msg-search-wrapper">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
-        </svg>
-        <input
-          type="text"
-          class="msg-search-input"
-          placeholder="Rechercher par nom ou email..."
-          [(ngModel)]="searchQuery"
-          (input)="filterUsers()"
-        />
-      </div>
+  <div class="msg-search-wrapper">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
+    </svg>
+    <input
+      type="text"
+      class="msg-search-input"
+      placeholder="Rechercher par nom ou email..."
+      [(ngModel)]="searchQuery"
+      (input)="filterUsers()"
+      (focus)="filterUsers()"
+    />
+  </div>
 
-      <div class="msg-search-results" *ngIf="filteredUsers.length > 0">
-        <div
-          *ngFor="let user of filteredUsers"
-          class="msg-search-result-item"
-          [class.selected]="newMessageReceiverId === user.id"
-          (click)="selectUser(user)"
-        >
-          <div class="msg-search-avatar" [style.backgroundColor]="getAvatarColor(getUserFullName(user))">
-            {{ getUserInitials(user) }}
-          </div>
-          <div class="msg-search-info">
-            <span class="msg-search-name">{{ getUserFullName(user) }}</span>
-            <span class="msg-search-email">{{ user.email }}</span>
-          </div>
-          <svg *ngIf="newMessageReceiverId === user.id" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="2.5">
-            <polyline points="20 6 9 17 4 12"/>
-          </svg>
-        </div>
+  <!-- Afficher les résultats de recherche -->
+  <div class="msg-search-results" *ngIf="filteredUsers.length > 0">
+    <div
+      *ngFor="let user of filteredUsers"
+      class="msg-search-result-item"
+      [class.selected]="newMessageReceiverId === user.id"
+      (click)="selectUser(user)"
+    >
+      <div class="msg-search-avatar" [style.backgroundColor]="getAvatarColor(getUserFullName(user))">
+        {{ getUserInitials(user) }}
       </div>
-
-      <div class="msg-search-empty" *ngIf="filteredUsers.length === 0 && searchQuery.length > 0">
-        Aucun utilisateur trouvé
+      <div class="msg-search-info">
+        <span class="msg-search-name">{{ getUserFullName(user) }}</span>
+        <span class="msg-search-email">{{ user.email }}</span>
       </div>
+      <svg *ngIf="newMessageReceiverId === user.id" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="2.5">
+        <polyline points="20 6 9 17 4 12"/>
+      </svg>
     </div>
+  </div>
+
+  <!-- Message "Aucun utilisateur trouvé" - ne pas afficher si un utilisateur est sélectionné -->
+  <div class="msg-search-empty" *ngIf="filteredUsers.length === 0 && searchQuery.length > 0 && !isUserSelected">
+    Aucun utilisateur trouvé
+  </div>
+
+  <!-- Afficher l'utilisateur sélectionné -->
+  <div class="msg-selected-user" *ngIf="isUserSelected && newMessageReceiverId">
+    <div class="msg-selected-user-info">
+      <span class="msg-selected-user-label">Destinataire sélectionné :</span>
+      <span class="msg-selected-user-name">{{ searchQuery }}</span>
+    </div>
+    <button type="button" class="msg-selected-user-clear" (click)="clearSelectedUser()">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M18 6L6 18M6 6l12 12"/>
+      </svg>
+    </button>
+  </div>
+</div>
 
     <div class="msg-modal-footer">
       <button class="msg-modal-cancel" (click)="closeNewMessageModal()">Annuler</button>
