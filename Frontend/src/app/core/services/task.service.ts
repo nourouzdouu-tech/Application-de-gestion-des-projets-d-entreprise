@@ -25,6 +25,7 @@ export interface TaskDto {
 
   rejected?: boolean;
   rejectionComment?: string;
+  
 }
 
 @Injectable({

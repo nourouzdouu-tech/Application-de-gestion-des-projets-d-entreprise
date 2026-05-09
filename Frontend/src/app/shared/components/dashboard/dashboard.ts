@@ -650,7 +650,7 @@ export class Dashboard implements OnInit {
 
   tachesCritiques = computed(() =>
     [...this.tasks()]
-      .filter(t => this.isTaskLate(t) || t.priority === 'HAUTE' || t.status === 'Validation')
+      .filter(t => t.status === 'Validation')
       .slice(0, 5)
   );
 
@@ -930,6 +930,7 @@ export class Dashboard implements OnInit {
 
   myRecentTasks = computed(() =>
     [...this.myTasks()]
+  .filter(task => task.priority === 'HAUTE')
       .sort((a, b) => {
         const priorityOrder = { 'HAUTE': 0, 'MOYENNE': 1, 'BASSE': 2 };
         const aPriority = priorityOrder[a.priority as keyof typeof priorityOrder] ?? 1;

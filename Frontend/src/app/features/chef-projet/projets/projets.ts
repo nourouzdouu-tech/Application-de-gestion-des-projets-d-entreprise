@@ -457,30 +457,35 @@ hasTeamMembers(team: TeamDto): boolean {
     this.cdr.detectChanges();
   }
 
-  openCreateTaskModal(project: ProjectDto): void {
-    this.currentProjectForTask = project;
-    this.taskForm = {
-      title: '',
-      description: '',
-      startDate: '',
-      criticite: 3,
-      assignedToId: undefined,
-      projectId: project.id
-    };
+ openCreateTaskModal(project: ProjectDto): void {
+  this.currentProjectForTask = project;
+  this.taskForm = {
+    title: '',
+    description: '',
+    startDate: '',
+    estimatedEndDate: '',  // Important : initialisé vide
+    criticite: 3,
+    priority: 'MOYENNE',   // Ajoutez une priorité par défaut
+    assignedToId: undefined,
+    projectId: project.id
+  };
 
-    if (project.teamId) {
-      this.teamService.getTeamById(project.teamId).subscribe({
-        next: (team) => this.ngZone.run(() => {
-          this.teamMembers = team.members || [];
-          this.showTaskModal = true;
-          this.cdr.detectChanges();
-        }),
-        error: () => alert('Impossible de charger les membres de l\'équipe.')
-      });
-    } else {
-      alert('Ce projet n\'a pas encore d\'équipe assignée.');
-    }
+  if (project.teamId) {
+    this.teamService.getTeamById(project.teamId).subscribe({
+      next: (team) => this.ngZone.run(() => {
+        this.teamMembers = team.members || [];
+        this.showTaskModal = true;
+        // Optionnel : calculer une date par défaut
+        setTimeout(() => this.calculateEndDate(), 100);
+        this.cdr.detectChanges();
+      }),
+      error: () => alert('Impossible de charger les membres de l\'équipe.')
+    });
+  } else {
+    alert('Ce projet n\'a pas encore d\'équipe assignée.');
   }
+}
+
 
   closeTaskModal(): void {
     this.showTaskModal = false;
@@ -803,5 +808,143 @@ hasTeamMembers(team: TeamDto): boolean {
 getTeamMemberCount(team: TeamDto): number {
   return (team as any).members?.length || (team as any).memberCount || 0;
 }
+// Ajoutez cette méthode pour calculer la date de fin
+calculateEndDate(): void {
+  console.log('Calcul de la date de fin - Date début:', this.taskForm.startDate);
+  console.log('Criticité:', this.taskForm.criticite);
+  
+  if (!this.taskForm.startDate || !this.taskForm.criticite) {
+    console.log('Date début ou criticité manquante');
+    return;
+  }
+
+  const startDate = new Date(this.taskForm.startDate);
+  const criticite = Number(this.taskForm.criticite);
+  const priority = this.taskForm.priority || 'MOYENNE';
+  
+  console.log('Date début parsée:', startDate);
+  
+  // Calcul simple sans jours ouvrés pour tester
+  let daysToAdd = criticite;
+  
+  // Ajustement basé sur la priorité
+  switch(priority) {
+    case 'HAUTE': daysToAdd = Math.max(1, Math.floor(criticite * 0.7)); break;
+    case 'MOYENNE': daysToAdd = criticite; break;
+    case 'BASSE': daysToAdd = Math.floor(criticite * 1.5); break;
+  }
+  
+  console.log('Jours à ajouter:', daysToAdd);
+  
+  // Calculer la date de fin
+  const endDate = new Date(startDate);
+  endDate.setDate(startDate.getDate() + daysToAdd);
+  
+  console.log('Date fin calculée:', endDate);
+  
+  // Formater la date
+  const formattedDate = this.formatDate(endDate);
+  console.log('Date formatée:', formattedDate);
+  
+  this.taskForm.estimatedEndDate = formattedDate;
+  
+  // Forcer la détection des changements
+  this.cdr.detectChanges();
+}
+
+formatDate(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+// Méthode pour déterminer le nombre de jours de travail
+getWorkingDaysFromCriticiteAndPriority(criticite: number, priority: string): number {
+  // Base sur la criticité (échelle de Fibonacci)
+  let baseDays = 0;
+  
+  switch(criticite) {
+    case 1: baseDays = 1; break;
+    case 2: baseDays = 2; break;
+    case 3: baseDays = 3; break;
+    case 5: baseDays = 5; break;
+    case 8: baseDays = 8; break;
+    case 13: baseDays = 13; break;
+    default: baseDays = 3;
+  }
+  
+  // Ajustement basé sur la priorité
+  let priorityMultiplier = 1;
+  switch(priority) {
+    case 'HAUTE': priorityMultiplier = 0.7; break; // Plus rapide
+    case 'MOYENNE': priorityMultiplier = 1; break;
+    case 'BASSE': priorityMultiplier = 1.5; break; // Plus lent
+    default: priorityMultiplier = 1;
+  }
+  
+  return Math.max(1, Math.round(baseDays * priorityMultiplier));
+}
+
+// Méthode pour ajouter des jours ouvrables (lundi-vendredi)
+addWorkingDays(startDate: Date, days: number): Date {
+  let result = new Date(startDate);
+  let addedDays = 0;
+  
+  while (addedDays < days) {
+    result.setDate(result.getDate() + 1);
+    // Vérifier si ce n'est pas un weekend (0 = dimanche, 6 = samedi)
+    if (result.getDay() !== 0 && result.getDay() !== 6) {
+      addedDays++;
+    }
+  }
+  
+  return result;
+}
+calculateEditEndDate(): void {
+  if (!this.editingTask) return;
+  
+  console.log('Calcul modification - Date début:', this.editingTask.startDate);
+  console.log('Criticité:', this.editingTask.criticite);
+  
+  if (!this.editingTask.startDate || !this.editingTask.criticite) {
+    console.log('Date début ou criticité manquante');
+    return;
+  }
+
+  const startDate = new Date(this.editingTask.startDate);
+  const criticite = Number(this.editingTask.criticite);
+  const priority = this.editingTask.priority || 'MOYENNE';
+  
+  console.log('Date début parsée:', startDate);
+  
+  // Calcul simple sans jours ouvrés
+  let daysToAdd = criticite;
+  
+  // Ajustement basé sur la priorité
+  switch(priority) {
+    case 'HAUTE': daysToAdd = Math.max(1, Math.floor(criticite * 0.7)); break;
+    case 'MOYENNE': daysToAdd = criticite; break;
+    case 'BASSE': daysToAdd = Math.floor(criticite * 1.5); break;
+  }
+  
+  console.log('Jours à ajouter:', daysToAdd);
+  
+  // Calculer la date de fin
+  const endDate = new Date(startDate);
+  endDate.setDate(startDate.getDate() + daysToAdd);
+  
+  console.log('Date fin calculée:', endDate);
+  
+  // Formater la date
+  const formattedDate = this.formatDate(endDate);
+  console.log('Date formatée:', formattedDate);
+  
+  this.editingTask.estimatedEndDate = formattedDate;
+  
+  // Forcer la détection des changements
+  this.cdr.detectChanges();
+}
+
+
 
 }

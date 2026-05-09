@@ -8,6 +8,8 @@ import { HttpClient } from '@angular/common/http';
 import { forkJoin, of } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import * as XLSX from 'xlsx';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 interface RcTeamMemberInfo {
   id: number;
@@ -49,11 +51,14 @@ export class Reporting implements OnInit {
   roles = signal<string[]>([]);
   rcProjects = signal<ProjectDto[]>([]);
   rcTeams = signal<RcTeamDto[]>([]);
+  Math = Math;
   
   currentPage = 1;
   itemsPerPage = 10;
   memberTasksPage = 1;
   memberTasksItemsPerPage = 5;
+  chefTeamPerformancePage = 1;
+  chefTeamPerformanceItemsPerPage = 5;
 
   ngOnInit() {
     const user = this.authService.getUser();
@@ -704,6 +709,21 @@ export class Reporting implements OnInit {
       this.memberTasksPage = page;
     }
   }
+
+  get paginatedTeamPerformance() {
+    const start = (this.chefTeamPerformancePage - 1) * this.chefTeamPerformanceItemsPerPage;
+    return this.teamPerformance.slice(start, start + this.chefTeamPerformanceItemsPerPage);
+  }
+
+  get chefTeamPerformanceTotalPages(): number {
+    return Math.max(1, Math.ceil(this.teamPerformance.length / this.chefTeamPerformanceItemsPerPage));
+  }
+
+  goToChefTeamPerformancePage(page: number): void {
+    if (page >= 1 && page <= this.chefTeamPerformanceTotalPages) {
+      this.chefTeamPerformancePage = page;
+    }
+  }
   
   get weeklyEvolution() {
     return this.reportingData()?.weeklyEvolution || [];
@@ -917,5 +937,227 @@ get topClientsList(): any[] {
 get currentYear(): number {
     return new Date().getFullYear();
 }
+// Dans reporting.ts, remplacez exportAdminToPdf par :
 
+exportAdminToPdf(): void {
+  if (!this.isAdmin()) return;
+  
+  this.http.get('http://localhost:8080/api/reporting/export-pdf', {
+    responseType: 'blob'
+  }).subscribe({
+    next: (blob) => {
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `rapport_admin_${new Date().toISOString().split('T')[0]}.pdf`;
+      link.click();
+      window.URL.revokeObjectURL(url);
+    },
+    error: (err) => {
+      console.error('Erreur export PDF:', err);
+    }
+  });
+}
+// ================= EXPORT PDF POUR CHEF PROJET =================
+
+exportChefProjetToPdf(): void {
+  console.log('🔵 Export PDF Chef Projet appelé');
+  
+  if (!this.isChefProjet()) {
+    console.log('❌ Utilisateur non autorisé (pas chef projet)');
+    return;
+  }
+  
+  this.http.get('http://localhost:8080/api/reporting/export-chef-pdf', {
+    responseType: 'blob',
+    headers: {
+      'Accept': 'application/pdf'
+    }
+  }).subscribe({
+    next: (blob: Blob) => {
+      console.log('✅ PDF reçu, taille:', blob.size, 'bytes');
+      
+      if (blob.size === 0) {
+        console.error('❌ Le PDF est vide');
+        return;
+      }
+      
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      const fileName = `rapport_chef_projet_${new Date().toISOString().split('T')[0]}.pdf`;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      
+      console.log('✅ Téléchargement du PDF lancé:', fileName);
+    },
+    error: (err) => {
+      console.error('❌ Erreur export PDF:', err);
+      if (err.status === 404) {
+        console.error('Endpoint non trouvé, vérifiez l\'URL: /api/reporting/export-chef-pdf');
+      } else if (err.status === 403) {
+        console.error('Accès non autorisé');
+      } else if (err.status === 500) {
+        console.error('Erreur serveur, vérifiez les logs backend');
+      }
+    }
+  });
+}
+// ================= EXPORT PDF POUR MANAGER =================
+
+exportManagerToPdf(): void {
+  console.log('🔵 Export PDF Manager appelé');
+  
+  if (!this.isManager()) {
+    console.log('❌ Utilisateur non autorisé');
+    return;
+  }
+  
+  this.http.get('http://localhost:8080/api/reporting/export-manager-pdf', {
+    responseType: 'blob'
+  }).subscribe({
+    next: (blob) => {
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `rapport_manager_${new Date().toISOString().split('T')[0]}.pdf`;
+      link.click();
+      window.URL.revokeObjectURL(url);
+      console.log('✅ PDF Manager téléchargé');
+    },
+    error: (err) => {
+      console.error('❌ Erreur export PDF Manager:', err);
+    }
+  });
+}
+exportMembreEquipeToPdf(): void {
+  console.log('🔵 Export PDF Membre Equipe appelé');
+  
+  if (!this.isMembreEquipe()) {
+    console.log('❌ Utilisateur non autorisé');
+    // Utilisez votre système existant
+    if (this.showError) this.showError('Vous n\'êtes pas autorisé');
+    return;
+  }
+  
+  this.http.get('http://localhost:8080/api/reporting/export-membre-pdf', {
+    responseType: 'blob'
+  }).subscribe({
+    next: (blob) => {
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `rapport_membre_equipe_${new Date().toISOString().split('T')[0]}.pdf`;
+      link.click();
+      window.URL.revokeObjectURL(url);
+      // Utilisez votre système existant
+      if (this.showSuccess) this.showSuccess('PDF exporté avec succès !');
+    },
+    error: (err) => {
+      console.error('❌ Erreur export PDF:', err);
+      // Utilisez votre système existant
+      if (this.showError) this.showError('Erreur lors de l\'export PDF');
+    }
+  });
+}
+// Ajoutez ces méthodes après la méthode exportMembreEquipeToPdf()
+
+showSuccess(msg: string): void {
+  console.log('✅', msg);
+  
+  // Créer une notification toast temporaire
+  const toast = document.createElement('div');
+  toast.textContent = msg;
+  toast.style.position = 'fixed';
+  toast.style.bottom = '20px';
+  toast.style.right = '20px';
+  toast.style.backgroundColor = '#10b981';
+  toast.style.color = 'white';
+  toast.style.padding = '12px 20px';
+  toast.style.borderRadius = '8px';
+  toast.style.zIndex = '9999';
+  toast.style.fontSize = '14px';
+  toast.style.fontWeight = '600';
+  toast.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
+  toast.style.animation = 'slideIn 0.3s ease';
+  document.body.appendChild(toast);
+  
+  setTimeout(() => {
+    toast.style.opacity = '0';
+    setTimeout(() => toast.remove(), 300);
+  }, 3000);
+}
+
+showError(msg: string): void {
+  console.error('❌', msg);
+  
+  // Créer une notification toast temporaire
+  const toast = document.createElement('div');
+  toast.textContent = msg;
+  toast.style.position = 'fixed';
+  toast.style.bottom = '20px';
+  toast.style.right = '20px';
+  toast.style.backgroundColor = '#ef4444';
+  toast.style.color = 'white';
+  toast.style.padding = '12px 20px';
+  toast.style.borderRadius = '8px';
+  toast.style.zIndex = '9999';
+  toast.style.fontSize = '14px';
+  toast.style.fontWeight = '600';
+  toast.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)';
+  toast.style.animation = 'slideIn 0.3s ease';
+  document.body.appendChild(toast);
+  
+  setTimeout(() => {
+    toast.style.opacity = '0';
+    setTimeout(() => toast.remove(), 300);
+  }, 3000);
+}
+// ================= EXPORT PDF POUR RESPONSABLE CONTRAT =================
+
+exportResponsableContratToPdf(): void {
+  console.log('🔵 Export PDF Responsable Contrat appelé');
+  
+  if (!this.isResponsableContract()) {
+    console.log('❌ Utilisateur non autorisé');
+    return;
+  }
+  
+  this.http.get('http://localhost:8080/api/reporting/export-responsable-pdf', {
+    responseType: 'blob'
+  }).subscribe({
+    next: (blob) => {
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `rapport_responsable_contrat_${new Date().toISOString().split('T')[0]}.pdf`;
+      link.click();
+      window.URL.revokeObjectURL(url);
+      this.showSuccess('PDF exporté avec succès !');
+    },
+    error: (err) => {
+      console.error('❌ Erreur export PDF:', err);
+      this.showError('Erreur lors de l\'export PDF');
+    }
+  });
+}
+// Ajoutez ces méthodes dans la classe Reporting
+
+getMemberInitials(name: string): string {
+  if (!name) return '??';
+  return name.substring(0, 2).toUpperCase();
+}
+
+// Si getAvatarColor n'existe pas ou prend un string, ajoutez cette version
+getAvatarColorByName(name: string): string {
+  const colors = ['#7c3aed', '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#ec4899', '#06b6d4', '#84cc16'];
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) {
+    hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  return colors[Math.abs(hash) % colors.length];
+}
 }

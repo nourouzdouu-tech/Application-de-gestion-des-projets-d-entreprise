@@ -344,22 +344,7 @@
           <p class="section-description">Suivez l'efficacité et la productivité de chaque membre de votre équipe</p>
         </div>
         <div class="performance-actions">
-          <button class="btn-share" (click)="shareReport()">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M4 4v16h16V4H4z" />
-              <polyline points="22 6 12 13 2 6" />
-              <line x1="12" y1="13" x2="12" y2="3" />
-            </svg>
-            Partager
-          </button>
-          <button class="btn-export-report" (click)="exportPerformanceReport()">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-              <polyline points="7 10 12 15 17 10" />
-              <line x1="12" y1="15" x2="12" y2="3" />
-            </svg>
-            Exporter
-          </button>
+          
         </div>
       </div>
 
@@ -793,31 +778,55 @@
     </div>
 
     <!-- Actions rapides -->
-    <div class="quick-actions-section">
-      <div class="section-header">
-        <div>
-          <h2 class="section-title">Actions rapides</h2>
-          <p class="section-description">Accédez directement aux fonctionnalités principales</p>
-        </div>
-      </div>
-      <div class="quick-actions-grid">
-        <div class="quick-action-card" routerLink="/responsable-contrat/projets">
-          <div class="quick-action-icon">📋</div>
-          <div class="quick-action-title">Créer un projet</div>
-          <div class="quick-action-desc">Ajouter une nouvelle initiative</div>
-        </div>
-        <div class="quick-action-card" routerLink="/responsable-contrat/facturation">
-          <div class="quick-action-icon">💰</div>
-          <div class="quick-action-title">Facturation</div>
-          <div class="quick-action-desc">Gérer les factures</div>
-        </div>
-        <div class="quick-action-card" routerLink="/responsable-contrat/reporting">
-          <div class="quick-action-icon">📊</div>
-          <div class="quick-action-title">Reporting</div>
-          <div class="quick-action-desc">Consulter les rapports</div>
-        </div>
-      </div>
+   <!-- Actions rapides - Design amélioré -->
+<div class="quick-actions-section">
+  <div class="section-header">
+    <div>
+      <h2 class="section-title">Actions rapides</h2>
+      <p class="section-description">Accédez directement aux fonctionnalités principales</p>
     </div>
+  </div>
+  <div class="modern-actions-grid">
+    <div class="modern-action-card" routerLink="/responsable-contrat/projets">
+      <div class="action-card-inner">
+        <div class="action-icon-container">
+          <div class="action-icon-bg">
+            <span class="action-icon">📋</span>
+          </div>
+        </div>
+        <div class="action-info">
+          <h3 class="action-title">Créer un projet</h3>
+          <p class="action-description">Ajouter une nouvelle initiative</p>
+        </div>
+        <div class="action-arrow">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M5 12h14M12 5l7 7-7 7"/>
+          </svg>
+        </div>
+      </div>
+      <div class="action-card-shine"></div>
+    </div>
+    <div class="modern-action-card" routerLink="/responsable-contrat/reporting">
+      <div class="action-card-inner">
+        <div class="action-icon-container">
+          <div class="action-icon-bg reporting-bg">
+            <span class="action-icon">📊</span>
+          </div>
+        </div>
+        <div class="action-info">
+          <h3 class="action-title">Reporting</h3>
+          <p class="action-description">Consulter les rapports</p>
+        </div>
+        <div class="action-arrow">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M5 12h14M12 5l7 7-7 7"/>
+          </svg>
+        </div>
+      </div>
+      <div class="action-card-shine"></div>
+    </div>
+  </div>
+</div>
   </div>
 }<!-- ================= MEMBRE EQUIPE ================= -->
 @if (isMembreEquipe()) {

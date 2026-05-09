@@ -145,17 +145,26 @@ export class AdminService {
   private apiUrl = 'http://localhost:8080/api/admin/users';
   private clientApiUrl = 'http://localhost:8080/api/admin/clients';
 
-  getUsers(page: number, size = 5, q = '', role = '', locked?: boolean): Observable<PageResponse<UserResponse>> {
-    let params = new HttpParams()
-      .set('page', (page - 1).toString())
-      .set('size', size.toString());
+  // Dans admin.service.ts, modifiez la méthode getUsers :
+getUsers(page: number, size = 5, q = '', role = '', locked?: boolean, profileId?: number): Observable<PageResponse<UserResponse>> {
+  let params = new HttpParams()
+    .set('page', (page - 1).toString())
+    .set('size', size.toString());
 
-    if (q) params = params.set('q', q);
-    if (role) params = params.set('role', role);
-    if (locked !== undefined) params = params.set('locked', locked.toString());
+  if (q) params = params.set('q', q);
+  if (role) params = params.set('role', role);
+  if (locked !== undefined) params = params.set('locked', locked.toString());
+  if (profileId) params = params.set('profileId', profileId.toString());
 
-    return this.http.get<PageResponse<UserResponse>>(this.apiUrl, { params });
-  }
+  // AJOUTEZ CE LOG POUR DEBUG
+  console.log('🔍 Requête envoyée:', {
+    url: this.apiUrl,
+    params: params.toString(),
+    profileId: profileId
+  });
+
+  return this.http.get<PageResponse<UserResponse>>(this.apiUrl, { params });
+}
 
   createUser(req: UserCreateRequest): Observable<UserResponse> {
     return this.http.post<UserResponse>(this.apiUrl, req);

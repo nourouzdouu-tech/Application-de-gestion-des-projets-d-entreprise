@@ -22,12 +22,14 @@
             <h2>📊 Administration & Analytics</h2>
             <p>Visualisez les indicateurs clés de performance de la plateforme</p>
           </div>
-          <button class="btn-refresh" (click)="loadReportingData()">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <polyline points="23 4 23 10 17 10" />
-              <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
+       
+          <button class="btn-refresh" (click)="exportAdminToPdf()">
+           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+        <polyline points="7 10 12 15 17 10" />
+        <line x1="12" y1="15" x2="12" y2="3" />
             </svg>
-            Actualiser
+           Exporter PDF
           </button>
         </div>
 
@@ -73,10 +75,7 @@
           <div class="chart-admin-card">
             <div class="chart-admin-header">
               <h3>📈 Évolution des utilisateurs</h3>
-              <select class="chart-select" (change)="setUserChartPeriod($any($event.target).value)">
-                <option value="6">6 derniers mois</option>
-                <option value="12">12 derniers mois</option>
-              </select>
+              
             </div>
             <div class="line-chart-admin">
               <svg viewBox="0 0 600 200" preserveAspectRatio="xMidYMid meet">
@@ -190,25 +189,57 @@
     }
 
     <!-- ================= REPORTING CHEF PROJET ================= -->
-    @if (isChefProjet()) {
-      <div class="main-content chef-reporting">
-        <div class="hero-section">
-          <div class="hero-left">
-            <span class="hero-badge">Reporting Chef de Projet</span>
-            <h1 class="heading-title">Rapports Projets & Équipes</h1>
-            <p class="title-description">
-              Analysez les performances de vos projets et de votre équipe.
-            </p>
-          </div>
-        </div>
+   @if (isChefProjet()) {
+  <div class="main-content chef-reporting">
+    <div class="hero-section">
+      <div class="hero-left">
+        <span class="hero-badge">Reporting Chef de Projet</span>
+        <h1 class="heading-title">Rapports Projets & Équipes</h1>
+        <p class="title-description">
+          Analysez les performances de vos projets et de votre équipe.
+        </p>
+      </div>
+      <div class="hero-right">
+        <button class="btn-pdf" (click)="exportChefProjetToPdf()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+            <polyline points="7 10 12 15 17 10" />
+            <line x1="12" y1="15" x2="12" y2="3" />
+          </svg>
+          Exporter PDF
+        </button>
+      </div>
+    </div>
 
-        <div class="kpi-grid chef-kpis">
-          <div class="kpi-card"><div class="kpi-icon">📁</div><div class="kpi-title">Mes projets</div><div class="kpi-value">{{ chefProjects.length }}</div></div>
-          <div class="kpi-card"><div class="kpi-icon">👥</div><div class="kpi-title">Membres suivis</div><div class="kpi-value">{{ chefTeamMembersCount }}</div></div>
-          <div class="kpi-card"><div class="kpi-icon">✅</div><div class="kpi-title">Tâches terminées</div><div class="kpi-value">{{ chefCompletedTasks }}</div></div>
-          <div class="kpi-card"><div class="kpi-icon">⏳</div><div class="kpi-title">Tâches en cours</div><div class="kpi-value">{{ chefInProgressTasks }}</div></div>
-          <div class="kpi-card"><div class="kpi-icon">📝</div><div class="kpi-title">À faire</div><div class="kpi-value">{{ chefPendingTasks }}</div></div>
-          <div class="kpi-card"><div class="kpi-icon">⚠️</div><div class="kpi-title">En retard</div><div class="kpi-value">{{ chefLateTasks }}</div></div>
+        <div class="kpi-manager-grid">
+          <div class="kpi-manager-card total">
+            <div class="kpi-manager-icon">📁</div>
+            <div class="kpi-manager-info">
+              <span class="kpi-manager-label">Mes projets</span>
+              <span class="kpi-manager-value">{{ chefProjects.length }}</span>
+            </div>
+          </div>
+          <div class="kpi-manager-card assigned">
+            <div class="kpi-manager-icon">👥</div>
+            <div class="kpi-manager-info">
+              <span class="kpi-manager-label">Membres suivis</span>
+              <span class="kpi-manager-value">{{ chefTeamMembersCount }}</span>
+            </div>
+          </div>
+          <div class="kpi-manager-card pending">
+            <div class="kpi-manager-icon">✅</div>
+            <div class="kpi-manager-info">
+              <span class="kpi-manager-label">Tâches terminées</span>
+              <span class="kpi-manager-value">{{ chefCompletedTasks }}</span>
+            </div>
+          </div>
+          <div class="kpi-manager-card rejected">
+            <div class="kpi-manager-icon">⚠️</div>
+            <div class="kpi-manager-info">
+              <span class="kpi-manager-label">En retard</span>
+              <span class="kpi-manager-value">{{ chefLateTasks }}</span>
+            </div>
+          </div>
         </div>
 
         <div class="charts-row">
@@ -248,22 +279,22 @@
             </div>
             <div class="bar-chart">
               <div class="bar-item">
-                <div class="bar-container"><div class="bar" [style.height.px]="chefCompletedTasks * 12"></div></div>
+                <div class="bar-container"><div class="bar" [style.height.px]="Math.min(chefCompletedTasks * 8, 140)"></div></div>
                 <span class="bar-label">Terminées</span>
                 <span class="bar-value">{{ chefCompletedTasks }}</span>
               </div>
               <div class="bar-item">
-                <div class="bar-container"><div class="bar" [style.height.px]="chefInProgressTasks * 12"></div></div>
+                <div class="bar-container"><div class="bar" [style.height.px]="Math.min(chefInProgressTasks * 8, 140)"></div></div>
                 <span class="bar-label">En cours</span>
                 <span class="bar-value">{{ chefInProgressTasks }}</span>
               </div>
               <div class="bar-item">
-                <div class="bar-container"><div class="bar" [style.height.px]="chefPendingTasks * 12"></div></div>
+                <div class="bar-container"><div class="bar pending" [style.height.px]="Math.min(chefPendingTasks * 8, 140)"></div></div>
                 <span class="bar-label">À faire</span>
                 <span class="bar-value">{{ chefPendingTasks }}</span>
               </div>
               <div class="bar-item">
-                <div class="bar-container"><div class="bar" [style.height.px]="chefLateTasks * 12"></div></div>
+                <div class="bar-container"><div class="bar late" [style.height.px]="Math.min(chefLateTasks * 6, 110)"></div></div>
                 <span class="bar-label">Retard</span>
                 <span class="bar-value">{{ chefLateTasks }}</span>
               </div>
@@ -324,7 +355,7 @@
                 <tr><th>Membre</th><th>Email</th><th>Tâches terminées</th><th>Efficacité</th><th>Statut</th></tr>
               </thead>
               <tbody>
-                @for (member of teamPerformance; track member.memberId) {
+                @for (member of paginatedTeamPerformance; track member.memberId) {
                   <tr>
                     <td>{{ member.memberName }}</td>
                     <td>{{ member.email }}</td>
@@ -339,6 +370,15 @@
               </tbody>
             </table>
           </div>
+          @if (teamPerformance.length > chefTeamPerformanceItemsPerPage) {
+            <div class="pagination-bar">
+              <span>Page {{ chefTeamPerformancePage }} / {{ chefTeamPerformanceTotalPages }}</span>
+              <div>
+                <button [disabled]="chefTeamPerformancePage === 1" (click)="goToChefTeamPerformancePage(chefTeamPerformancePage - 1)">‹</button>
+                <button [disabled]="chefTeamPerformancePage === chefTeamPerformanceTotalPages" (click)="goToChefTeamPerformancePage(chefTeamPerformancePage + 1)">›</button>
+              </div>
+            </div>
+          }
         </div>
       </div>
     }
@@ -355,13 +395,13 @@
             </p>
           </div>
           <div class="hero-right">
-            <button class="btn-export" (click)="exportReporting()">
+            <button class="btn-export" (click)="exportResponsableContratToPdf()">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
                 <polyline points="7 10 12 15 17 10" />
                 <line x1="12" y1="15" x2="12" y2="3" />
               </svg>
-              Exporter
+              Exporter PDF
             </button>
           </div>
         </div>
@@ -510,12 +550,14 @@
             <h2>📊 Reporting Manager</h2>
             <p>Suivez les projets à valider, les assignations et les performances</p>
           </div>
-          <button class="btn-refresh" (click)="loadReportingData()">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <polyline points="23 4 23 10 17 10" />
-              <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
+          
+          <button class="btn-refresh" (click)="exportManagerToPdf()">
+           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+               <polyline points="7 10 12 15 17 10" />
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+               <line x1="12" y1="15" x2="12" y2="3" />
             </svg>
-            Actualiser
+           Exporter PDF
           </button>
         </div>
 
@@ -625,35 +667,6 @@
 
         <div class="table-manager-card">
           <div class="table-manager-header">
-            <h3>📋 Projets à valider</h3>
-            <span class="badge-manager">{{ managerPendingCount }} projet(s) en attente</span>
-          </div>
-          <div class="table-responsive">
-            <table class="manager-projects-table">
-              <thead>
-                <tr><th>Projet</th><th>Client</th><th>Date création</th></tr>
-              </thead>
-              <tbody>
-                @for (project of getManagerPendingProjects(); track project.id) {
-                  <tr>
-                    <td class="project-cell-manager">
-                      <div class="project-avatar-manager">{{ project.name.substring(0, 2).toUpperCase() }}</div>
-                      <span class="project-name-manager">{{ project.name }}</span>
-                    </td>
-                    <td>{{ project.client }}</td>
-                    <td>{{ project.createdAt | date:'dd/MM/yyyy' }}</td>
-                  </tr>
-                }
-                @empty {
-                  <tr><td colspan="3" class="empty-cell-manager">✅ Aucun projet en attente de validation</td></tr>
-                }
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        <div class="table-manager-card">
-          <div class="table-manager-header">
             <h3>📜 Historique des décisions</h3>
             <span class="badge-manager">Derniers projets traités</span>
           </div>
@@ -693,12 +706,16 @@
         <h2>📊 Mon Reporting Personnel</h2>
         <p>Suivez vos performances, vos tâches et votre progression</p>
       </div>
-      <button class="btn-refresh" (click)="loadReportingData()">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <polyline points="23 4 23 10 17 10" />
-          <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
+      <div class="hero-right">
+       
+      </div>
+      <button class="btn-refresh" (click)="exportMembreEquipeToPdf()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18">
+          <polyline points="7 10 12 15 17 10" />
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+          <line x1="12" y1="15" x2="12" y2="3" />
         </svg>
-        Actualiser
+         Exporter PDF
       </button>
     </div>
 
@@ -830,7 +847,7 @@
     <!-- Liste des tâches -->
     <div class="table-membre-card">
       <div class="table-membre-header">
-        <h3>📋 Mes tâches en cours</h3>
+        <h3>📋 Mes tâches en cours et a faire </h3>
         <span class="badge-membre">{{ myCurrentTasks.length }} tâche(s)</span>
       </div>
       <div class="table-responsive">

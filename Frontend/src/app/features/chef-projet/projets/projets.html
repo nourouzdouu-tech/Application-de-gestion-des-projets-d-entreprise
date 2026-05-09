@@ -409,28 +409,72 @@
   </div>
 
   <!-- MODAL MODIFIER TÂCHE -->
-  <div class="modal-backdrop" *ngIf="taskFormModal && editingTask">
-    <div class="modal-card" style="max-width:550px;">
-      <div class="modal-header">
-        <h2>Modifier la tâche</h2>
-        <button class="icon-close" (click)="closeTaskFormModal()">×</button>
+  <!-- MODAL MODIFIER TÂCHE -->
+<div class="modal-backdrop" *ngIf="taskFormModal && editingTask">
+  <div class="modal-card" style="max-width:550px;">
+    <div class="modal-header">
+      <h2>Modifier la tâche</h2>
+      <button class="icon-close" (click)="closeTaskFormModal()">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label>Titre *</label>
+        <input type="text" [(ngModel)]="editingTask.title">
       </div>
-      <div class="modal-body">
-        <div class="form-group"><label>Titre *</label><input type="text" [(ngModel)]="editingTask.title"></div>
-        <div class="form-group"><label>Description</label><textarea [(ngModel)]="editingTask.description" rows="3"></textarea></div>
-        <div class="form-row">
-          <div class="form-group"><label>Date début *</label><input type="date" [(ngModel)]="taskForm.startDate"></div>
-          <div class="form-group"><label>Criticité *</label><select [(ngModel)]="taskForm.criticite"><option [ngValue]="1">1</option><option [ngValue]="2">2</option><option [ngValue]="3">3</option><option [ngValue]="5">5</option><option [ngValue]="8">8</option><option [ngValue]="13">13</option></select></div>
+      
+      <div class="form-group">
+        <label>Description</label>
+        <textarea [(ngModel)]="editingTask.description" rows="3"></textarea>
+      </div>
+      
+      <div class="form-row">
+        <div class="form-group">
+          <label>Date début *</label>
+          <input type="date" [(ngModel)]="editingTask.startDate" (change)="calculateEditEndDate()" (input)="calculateEditEndDate()">
         </div>
-        <div class="form-group"><label>Priorité</label><select [(ngModel)]="editingTask.priority"><option value="BASSE">Basse</option><option value="MOYENNE">Moyenne</option><option value="HAUTE">Haute</option></select></div>
-        <div class="form-group"><label>Assigné à *</label><select [(ngModel)]="editingTask.assignedToId"><option [ngValue]="null" disabled>-- Choisissez un membre --</option><option *ngFor="let member of teamMembers" [ngValue]="member.id">{{ member.fullName || (member.prenom + ' ' + member.nom) }}</option></select></div>
+        <div class="form-group">
+          <label>Date fin estimée</label>
+          <input type="date" [(ngModel)]="editingTask.estimatedEndDate" disabled class="form-control-disabled">
+        </div>
       </div>
-      <div class="modal-footer">
-        <button class="btn-secondary" (click)="closeTaskFormModal()">Annuler</button>
-        <button class="btn-primary" (click)="saveTaskEdit()">Modifier</button>
+      
+      <div class="form-group">
+        <label>Criticité *</label>
+        <select [(ngModel)]="editingTask.criticite" (change)="calculateEditEndDate()">
+          <option [ngValue]="1">1 (Très faible - 1 jour)</option>
+          <option [ngValue]="2">2 (Faible - 2 jours)</option>
+          <option [ngValue]="3">3 (Moyenne - 3 jours)</option>
+          <option [ngValue]="5">5 (Haute - 5 jours)</option>
+          <option [ngValue]="8">8 (Très haute - 8 jours)</option>
+          <option [ngValue]="13">13 (Critique - 13 jours)</option>
+        </select>
+      </div>
+      
+      <div class="form-group">
+        <label>Priorité</label>
+        <select [(ngModel)]="editingTask.priority" (change)="calculateEditEndDate()">
+          <option value="BASSE">Basse (plus lent)</option>
+          <option value="MOYENNE">Moyenne</option>
+          <option value="HAUTE">Haute (plus rapide)</option>
+        </select>
+      </div>
+      
+      <div class="form-group">
+        <label>Assigné à *</label>
+        <select [(ngModel)]="editingTask.assignedToId">
+          <option [ngValue]="null" disabled>-- Choisissez un membre --</option>
+          <option *ngFor="let member of teamMembers" [ngValue]="member.id">
+            {{ member.fullName || (member.prenom + ' ' + member.nom) }}
+          </option>
+        </select>
       </div>
     </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" (click)="closeTaskFormModal()">Annuler</button>
+      <button class="btn-primary" (click)="saveTaskEdit()">Modifier</button>
+    </div>
   </div>
+</div>
 
   <!-- MODAL VALIDATION -->
   <div class="modal-backdrop" *ngIf="showValidationModal">
@@ -451,28 +495,72 @@
   </div>
 
   <!-- MODAL CRÉER TÂCHE -->
-  <div class="modal-backdrop" *ngIf="showTaskModal">
-    <div class="modal-card" style="max-width:550px;">
-      <div class="modal-header">
-        <h2>Nouvelle tâche pour "{{ currentProjectForTask?.name }}"</h2>
-        <button class="icon-close" (click)="closeTaskModal()">×</button>
+  <!-- MODAL CRÉER TÂCHE -->
+<div class="modal-backdrop" *ngIf="showTaskModal">
+  <div class="modal-card" style="max-width:550px;">
+    <div class="modal-header">
+      <h2>Nouvelle tâche pour "{{ currentProjectForTask?.name }}"</h2>
+      <button class="icon-close" (click)="closeTaskModal()">×</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label>Titre *</label>
+        <input type="text" [(ngModel)]="taskForm.title" placeholder="Ex: Développer l'API">
       </div>
-      <div class="modal-body">
-        <div class="form-group"><label>Titre *</label><input type="text" [(ngModel)]="taskForm.title" placeholder="Ex: Développer l'API"></div>
-        <div class="form-group"><label>Description</label><textarea [(ngModel)]="taskForm.description" rows="3"></textarea></div>
-        <div class="form-row">
-          <div class="form-group"><label>Date début *</label><input type="date" [(ngModel)]="taskForm.startDate"></div>
-          <div class="form-group"><label>Criticité *</label><select [(ngModel)]="taskForm.criticite"><option [ngValue]="1">1</option><option [ngValue]="2">2</option><option [ngValue]="3">3</option><option [ngValue]="5">5</option><option [ngValue]="8">8</option><option [ngValue]="13">13</option></select></div>
+      
+      <div class="form-group">
+        <label>Description</label>
+        <textarea [(ngModel)]="taskForm.description" rows="3"></textarea>
+      </div>
+      
+      <div class="form-row">
+        <div class="form-group">
+          <label>Date début *</label>
+          <input type="date" [(ngModel)]="taskForm.startDate" (change)="calculateEndDate()" (input)="calculateEndDate()">
         </div>
-        <div class="form-group"><label>Priorité</label><select [(ngModel)]="taskForm.priority"><option value="BASSE">Basse</option><option value="MOYENNE">Moyenne</option><option value="HAUTE">Haute</option></select></div>
-        <div class="form-group"><label>Assigner à *</label><select [(ngModel)]="taskForm.assignedToId"><option [ngValue]="null" disabled>-- Choisissez un membre --</option><option *ngFor="let member of teamMembers" [ngValue]="member.id">{{ member.fullName || member.prenom + ' ' + member.nom }}</option></select></div>
+        <div class="form-group">
+          <label>Date fin estimée</label>
+          <input type="date" [(ngModel)]="taskForm.estimatedEndDate" disabled class="form-control-disabled">
+        </div>
       </div>
-      <div class="modal-footer">
-        <button class="btn-secondary" (click)="closeTaskModal()">Annuler</button>
-        <button class="btn-primary" (click)="saveTask()">Créer</button>
+      
+      <div class="form-group">
+        <label>Criticité *</label>
+        <select [(ngModel)]="taskForm.criticite" (change)="calculateEndDate()">
+          <option [ngValue]="1">1 (Très faible - 1 jour)</option>
+          <option [ngValue]="2">2 (Faible - 2 jours)</option>
+          <option [ngValue]="3">3 (Moyenne - 3 jours)</option>
+          <option [ngValue]="5">5 (Haute - 5 jours)</option>
+          <option [ngValue]="8">8 (Très haute - 8 jours)</option>
+          <option [ngValue]="13">13 (Critique - 13 jours)</option>
+        </select>
+      </div>
+      
+      <div class="form-group">
+        <label>Priorité</label>
+        <select [(ngModel)]="taskForm.priority" (change)="calculateEndDate()">
+          <option value="BASSE">Basse (plus lent)</option>
+          <option value="MOYENNE">Moyenne</option>
+          <option value="HAUTE">Haute (plus rapide)</option>
+        </select>
+      </div>
+      
+      <div class="form-group">
+        <label>Assigner à *</label>
+        <select [(ngModel)]="taskForm.assignedToId">
+          <option [ngValue]="null" disabled>-- Choisissez un membre --</option>
+          <option *ngFor="let member of teamMembers" [ngValue]="member.id">
+            {{ member.fullName || member.prenom + ' ' + member.nom }}
+          </option>
+        </select>
       </div>
     </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" (click)="closeTaskModal()">Annuler</button>
+      <button class="btn-primary" (click)="saveTask()">Créer</button>
+    </div>
   </div>
+</div>
 
   <div class="toast-notification" *ngIf="toastMessage" [ngClass]="toastType">
     <span class="toast-icon">
