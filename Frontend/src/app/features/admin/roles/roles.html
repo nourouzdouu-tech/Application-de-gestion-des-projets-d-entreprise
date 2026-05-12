@@ -59,8 +59,7 @@
             </div>
 
             <div class="role-card-body">
-              <h3 class="role-name">{{ role.nom }}</h3>
-              <p class="role-description">{{ role.description }}</p>
+              <h3 class="role-name">{{ role.description }}</h3>
             </div>
 
             <div class="role-metadata-row">
@@ -107,7 +106,7 @@
       <div class="permissions-header">
         <div class="permissions-heading">
           <div class="permissions-kicker">Permissions du rôle</div>
-          <h2 class="permissions-title">Matrice des permissions : {{ selectedRole()?.nom }}</h2>
+          <h2 class="permissions-title">Matrice des permissions : {{ selectedRole()?.description }}</h2>
           <p class="permissions-subtitle">
             Définissez les niveaux d'accès granulaires pour ce rôle sur l'ensemble de la plateforme.
           </p>
@@ -127,7 +126,7 @@
       <div class="permissions-summary">
         <div class="summary-card">
           <span class="summary-label">Rôle sélectionné</span>
-          <strong>{{ selectedRole()?.nom }}</strong>
+          <strong>{{ selectedRole()?.description }}</strong>
         </div>
         <div class="summary-card">
           <span class="summary-label">Permissions cochées</span>
@@ -165,8 +164,8 @@
                     </svg>
                   </span>
                   <span class="permission-content">
-  <span class="permission-label">{{ permission.description || permission.nom }}</span>
-</span>
+                    <span class="permission-label">{{ permission.description || permission.nom }}</span>
+                  </span>
                 </label>
               }
             </div>

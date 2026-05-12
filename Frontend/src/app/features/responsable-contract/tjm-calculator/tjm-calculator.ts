@@ -286,184 +286,200 @@ export class TjmCalculatorComponent implements OnInit {
     }
   }
 
-  generatePdf(): void {
-    const doc = new jsPDF('p', 'mm', 'a4');
-    const pageWidth = doc.internal.pageSize.getWidth();
-    const margin = 14;
-    const contentWidth = pageWidth - margin * 2;
+generatePdf(): void {
+  const doc = new jsPDF('p', 'mm', 'a4');
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const margin = 14;
+  const contentWidth = pageWidth - margin * 2;
 
-    const projectName = this.project?.name || 'Projet';
-    const description = this.project?.description || 'Aucune description disponible.';
-    const client = this.project?.client || '-';
-    const manager = (this.project as any)?.managerName || '-';
-    const chef = (this.project as any)?.chefProjetName || '-';
-    const teamName = this.team?.name || (this.project as any)?.teamName || 'Non affectée';
-    const status = this.getStatusLabel(this.project?.status);
-    const generatedAt = new Date().toLocaleString('fr-FR');
+  const projectName = this.project?.name || 'Projet';
+  const description = this.project?.description || 'Aucune description disponible.';
+  const client = this.project?.client || '-';
+  const manager = (this.project as any)?.managerName || '-';
+  const chef = (this.project as any)?.chefProjetName || '-';
+  const teamName = this.team?.name || (this.project as any)?.teamName || 'Non affectée';
+  const generatedAt = new Date().toLocaleString('fr-FR');
 
-    const MAUVE   = [124, 58, 237] as [number, number, number];
-    const WHITE   = [255, 255, 255] as [number, number, number];
-    const DARK    = [15, 23, 42]   as [number, number, number];
-    const MUTED   = [100, 116, 139] as [number, number, number];
-    const LIGHT   = [248, 250, 252] as [number, number, number];
-    const BORDER  = [226, 232, 240] as [number, number, number];
+  const MAUVE  = [124, 58, 237]  as [number, number, number];
+  const WHITE  = [255, 255, 255] as [number, number, number];
+  const DARK   = [15, 23, 42]    as [number, number, number];
+  const MUTED  = [100, 116, 139] as [number, number, number];
+  const LIGHT  = [248, 250, 252] as [number, number, number];
+  const BORDER = [226, 232, 240] as [number, number, number];
+  const MAUVE_SOFT = [245, 243, 255] as [number, number, number];
 
-    // ── EN-TÊTE ──────────────────────────────────────────────────────────────
-    doc.setFillColor(...MAUVE);
-    doc.rect(0, 0, pageWidth, 28, 'F');
+  // ── EN-TÊTE ──────────────────────────────────────────────────────────────
+  doc.setFillColor(...MAUVE);
+  doc.rect(0, 0, pageWidth, 28, 'F');
 
-    doc.setTextColor(...WHITE);
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(16);
-    doc.text('FACTURE PROJET', margin, 13);
+  // Bande décorative bas du header
+  doc.setFillColor(91, 33, 182);
+  doc.rect(0, 25, pageWidth, 3, 'F');
 
+  doc.setTextColor(...WHITE);
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(16);
+  doc.text('FACTURE PROJET', margin, 13);
+
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(8);
+  doc.setTextColor(209, 196, 255); // mauve clair
+  doc.text(`Générée le ${generatedAt}`, margin, 21);
+
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(12);
+  doc.setTextColor(...WHITE);
+  doc.text(projectName, pageWidth - margin, 13, { align: 'right' });
+
+  // ── CARTE INFOS PROJET (2 colonnes) ───────────────────────────────────────
+  const cardY = 36;
+  const cardH = 48;
+  const col1X = margin;
+  const col2X = margin + contentWidth / 2 + 4;
+  const colW  = contentWidth / 2 - 4;
+
+  doc.setFillColor(...MAUVE_SOFT);
+  doc.setDrawColor(...BORDER);
+  doc.setLineWidth(0.3);
+  doc.roundedRect(margin, cardY, contentWidth, cardH, 3, 3, 'FD');
+
+  // Accent mauve gauche
+  doc.setFillColor(...MAUVE);
+  doc.roundedRect(margin, cardY, 3, cardH, 1.5, 1.5, 'F');
+
+  // Séparateur central
+  doc.setDrawColor(...BORDER);
+  doc.setLineWidth(0.3);
+  doc.line(margin + contentWidth / 2, cardY + 6, margin + contentWidth / 2, cardY + cardH - 6);
+
+  const leftItems = [
+    ['CLIENT',          client],
+    ['MANAGER',         manager],
+    ['CHEF DE PROJET',  chef],
+  ];
+
+  leftItems.forEach(([label, value], i) => {
+    const rowY = cardY + 11 + i * 12;
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(8);
-    doc.text(`Générée le ${generatedAt}`, margin, 21);
+    doc.setFontSize(7);
+    doc.setTextColor(...MUTED);
+    doc.text(label, col1X + 8, rowY);
 
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(12);
-    doc.text(projectName, pageWidth - margin, 13, { align: 'right' });
+    doc.setFontSize(8.5);
+    doc.setTextColor(...DARK);
+    doc.text(value, col1X + 8, rowY + 5);
+  });
 
+  const rightItems = [
+    ['ÉQUIPE',      teamName],
+    ['DESCRIPTION', description],
+  ];
+
+  rightItems.forEach(([label, value], i) => {
+    const rowY = cardY + 11 + i * 18;
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(8);
-    doc.text(`Statut : ${status}`, pageWidth - margin, 21, { align: 'right' });
+    doc.setFontSize(7);
+    doc.setTextColor(...MUTED);
+    doc.text(label, col2X, rowY);
 
-    // ── CARTE INFOS PROJET (2 colonnes) ───────────────────────────────────────
-    const cardY = 34;
-    const cardH = 48;
-    const col1X = margin;
-    const col2X = margin + contentWidth / 2 + 4;
-    const colW  = contentWidth / 2 - 4;
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(8.5);
+    doc.setTextColor(...DARK);
+    const lines = doc.splitTextToSize(value, colW - 4);
+    doc.text(lines.slice(0, 2), col2X, rowY + 5);
+  });
 
-    doc.setFillColor(...LIGHT);
-    doc.setDrawColor(...BORDER);
-    doc.setLineWidth(0.3);
-    doc.roundedRect(margin, cardY, contentWidth, cardH, 3, 3, 'FD');
+  const tableY = cardY + cardH + 8;
 
-    doc.setDrawColor(...BORDER);
-    doc.line(margin + contentWidth / 2, cardY + 6, margin + contentWidth / 2, cardY + cardH - 6);
+  const body = this.billingLines.map(line => [
+    line.fullName,
+    this.getRoleLabel(line.roleName),
+    line.profileLibelle || '-',
+    `${this.formatMoney(line.tjm)} MAD`,
+    `${Number(line.nombreJours ?? 0)}`,
+    `${this.formatMoney(line.montant)} MAD`,
+  ]);
 
-    const leftItems = [
-      ['Client', client],
-      ['Manager', manager],
-      ['Chef de projet', chef],
-    ];
+ autoTable(doc, {
+  startY: tableY,
+  margin: { left: margin, right: margin },
+  head: [['Ressource', 'Rôle', 'Profil', 'TJM', 'Jours', 'Montant HT']],
+  body: body.length ? body : [['Aucune ressource', '-', '-', '0,00 MAD', '0', '0,00 MAD']],
+  theme: 'grid',  // ← remplace 'striped'
+  headStyles: {
+    fillColor: MAUVE,
+    textColor: WHITE,
+    fontStyle: 'bold',
+    fontSize: 8,
+    halign: 'center',
+    cellPadding: { top: 5, bottom: 5, left: 4, right: 4 },
+  },
+  alternateRowStyles: {
+    fillColor: [249, 246, 255],
+  },
+  styles: {
+    fontSize: 8.5,
+    textColor: DARK,
+    cellPadding: 4,
+    lineColor: BORDER,   // ← couleur des bordures
+    lineWidth: 0.3,      // ← épaisseur des bordures
+  },
+  columnStyles: {
+    3: { halign: 'right' },
+    4: { halign: 'center' },
+    5: { halign: 'right', fontStyle: 'bold', textColor: MAUVE as any },
+  },
+});
+  const finalY = (doc as any).lastAutoTable.finalY + 10;
 
-    leftItems.forEach(([label, value], i) => {
-      const rowY = cardY + 12 + i * 12;
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(7.5);
-      doc.setTextColor(...MUTED);
-      doc.text(label, col1X + 6, rowY);
+  const totalsBody = [
+    ...this.profileTotals.map(item => [`Total ${item.profile}`, `${this.formatMoney(item.total)} MAD`]),
+    ['Total HT',  `${this.formatMoney(this.totalGeneral)} MAD`],
+    ['TVA (20%)', `${this.formatMoney(this.tvaAmount)} MAD`],
+    ['Total TTC', `${this.formatMoney(this.totalTTC)} MAD`],
+  ];
 
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(8.5);
-      doc.setTextColor(...DARK);
-      doc.text(value, col1X + 6, rowY + 5);
-    });
-
-    const rightItems = [
-      ['Équipe', teamName],
-      ['Description', description],
-    ];
-
-    rightItems.forEach(([label, value], i) => {
-      const rowY = cardY + 12 + i * 18;
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(7.5);
-      doc.setTextColor(...MUTED);
-      doc.text(label, col2X, rowY);
-
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(8.5);
-      doc.setTextColor(...DARK);
-      const lines = doc.splitTextToSize(value, colW - 4);
-      doc.text(lines.slice(0, 2), col2X, rowY + 5);
-    });
-
-    const tableY = cardY + cardH + 8;
-
-    const body = this.billingLines.map(line => [
-      line.fullName,
-      this.getRoleLabel(line.roleName),
-      line.profileLibelle || '-',
-      `${this.formatMoney(line.tjm)} MAD`,
-      `${Number(line.nombreJours ?? 0)}`,
-      `${this.formatMoney(line.montant)} MAD`,
-    ]);
-
-    autoTable(doc, {
-      startY: tableY,
-      margin: { left: margin, right: margin },
-      head: [['Ressource', 'Rôle', 'Profil', 'TJM', 'Jours', 'Montant HT']],
-      body: body.length ? body : [['Aucune ressource', '-', '-', '0,00 MAD', '0', '0,00 MAD']],
-      theme: 'striped',
-      headStyles: {
-        fillColor: MAUVE,
-        textColor: WHITE,
-        fontStyle: 'bold',
-        fontSize: 8,
-        halign: 'center',
-      },
-      styles: {
-        fontSize: 8.5,
-        textColor: DARK,
-        cellPadding: 4,
-      },
-      columnStyles: {
-        3: { halign: 'right' },
-        4: { halign: 'center' },
-        5: { halign: 'right', fontStyle: 'bold' },
-      },
-    });
-
-    const finalY = (doc as any).lastAutoTable.finalY + 10;
-
-    const totalsBody = [
-      ...this.profileTotals.map(item => [`Total ${item.profile}`, `${this.formatMoney(item.total)} MAD`]),
-      ['Total HT',  `${this.formatMoney(this.totalGeneral)} MAD`],
-      ['TVA (20%)', `${this.formatMoney(this.tvaAmount)} MAD`],
-      ['Total TTC', `${this.formatMoney(this.totalTTC)} MAD`],
-    ];
-
-    autoTable(doc, {
-      startY: finalY,
-      margin: { left: pageWidth / 2, right: margin },
-      body: totalsBody,
-      theme: 'plain',
-      styles: {
-        fontSize: 9,
-        cellPadding: 3,
-        textColor: DARK,
-      },
-      columnStyles: {
-        0: { fontStyle: 'bold', textColor: MUTED },
-        1: { halign: 'right', fontStyle: 'bold' },
-      },
-      didParseCell: (data: any) => {
-        if (data.row.raw?.[0] === 'Total TTC') {
-          data.cell.styles.fillColor = MAUVE;
-          data.cell.styles.textColor = WHITE;
-          data.cell.styles.fontStyle = 'bold';
-          data.cell.styles.fontSize = 10;
-        }
-      },
-    });
-
-    const pageCount = doc.getNumberOfPages();
-    for (let i = 1; i <= pageCount; i++) {
-      doc.setPage(i);
-      doc.setFontSize(7.5);
-      doc.setTextColor(148, 163, 184);
-      doc.text(
-        `Page ${i}/${pageCount} — Document généré automatiquement`,
-        pageWidth / 2, 289, { align: 'center' }
-      );
+  autoTable(doc, {
+  startY: finalY,
+  margin: { left: pageWidth / 2, right: margin },
+  body: totalsBody,
+  theme: 'grid',  // ← remplace 'plain'
+  styles: {
+    fontSize: 9,
+    cellPadding: 3,
+    textColor: DARK,
+    lineColor: BORDER,  // ←
+    lineWidth: 0.3,     // ←
+  },
+  columnStyles: {
+    0: { fontStyle: 'bold', textColor: MUTED },
+    1: { halign: 'right', fontStyle: 'bold' },
+  },
+  didParseCell: (data: any) => {
+    if (data.row.raw?.[0] === 'Total TTC') {
+      data.cell.styles.fillColor = MAUVE;
+      data.cell.styles.textColor = WHITE;
+      data.cell.styles.fontStyle = 'bold';
+      data.cell.styles.fontSize = 10;
     }
+  },
+});
 
-    doc.save(this.buildPdfFileName());
+  // ── PIED DE PAGE ─────────────────────────────────────────────────────────
+  const pageCount = doc.getNumberOfPages();
+  for (let i = 1; i <= pageCount; i++) {
+    doc.setPage(i);
+    doc.setFontSize(7.5);
+    doc.setTextColor(148, 163, 184);
+    doc.text(
+      `Page ${i}/${pageCount} — Document généré automatiquement`,
+      pageWidth / 2, 289, { align: 'center' }
+    );
   }
+
+  doc.save(this.buildPdfFileName());
+}
 
   buildPdfFileName(): string {
     const safeName = (this.project?.name || 'projet')

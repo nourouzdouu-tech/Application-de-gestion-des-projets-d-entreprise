@@ -65,6 +65,7 @@ public class ProjectServiceImpl implements ProjectService {
         this.auditService = auditService;
         this.emailService = emailService;
     }
+
     private String getCurrentUserEmail() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         return auth != null ? auth.getName() : "system";
@@ -73,21 +74,14 @@ public class ProjectServiceImpl implements ProjectService {
 
     @Override
     public ProjectDto createProject(ProjectDto request) {
-        // Nettoyage du nom du projet pour éviter les espaces inutiles
         String projectName = request.getName().trim();
 
-        // Vérification de l'unicité du nom du projet parmi les projets non supprimés
         if (projectRepository.existsByNameIgnoreCaseAndDeletedFalse(projectName)) {
             throw new ConflictException("PROJECT_ALREADY_EXISTS", "Un projet avec ce nom existe déjà");
         }
 
-        // Récupération de l'utilisateur connecté
         User currentUser = getAuthenticatedUser();
-
-        // Seul un responsable de contrat ou un chef de projet peut créer/modifier un projet
         validateProjectCrudAccess(currentUser);
-
-        // Vérification métier sur les dates
         validateProjectDates(request);
 
         Project project = new Project();
@@ -95,25 +89,21 @@ public class ProjectServiceImpl implements ProjectService {
         project.setDescription(request.getDescription());
         project.setClient(request.getClient().trim());
         project.setProgressPercentage(request.getProgressPercentage());
-
-        // Correction importante :
-        // un projet créé par le responsable de contrat doit être en attente de revue manager
         project.setStatus(ProjectStatus.EN_VALIDATION);
-
         project.setRiskLevel(request.getRiskLevel());
         project.setStartDate(request.getStartDate());
         project.setEndDate(request.getEndDate());
         project.setDeleted(false);
 
-        // Si un manager a été sélectionné au moment de la création,
-        // on le rattache au projet
+        // ✅ AJOUT : on trace qui a créé le projet (RC ou chef de projet)
+        project.setCreatedBy(currentUser);
+
+        User assignedManager = null;
         if (request.getManagerId() != null) {
-            User manager = findValidManagerById(request.getManagerId());
-            project.setManager(manager);
+            assignedManager = findValidManagerById(request.getManagerId());
+            project.setManager(assignedManager);
         }
 
-        // Si le créateur est un chef de projet, on rattache automatiquement son équipe
-        // Ce bloc fait partie de ta logique existante
         if (isChefProjet(currentUser)) {
             List<Team> teams = teamRepository.findByProjectManagerIdAndDeletedFalse(currentUser.getId());
 
@@ -127,18 +117,27 @@ public class ProjectServiceImpl implements ProjectService {
             Team team = teams.get(0);
             project.setTeam(team);
         } else if (isResponsableContrat(currentUser)) {
-            // Si c'est le responsable de contrat qui crée, on peut laisser team à null
-            // jusqu'à l'assignation du chef de projet par le manager
             project.setTeam(null);
         }
 
         Project savedProject = projectRepository.save(project);
+
+        // ✅ Notification email au manager assigné par le RC
+        if (assignedManager != null) {
+            try {
+                emailService.notifyManagerAssignedToProject(savedProject, assignedManager, currentUser);
+            } catch (Exception e) {
+                System.err.println("Erreur notification manager : " + e.getMessage());
+            }
+        }
+
         auditService.log("CREATE_PROJECT", "PROJECT", savedProject.getId(),
                 "Création du projet " + savedProject.getName(),
                 getCurrentUserEmail(), null);
-        return projectMapper.toDto(savedProject);
 
+        return projectMapper.toDto(savedProject);
     }
+
     @Override
     public ProjectDto updateProject(Long projectId, ProjectDto request) {
         Project project = findActiveProjectById(projectId);
@@ -170,7 +169,7 @@ public class ProjectServiceImpl implements ProjectService {
             project.setManager(manager);
 
             // ✅ Si le projet était rejeté et que le manager change,
-            // il repart en cours de validation
+            // il repart en cours de validation + notification au nouveau manager
             if (project.getStatus() == ProjectStatus.REJETE
                     && (currentManagerId == null || !currentManagerId.equals(manager.getId()))) {
                 project.setStatus(ProjectStatus.EN_VALIDATION);
@@ -178,6 +177,15 @@ public class ProjectServiceImpl implements ProjectService {
                 project.setTeam(null);
                 project.setManagerComment(null);
                 project.setReviewedAt(null);
+
+                // ✅ Notification email au nouveau manager assigné
+                final User newManager = manager;
+                final Project projectSnapshot = project;
+                try {
+                    emailService.notifyManagerAssignedToProject(projectSnapshot, newManager, currentUser);
+                } catch (Exception e) {
+                    System.err.println("Erreur notification manager (réassignation après rejet) : " + e.getMessage());
+                }
             }
         }
 
@@ -216,7 +224,6 @@ public class ProjectServiceImpl implements ProjectService {
     public List<ProjectDto> getAllProjects(String query, ProjectStatus status) {
         User currentUser = getAuthenticatedUser();
 
-        // Dans ton code actuel, cette liste est réservée au responsable de contrat
         if (!isResponsableContrat(currentUser)) {
             throw new ForbiddenException("FORBIDDEN", "Accès réservé au responsable de contrat");
         }
@@ -227,7 +234,6 @@ public class ProjectServiceImpl implements ProjectService {
                 .map(projectMapper::toDto)
                 .collect(Collectors.toList());
     }
-
 
     @Override
     public List<ProjectDto> getMyProjects(String query, ProjectStatus status) {
@@ -264,18 +270,15 @@ public class ProjectServiceImpl implements ProjectService {
                 .map(projectMapper::toDto)
                 .collect(Collectors.toList());
     }
+
     @Override
     public ProjectDto setDeletedStatus(Long projectId, boolean deleted) {
-        // Si on supprime, il faut trouver un projet actif
-        // Si on restaure, on cherche le projet même s'il est supprimé
         Project project = deleted
                 ? findActiveProjectById(projectId)
                 : projectRepository.findById(projectId)
                 .orElseThrow(() -> new NotFoundException("PROJECT_NOT_FOUND", "Projet introuvable"));
 
         User currentUser = getAuthenticatedUser();
-
-        // Vérifie que l'utilisateur connecté peut agir sur ce projet
         validateCurrentUserCanManageProject(project, currentUser);
 
         project.setDeleted(deleted);
@@ -301,7 +304,6 @@ public class ProjectServiceImpl implements ProjectService {
     public List<UserDto.Summary> getChefsProjetForSelect() {
         User currentUser = getAuthenticatedUser();
 
-        // Seul un manager peut charger la liste des chefs de projet
         if (!isManager(currentUser)) {
             throw new ForbiddenException("FORBIDDEN", "Accès réservé au manager");
         }
@@ -311,6 +313,7 @@ public class ProjectServiceImpl implements ProjectService {
                 .map(userMapper::toSummary)
                 .collect(Collectors.toList());
     }
+
     @Override
     public ProjectDto reviewProjectByManager(ManagerProjectReviewDto request) {
         User currentUser = getAuthenticatedUser();
@@ -339,6 +342,9 @@ public class ProjectServiceImpl implements ProjectService {
         project.setManagerComment(request.getCommentaire().trim());
         project.setReviewedAt(java.time.LocalDateTime.now());
 
+        // ✅ RC créateur du projet (peut être null pour les anciens projets sans createdBy)
+        User rc = project.getCreatedBy();
+
         if (request.getDecision() == ManagerProjectReviewDto.Decision.VALIDER) {
             if (request.getChefProjetId() == null) {
                 throw new BusinessException(
@@ -351,30 +357,58 @@ public class ProjectServiceImpl implements ProjectService {
             assignChefProjetToProject(project, chefProjet);
             project.setStatus(ProjectStatus.PRE_VALIDE);
 
-            emailService.notifyChefProjetAssigned(project, chefProjet, currentUser, request.getCommentaire());
+            Project saved = projectRepository.save(project);
 
-            // ✅ AUDIT 1: Validation du projet par le manager
-            auditService.log("VALIDATE_PROJECT", "PROJECT", project.getId(),
-                    "Validation du projet '" + project.getName() + "' par le manager. Commentaire: " + request.getCommentaire(),
+            // ✅ Notification au Chef de Projet assigné
+            try {
+                emailService.notifyChefProjetAssigned(saved, chefProjet, currentUser, request.getCommentaire());
+            } catch (Exception e) {
+                System.err.println("Erreur notification chef de projet : " + e.getMessage());
+            }
+
+            // ✅ Notification au RC créateur du projet
+            if (rc != null) {
+                try {
+                    emailService.notifyRcProjectValidatedByManager(saved, rc, currentUser, chefProjet, request.getCommentaire());
+                } catch (Exception e) {
+                    System.err.println("Erreur notification RC (validation) : " + e.getMessage());
+                }
+            }
+
+            auditService.log("VALIDATE_PROJECT", "PROJECT", saved.getId(),
+                    "Validation du projet '" + saved.getName() + "' par le manager. Commentaire: " + request.getCommentaire(),
                     getCurrentUserEmail(), null);
 
-            // ✅ AUDIT 2: Assignation du chef de projet
-            auditService.log("ASSIGN_CHEF", "PROJECT", project.getId(),
-                    "Chef de projet '" + chefProjet.getEmail() + "' assigné au projet '" + project.getName() + "'",
+            auditService.log("ASSIGN_CHEF", "PROJECT", saved.getId(),
+                    "Chef de projet '" + chefProjet.getEmail() + "' assigné au projet '" + saved.getName() + "'",
                     getCurrentUserEmail(), null);
+
+            return projectMapper.toDto(saved);
 
         } else if (request.getDecision() == ManagerProjectReviewDto.Decision.REJETER) {
             project.setStatus(ProjectStatus.REJETE);
 
-            // ✅ AUDIT: Rejet du projet par le manager
-            auditService.log("REJECT_PROJECT", "PROJECT", project.getId(),
-                    "Rejet du projet '" + project.getName() + "' par le manager. Motif: " + request.getCommentaire(),
+            Project saved = projectRepository.save(project);
+
+            // ✅ Notification au RC créateur du projet
+            if (rc != null) {
+                try {
+                    emailService.notifyRcProjectRejectedByManager(saved, rc, currentUser, request.getCommentaire());
+                } catch (Exception e) {
+                    System.err.println("Erreur notification RC (rejet) : " + e.getMessage());
+                }
+            }
+
+            auditService.log("REJECT_PROJECT", "PROJECT", saved.getId(),
+                    "Rejet du projet '" + saved.getName() + "' par le manager. Motif: " + request.getCommentaire(),
                     getCurrentUserEmail(), null);
+
+            return projectMapper.toDto(saved);
         }
 
-        Project saved = projectRepository.save(project);
-        return projectMapper.toDto(saved);
+        throw new BusinessException("INVALID_DECISION", "Décision invalide");
     }
+
     @Override
     @Transactional
     public ProjectDto assignTeamToProject(Long projectId, Long teamId) {
@@ -389,7 +423,6 @@ public class ProjectServiceImpl implements ProjectService {
             throw new ForbiddenException("FORBIDDEN", "Vous n'êtes pas le chef de projet assigné à ce projet");
         }
 
-        // ✅ Vérifier si des tâches existent déjà pour ce projet
         long taskCount = taskRepository.countByProjectIdAndDeletedFalse(projectId);
         if (taskCount > 0) {
             throw new BusinessException(
@@ -416,8 +449,6 @@ public class ProjectServiceImpl implements ProjectService {
         try {
             emailService.notifyTeamAssignedToProject(team, saved, currentUser);
         } catch (Exception e) {
-            // Ne pas empêcher l'assignation du projet si l'email échoue
-            // On laisse simplement le projet enregistré et on journalise l'erreur.
             System.err.println("Erreur notification assignation projet : " + e.getMessage());
         }
 
@@ -429,10 +460,6 @@ public class ProjectServiceImpl implements ProjectService {
 
         List<Project> base;
 
-        // onlyMine = true :
-        // on charge uniquement les projets du chef de projet connecté
-        // onlyMine = false :
-        // on charge tous les projets visibles par le responsable de contrat
         if (onlyMine) {
             base = status == null
                     ? projectRepository.findAllByTeamProjectManagerIdAndDeletedFalse(currentUser.getId())
@@ -443,14 +470,12 @@ public class ProjectServiceImpl implements ProjectService {
                     : projectRepository.findAllByDeletedFalseAndStatus(status);
         }
 
-        // Si aucune recherche n'est fournie, on retourne directement la base
         if (query == null || query.isBlank()) {
             return base;
         }
 
         String normalized = query.trim().toLowerCase();
 
-        // Filtrage mémoire sur nom ou client
         return base.stream()
                 .filter(project ->
                         project.getName().toLowerCase().contains(normalized)
@@ -519,6 +544,7 @@ public class ProjectServiceImpl implements ProjectService {
             throw new ForbiddenException("FORBIDDEN", "Vous n'êtes pas le chef de projet assigné");
         }
     }
+
     private void validateProjectDates(ProjectDto request) {
         if (request.getStartDate().isAfter(request.getEndDate())) {
             throw new BusinessException(
@@ -562,10 +588,9 @@ public class ProjectServiceImpl implements ProjectService {
     }
 
     private void assignChefProjetToProject(Project project, User chefProjet) {
-        // On assigne directement le chef de projet, sans équipe.
         project.setChefProjet(chefProjet);
-        // On peut aussi laisser team = null, il sera assigné plus tard par le chef de projet.
     }
+
     @Override
     public List<ProjectDto> getMyAssignedProjects(String query, ProjectStatus status) {
         User currentUser = getAuthenticatedUser();
@@ -583,7 +608,6 @@ public class ProjectServiceImpl implements ProjectService {
                 ? projectRepository.findAllByTeamIdAndDeletedFalse(teamId)
                 : projectRepository.findAllByTeamIdAndDeletedFalseAndStatus(teamId, status);
 
-        // optionnel : ne montrer que les projets utiles aux membres
         if (status == null) {
             projects = projects.stream()
                     .filter(project ->

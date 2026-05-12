@@ -68,7 +68,12 @@ public class Project {
     @JoinColumn(name = "chef_projet_id")
     private User chefProjet;
 
-// Getter/Setter
+    // ✅ AJOUT : RC ou chef de projet qui a créé le projet
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "created_by_id")
+    private User createdBy;
+
+    // Getter/Setter
 
     public Project() {
     }
@@ -219,5 +224,14 @@ public class Project {
 
     public void setChefProjet(User chefProjet) {
         this.chefProjet = chefProjet;
+    }
+
+    // ✅ AJOUT getter/setter createdBy
+    public User getCreatedBy() {
+        return createdBy;
+    }
+
+    public void setCreatedBy(User createdBy) {
+        this.createdBy = createdBy;
     }
 }

@@ -82,7 +82,6 @@ public class LoginAttemptService {
             ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
             📧 Email : %s
             👤 Nom   : %s %s
-            🌐 IP source : %s
             🔒 Statut : VERROUILLÉ
             ⏰ Date   : %s
             ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

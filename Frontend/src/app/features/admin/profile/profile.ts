@@ -24,6 +24,9 @@ export class Profiles implements OnInit {
   editingProfileId: number | null = null;
   submitting = false;
 
+  showDeleteModal = false;
+  profileToDelete: ProfileDto | null = null;
+
   currentPage = 1;
   itemsPerPage = 4;
 
@@ -198,21 +201,32 @@ export class Profiles implements OnInit {
     });
   }
 
-  deleteProfile(profile: ProfileDto): void {
-    if (!profile.id) return;
+  confirmDelete(profile: ProfileDto): void {
+    this.profileToDelete = profile;
+    this.showDeleteModal = true;
+  }
 
-    const confirmed = confirm(`Supprimer le profil "${profile.libelle}" ?`);
-    if (!confirmed) return;
+  cancelDelete(): void {
+    this.showDeleteModal = false;
+    this.profileToDelete = null;
+  }
 
-    this.profileService.setDeletedStatus(profile.id, true).subscribe({
+  deleteProfile(): void {
+    if (!this.profileToDelete?.id) return;
+
+    this.profileService.setDeletedStatus(this.profileToDelete.id, true).subscribe({
       next: () => {
         this.ngZone.run(() => {
+          this.showDeleteModal = false;
+          this.profileToDelete = null;
           this.fetchProfiles();
           this.cdr.detectChanges();
         });
       },
       error: (err) => {
         this.ngZone.run(() => {
+          this.showDeleteModal = false;
+          this.profileToDelete = null;
           alert(err?.error?.message || 'Erreur lors de la suppression du profil.');
         });
       }

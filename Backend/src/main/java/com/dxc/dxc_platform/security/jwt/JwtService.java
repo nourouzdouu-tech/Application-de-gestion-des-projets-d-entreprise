@@ -2,20 +2,19 @@ package com.dxc.dxc_platform.security.jwt;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
+import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
-import java.security.Key;
-import java.util.Base64;
+import javax.crypto.SecretKey;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
-import java.util.ArrayList;
 
 @Service
 public class JwtService {
@@ -51,14 +50,12 @@ public class JwtService {
         }
         extraClaims.put("roles", finalRoles);
 
-
-
         return Jwts.builder()
-                .setClaims(extraClaims)
-                .setSubject(userDetails.getUsername())
-                .setIssuedAt(new Date(System.currentTimeMillis()))
-                .setExpiration(new Date(System.currentTimeMillis() + jwtExpiration))
-                .signWith(getSignInKey(), SignatureAlgorithm.HS256)
+                .claims(extraClaims)                                          // replaces setClaims()
+                .subject(userDetails.getUsername())                           // replaces setSubject()
+                .issuedAt(new Date(System.currentTimeMillis()))               // replaces setIssuedAt()
+                .expiration(new Date(System.currentTimeMillis() + jwtExpiration)) // replaces setExpiration()
+                .signWith(getSignInKey())                                     // no algorithm arg needed
                 .compact();
     }
 
@@ -72,15 +69,15 @@ public class JwtService {
     }
 
     private Claims extractAllClaims(String token) {
-        return Jwts.parserBuilder()
-                .setSigningKey(getSignInKey())
+        return Jwts.parser()
+                .verifyWith(getSignInKey())            // replaces setSigningKey()
                 .build()
-                .parseClaimsJws(token)
-                .getBody();
+                .parseSignedClaims(token)              // replaces parseClaimsJws()
+                .getPayload();                         // replaces getBody()
     }
 
-    private Key getSignInKey() {
-        byte[] keyBytes = Base64.getDecoder().decode(secretKey);
+    private SecretKey getSignInKey() {
+        byte[] keyBytes = Decoders.BASE64.decode(secretKey);  // plus propre que Base64.getDecoder()
         return Keys.hmacShaKeyFor(keyBytes);
     }
 }

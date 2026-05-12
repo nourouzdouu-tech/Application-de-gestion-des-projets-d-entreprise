@@ -40,6 +40,11 @@ public class UserDto {
             boolean mustChangePassword
     ) {}
 
+    // ✅ NOUVEAU : utilisé par l'endpoint PATCH /{id}/change-password
+    public record ChangePasswordRequest(
+            @NotBlank String newPassword
+    ) {}
+
     public record Response(
             Long id,
             String email,
@@ -52,7 +57,7 @@ public class UserDto {
             Set<RoleDto.Summary> roles,
             Long profileId,
             String profileLibelle,
-            BigDecimal tjm  // ← ajoute ça
+            BigDecimal tjm
     ) {}
 
     public record Summary(

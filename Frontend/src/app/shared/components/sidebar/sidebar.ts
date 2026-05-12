@@ -114,7 +114,7 @@ export class SidebarComponent implements OnInit {
       label: 'Messages', 
       icon: 'messages', 
       roles: ['MANAGER', 'CHEF_PROJET', 'MEMBRE_EQUIPE'],
-      badge: 3,
+      //badge: 3,
       isGeneric: true,
       alternativePaths: [
         { path: '/manager/messages', roles: ['MANAGER'] },
@@ -335,12 +335,20 @@ export class SidebarComponent implements OnInit {
     return `${user.prenom?.[0] || ''}${user.nom?.[0] || ''}`.toUpperCase();
   }
 
-  getRoleLabel(): string {
-    const roles = this.authService.getRoles();
-    if (!roles || roles.length === 0) return 'Utilisateur';
-    return roles.join(', ');
-  }
+getRoleLabel(): string {
+  const roles = this.authService.getRoles();
+  if (!roles || roles.length === 0) return 'Utilisateur';
 
+  const roleLabels: Record<string, string> = {
+    ADMIN: 'Administrateur système',
+    CHEF_PROJET: 'Chef de projet',
+    MANAGER: 'Manager',
+    MEMBRE_EQUIPE: "Membre d'équipe",
+    RESPONSABLE_CONTRAT: 'Responsable de contrat'
+  };
+
+  return roles.map(r => roleLabels[r] ?? r).join(', ');
+}
   private triggerToast(type: 'success' | 'error', msg: string): void {
     this.toastMessage.set(msg);
     this.toastType.set(type);

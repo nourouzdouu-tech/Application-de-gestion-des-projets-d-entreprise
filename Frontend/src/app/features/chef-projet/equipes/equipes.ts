@@ -19,13 +19,17 @@ export class Equipes implements OnInit, OnDestroy {
   teams: TeamDto[] = [];
   selectedTeam: TeamDto | null = null;
   filteredMembers: MemberInfo[] = [];
-  selectedUsers: UserSearchResult[] = [];  // ✅ Liste des membres à assigner (plusieurs)
+  selectedUsers: UserSearchResult[] = [];
   searchTerm = '';
 
   // ─── Modals ───────────────────────────────────────────────────────────────
   showCreateModal = false;
   showAssignModal = false;
   isRemovingMember = false;
+
+  showDeleteTeamModal = false;
+  showRemoveMemberModal = false;
+  memberToRemove: MemberInfo | null = null;
 
   // ─── Assign Modal ─────────────────────────────────────────────────────────
   assignForm = {
@@ -150,7 +154,7 @@ export class Equipes implements OnInit, OnDestroy {
     return member.id === this.selectedTeam.projectManagerId;
   }
 
-  // ─── Assign Modal (avec sélection multiple) ───────────────────────────────
+  // ─── Assign Modal ─────────────────────────────────────────────────────────
   openAssignModal(): void {
     if (!this.selectedTeam) return;
     this.showAssignModal = true;
@@ -159,7 +163,7 @@ export class Equipes implements OnInit, OnDestroy {
     this.userIdError = '';
     this.errorMessage = '';
     this.successMessage = '';
-    this.selectedUsers = [];           // ✅ Réinitialisation
+    this.selectedUsers = [];
   }
 
   closeAssignModal(): void {
@@ -185,7 +189,7 @@ export class Equipes implements OnInit, OnDestroy {
     this.teamService.searchAvailableUsers(q).subscribe({
       next: (results: any) => {
         let resultsArray: UserSearchResult[] = [];
-        
+
         if (Array.isArray(results)) {
           resultsArray = results;
         } else if (results && typeof results === 'object' && results.id) {
@@ -193,15 +197,15 @@ export class Equipes implements OnInit, OnDestroy {
         } else if (results && typeof results === 'object' && results._embedded) {
           resultsArray = results._embedded.userSearchResults || [];
         }
-        
+
         const currentMemberIds = this.selectedTeam?.members?.map(m => m.id) || [];
-        
+
         const availableUsers = resultsArray.filter(user => {
           if (currentMemberIds.includes(user.id)) return false;
-          if (this.selectedUsers.some(u => u.id === user.id)) return false; // déjà sélectionné
+          if (this.selectedUsers.some(u => u.id === user.id)) return false;
           return true;
         });
-        
+
         this.searchResults = availableUsers;
         this.isSearching = false;
       },
@@ -213,58 +217,49 @@ export class Equipes implements OnInit, OnDestroy {
     });
   }
 
-  // ✅ Ajout à la liste des membres sélectionnés
   selectUser(user: UserSearchResult): void {
-    // Vérifier les doublons
     if (this.selectedUsers.some(u => u.id === user.id)) return;
 
-    // Vérification 1 : déjà membre de l'équipe
     if (user.alreadyInTeam) {
       this.userIdError = `⚠️ ${user.fullName} est déjà membre de l'équipe : ${user.teamName || 'une autre équipe'} !`;
       return;
     }
-    
-    // Vérification 2 : chef de projet
+
     const isChefProjet = (user.roleName || '').toUpperCase().includes('CHEF_PROJET');
     if (isChefProjet) {
       this.userIdError = `⛔ Impossible d'assigner "${user.fullName}" car c'est un CHEF DE PROJET !`;
       return;
     }
-    
-    // Vérification 3 : déjà membre de l'équipe courante (redondant mais sécurisé)
+
     const isAlreadyInCurrentTeam = this.selectedTeam?.members?.some(m => m.id === user.id) || false;
     if (isAlreadyInCurrentTeam) {
       this.userIdError = `⚠️ ${user.fullName} est déjà membre de cette équipe !`;
       return;
     }
-    
-    // Vérification 4 : manager unique
+
     const isManager = (user.roleName || '').toUpperCase().includes('MANAGER');
-    const alreadyHasManager = this.selectedTeam?.members?.some(m => 
+    const alreadyHasManager = this.selectedTeam?.members?.some(m =>
       (m.roleName || '').toUpperCase().includes('MANAGER')
     ) || false;
-    const alreadySelectedManager = this.selectedUsers.some(u => 
+    const alreadySelectedManager = this.selectedUsers.some(u =>
       (u.roleName || '').toUpperCase().includes('MANAGER')
     );
-    
+
     if (isManager && (alreadyHasManager || alreadySelectedManager)) {
       this.userIdError = `⚠️ Impossible d'assigner "${user.fullName}" car cette équipe a déjà un MANAGER ! (Un seul manager par équipe)`;
       return;
     }
-    
-    // Tout est OK → ajout à la liste
+
     this.selectedUsers.push(user);
     this.userIdError = '';
     this.assignForm.searchQuery = '';
     this.searchResults = [];
   }
 
-  // ✅ Retirer un membre de la sélection
   removeSelectedUser(user: UserSearchResult): void {
     this.selectedUsers = this.selectedUsers.filter(u => u.id !== user.id);
   }
 
-  // ✅ Soumission de tous les membres sélectionnés (appels séquentiels)
   submitAssignForm(): void {
     if (!this.selectedTeam?.id) return;
     if (this.selectedUsers.length === 0) {
@@ -289,7 +284,7 @@ export class Equipes implements OnInit, OnDestroy {
             this.successMessage = `${total} membre(s) affecté(s) avec succès ✅`;
             this.selectedUsers = [];
             this.isLoading = false;
-            this.loadMyTeams(); // rechargement complet
+            this.loadMyTeams();
             setTimeout(() => {
               this.closeAssignModal();
               this.successMessage = '';
@@ -308,23 +303,32 @@ export class Equipes implements OnInit, OnDestroy {
   }
 
   // ─── Remove Member ────────────────────────────────────────────────────────
-  removeMember(member: MemberInfo): void {
-    if (!this.selectedTeam?.id) return;
-    const confirmed = confirm(`Voulez-vous vraiment retirer ${member.fullName} de l'équipe ?`);
-    if (!confirmed) return;
+  confirmRemoveMember(member: MemberInfo): void {
+    this.memberToRemove = member;
+    this.showRemoveMemberModal = true;
+  }
+
+  cancelRemoveMember(): void {
+    this.showRemoveMemberModal = false;
+    this.memberToRemove = null;
+  }
+
+  removeMember(): void {
+    if (!this.selectedTeam?.id || !this.memberToRemove) return;
 
     this.isRemovingMember = true;
     this.errorMessage = '';
     this.successMessage = '';
+    this.showRemoveMemberModal = false;
 
-    const memberId = member.id;
-    const teamId = this.selectedTeam.id;
+    const member = this.memberToRemove;
+    this.memberToRemove = null;
 
-    this.teamService.removeUserFromTeam(teamId, memberId).subscribe({
+    this.teamService.removeUserFromTeam(this.selectedTeam.id, member.id).subscribe({
       next: (updatedTeam) => {
         this.selectedTeam = updatedTeam;
         this.filteredMembers = [...(updatedTeam.members || [])];
-        this.loadMyTeams(); // rechargement complet
+        this.loadMyTeams();
         this.successMessage = `${member.fullName} a été retiré de l'équipe avec succès ✅`;
         this.isRemovingMember = false;
         this.cdr.detectChanges();
@@ -341,6 +345,43 @@ export class Equipes implements OnInit, OnDestroy {
           this.errorMessage = '';
           this.cdr.detectChanges();
         }, 3000);
+      }
+    });
+  }
+
+  // ─── Delete Team ──────────────────────────────────────────────────────────
+  confirmDeleteTeam(): void {
+    if (!this.selectedTeam?.id) return;
+    this.showDeleteTeamModal = true;
+  }
+
+  cancelDeleteTeam(): void {
+    this.showDeleteTeamModal = false;
+  }
+
+  deleteTeam(): void {
+    if (!this.selectedTeam?.id) return;
+
+    this.showDeleteTeamModal = false;
+    this.errorMessage = '';
+    this.successMessage = '';
+    this.isLoading = true;
+
+    this.teamService.setDeletedStatus(this.selectedTeam.id, true).subscribe({
+      next: () => {
+        this.isLoading = false;
+        this.successMessage = 'Équipe supprimée avec succès ✅';
+        this.loadMyTeams();
+        this.cdr.detectChanges();
+        setTimeout(() => {
+          this.successMessage = '';
+          this.cdr.detectChanges();
+        }, 3000);
+      },
+      error: (err) => {
+        this.isLoading = false;
+        this.errorMessage = err.error?.message || 'Erreur lors de la suppression.';
+        this.cdr.detectChanges();
       }
     });
   }
@@ -369,37 +410,6 @@ export class Equipes implements OnInit, OnDestroy {
     this.resetForm();
     this.editMode = false;
     this.selectedTeamId = null;
-  }
-
-  // ─── Delete Team ──────────────────────────────────────────────────────────
-  deleteTeam(): void {
-    if (!this.selectedTeam?.id) return;
-
-    const confirmed = confirm(`Voulez-vous vraiment supprimer l'équipe "${this.selectedTeam.name}" ?`);
-    if (!confirmed) return;
-
-    this.errorMessage = '';
-    this.successMessage = '';
-    this.isLoading = true;
-
-    this.teamService.setDeletedStatus(this.selectedTeam.id, true).subscribe({
-      next: () => {
-        this.isLoading = false;
-        this.successMessage = 'Équipe supprimée avec succès ✅';
-        this.loadMyTeams();
-        this.cdr.detectChanges();
-
-        setTimeout(() => {
-          this.successMessage = '';
-          this.cdr.detectChanges();
-        }, 3000);
-      },
-      error: (err) => {
-        this.isLoading = false;
-        this.errorMessage = err.error?.message || 'Erreur lors de la suppression.';
-        this.cdr.detectChanges();
-      }
-    });
   }
 
   // ─── Form Helpers ─────────────────────────────────────────────────────────
@@ -490,7 +500,7 @@ export class Equipes implements OnInit, OnDestroy {
 
   goToDashboard(): void {
     const roles = this.authService.getRoles();
-    
+
     if (roles.includes('ADMIN')) {
       this.router.navigate(['/admin/dashboard']);
     } else if (roles.includes('CHEF_PROJET')) {

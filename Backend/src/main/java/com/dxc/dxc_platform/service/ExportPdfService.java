@@ -16,1523 +16,1104 @@ import java.util.List;
 @Service
 public class ExportPdfService {
 
-    // Couleurs principales
-    private static final Color PRIMARY_COLOR = new Color(124, 58, 237);
-    private static final Color SUCCESS_COLOR = new Color(34, 197, 94);
-    private static final Color DANGER_COLOR = new Color(239, 68, 68);
-    private static final Color WARNING_COLOR = new Color(245, 158, 11);
-    private static final Color INFO_COLOR = new Color(59, 130, 246);
-    private static final Color BG_LIGHT = new Color(248, 250, 252);
-    private static final Color TEXT_DARK = new Color(30, 41, 59);
-    private static final Color TEXT_MUTED = new Color(100, 116, 139);
+    // ── Palette ────────────────────────────────────────────────────────────────
+    private static final Color PRIMARY        = new Color(109, 40, 217);   // violet-700
+    private static final Color PRIMARY_LIGHT  = new Color(237, 233, 254);  // violet-100
+    private static final Color PRIMARY_DARK   = new Color(76,  29, 149);   // violet-900
+    private static final Color SUCCESS        = new Color(22, 163, 74);    // green-600
+    private static final Color SUCCESS_LIGHT  = new Color(220, 252, 231);  // green-100
+    private static final Color DANGER         = new Color(220, 38, 38);    // red-600
+    private static final Color DANGER_LIGHT   = new Color(254, 226, 226);  // red-100
+    private static final Color WARNING        = new Color(217, 119, 6);    // amber-600
+    private static final Color WARNING_LIGHT  = new Color(254, 243, 199);  // amber-100
+    private static final Color INFO           = new Color(37, 99, 235);    // blue-600
+    private static final Color INFO_LIGHT     = new Color(219, 234, 254);  // blue-100
+    private static final Color SURFACE        = new Color(248, 250, 252);  // slate-50
+    private static final Color BORDER         = new Color(226, 232, 240);  // slate-200
+    private static final Color TEXT_DARK      = new Color(15, 23, 42);     // slate-900
+    private static final Color TEXT_MUTED     = new Color(100, 116, 139);  // slate-500
+    private static final Color WHITE          = Color.WHITE;
+
+    // Couleur de header dégradé simulé via bande secondaire
+    private static final Color HEADER_ACCENT  = new Color(91, 33, 182);   // violet-800
+
+    // ── Fonts ──────────────────────────────────────────────────────────────────
+    private Font h1(Color c)     { return new Font(Font.HELVETICA, 20, Font.BOLD,   c); }
+    private Font h2(Color c)     { return new Font(Font.HELVETICA, 11, Font.BOLD,   c); }
+    private Font h3(Color c)     { return new Font(Font.HELVETICA, 9,  Font.BOLD,   c); }
+    private Font body(Color c)   { return new Font(Font.HELVETICA, 9,  Font.NORMAL, c); }
+    private Font bodyB(Color c)  { return new Font(Font.HELVETICA, 9,  Font.BOLD,   c); }
+    private Font small(Color c)  { return new Font(Font.HELVETICA, 8,  Font.NORMAL, c); }
+    private Font smallB(Color c) { return new Font(Font.HELVETICA, 8,  Font.BOLD,   c); }
+    private Font caption(Color c){ return new Font(Font.HELVETICA, 7,  Font.NORMAL, c); }
+    private Font captionB(Color c){return new Font(Font.HELVETICA, 7,  Font.BOLD,   c); }
+    private Font kpiValue(Color c){ return new Font(Font.HELVETICA, 17, Font.BOLD, c); }
+
+    // ── Spacers ────────────────────────────────────────────────────────────────
+    private Paragraph spacer(float pts) {
+        Paragraph p = new Paragraph(" ");
+        p.setSpacingAfter(pts);
+        return p;
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    //  ADMIN REPORT
+    // ─────────────────────────────────────────────────────────────────────────
     public byte[] exportAdminReport(ReportingDataDto data) {
         try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
-            Document document = new Document(PageSize.A4);
-            PdfWriter.getInstance(document, out);
-            document.open();
+            Document doc = new Document(PageSize.A4, 36, 36, 36, 50);
+            PdfWriter writer = PdfWriter.getInstance(doc, out);
+            writer.setPageEvent(new FooterEvent("Rapport Administrateur"));
+            doc.open();
 
-            // ========== EN-TÊTE ==========
-            addAdminHeader(document);
+            addHeader(doc, "RAPPORT ADMINISTRATEUR", "Tableau de bord & indicateurs plateforme");
+            addAdminKpiCards(doc, data);
+            addSectionDivider(doc, "ÉVOLUTION DES UTILISATEURS");
+            addAdminEvolution(doc, data);
+            addSectionDivider(doc, "RÉPARTITION PAR RÔLE");
+            addDistributionTable(doc, buildRoleRows(data), new String[]{"Rôle", "Nb", "Répartition"});
+            addSectionDivider(doc, "RÉPARTITION PAR PROFIL");
+            addDistributionTable(doc, buildProfileRows(data), new String[]{"Profil", "Nb", "Répartition"});
+            addSectionDivider(doc, "TOP CLIENTS");
+            addAdminTopClients(doc, data);
+            addSectionDivider(doc, "SYNTHÈSE GLOBALE");
+            addAdminSynthesis(doc, data);
 
-            // ========== SECTION 1: KPI CARDS avec chiffres ==========
-            addAdminKpiCards(document, data);
-
-            // ========== SECTION 2: ÉVOLUTION DES UTILISATEURS (chiffres + graphique) ==========
-            addAdminEvolutionWithNumbers(document, data);
-
-            // ========== SECTION 3: RÉPARTITION PAR RÔLE (chiffres + pourcentages) ==========
-            addAdminRoleDistributionWithNumbers(document, data);
-
-            // ========== SECTION 4: RÉPARTITION PAR PROFIL (chiffres + pourcentages) ==========
-            addAdminProfileDistributionWithNumbers(document, data);
-
-            // ========== SECTION 5: TOP CLIENTS (chiffres) ==========
-            addAdminTopClientsWithNumbers(document, data);
-
-            // ========== SECTION 6: SYNTHÈSE ==========
-            addAdminSynthesis(document, data);
-
-            document.close();
+            doc.close();
             return out.toByteArray();
         } catch (DocumentException | IOException e) {
-            throw new RuntimeException("Erreur generation PDF admin", e);
+            throw new RuntimeException("Erreur génération PDF admin", e);
         }
     }
 
-    private void addAdminHeader(Document document) throws DocumentException {
-        PdfPTable headerTable = new PdfPTable(1);
-        headerTable.setWidthPercentage(100);
-        headerTable.setSpacingAfter(15);
+    // ── Header deux bandes ──────────────────────────────────────────────────────
+    private void addHeader(Document doc, String title, String subtitle) throws DocumentException {
+        // Bande principale
+        PdfPTable t = new PdfPTable(1);
+        t.setWidthPercentage(100);
+        t.setSpacingAfter(0);
 
-        PdfPCell headerCell = new PdfPCell();
-        headerCell.setBackgroundColor(PRIMARY_COLOR);
-        headerCell.setPadding(20);
-        headerCell.setBorder(Rectangle.NO_BORDER);
+        PdfPCell top = new PdfPCell();
+        top.setBackgroundColor(PRIMARY);
+        top.setPaddingTop(26);
+        top.setPaddingBottom(4);
+        top.setPaddingLeft(28);
+        top.setPaddingRight(28);
+        top.setBorder(Rectangle.NO_BORDER);
 
-        Paragraph title = new Paragraph("RAPPORT ADMINISTRATEUR",
-                new Font(Font.HELVETICA, 20, Font.BOLD, Color.WHITE));
-        title.setAlignment(Element.ALIGN_CENTER);
-        headerCell.addElement(title);
+        Paragraph titleP = new Paragraph(title, h1(WHITE));
+        titleP.setAlignment(Element.ALIGN_CENTER);
+        titleP.setSpacingAfter(3);
+        top.addElement(titleP);
 
-        Paragraph date = new Paragraph("Genere le " +
-                LocalDate.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy")),
-                new Font(Font.HELVETICA, 9, Font.NORMAL, Color.WHITE));
-        date.setAlignment(Element.ALIGN_CENTER);
-        headerCell.addElement(date);
+        Paragraph subP = new Paragraph(subtitle, small(new Color(196, 181, 253)));
+        subP.setAlignment(Element.ALIGN_CENTER);
+        top.addElement(subP);
 
-        headerTable.addCell(headerCell);
-        document.add(headerTable);
-        document.add(new Paragraph(" "));
+        t.addCell(top);
+        doc.add(t);
+
+        // Bande date (couleur légèrement différente pour l'effet d'accent)
+        PdfPTable t2 = new PdfPTable(1);
+        t2.setWidthPercentage(100);
+        t2.setSpacingAfter(16);
+
+        PdfPCell bot = new PdfPCell();
+        bot.setBackgroundColor(HEADER_ACCENT);
+        bot.setPaddingTop(6);
+        bot.setPaddingBottom(8);
+        bot.setPaddingLeft(28);
+        bot.setPaddingRight(28);
+        bot.setBorder(Rectangle.NO_BORDER);
+
+        Paragraph dateP = new Paragraph(
+                "Généré le " + LocalDate.now().format(DateTimeFormatter.ofPattern("dd MMMM yyyy", java.util.Locale.FRENCH)),
+                caption(new Color(167, 139, 250))
+        );
+        dateP.setAlignment(Element.ALIGN_CENTER);
+        bot.addElement(dateP);
+
+        t2.addCell(bot);
+        doc.add(t2);
     }
 
-    private void addAdminKpiCards(Document document, ReportingDataDto data) throws DocumentException {
-        Paragraph sectionTitle = new Paragraph("📊 INDICATEURS CLES",
-                new Font(Font.HELVETICA, 14, Font.BOLD, PRIMARY_COLOR));
-        sectionTitle.setSpacingBefore(5);
-        sectionTitle.setSpacingAfter(10);
-        document.add(sectionTitle);
+    // ── Section divider modernisé ──────────────────────────────────────────────
+    private void addSectionDivider(Document doc, String label) throws DocumentException {
+        doc.add(spacer(4));
 
-        long totalUsers = data.getUserStats().getTotalUsers();
-        long activeUsers = data.getUserStats().getActiveUsers();
-        long inactiveUsers = data.getUserStats().getInactiveUsers();
-        int newUsers = data.getUserStats().getNewUsersThisMonth();
-        double activePercent = data.getUserStats().getActivePercentage();
+        PdfPTable t = new PdfPTable(new float[]{3f, 97f});
+        t.setWidthPercentage(100);
+        t.setSpacingAfter(8);
 
-        // Tableau 2x4 pour les KPI
-        PdfPTable kpiTable = new PdfPTable(4);
-        kpiTable.setWidthPercentage(100);
+        // Barre verticale colorée
+        PdfPCell bar = new PdfPCell(new Phrase(" "));
+        bar.setBackgroundColor(PRIMARY);
+        bar.setBorder(Rectangle.NO_BORDER);
+        bar.setPaddingTop(0);
+        bar.setPaddingBottom(0);
+        t.addCell(bar);
 
-        // Ligne 1: Icônes
-        addAdminKpiCell(kpiTable, "👥", "TOTAL", String.valueOf(totalUsers), PRIMARY_COLOR);
-        addAdminKpiCell(kpiTable, "⚡", "ACTIFS", activeUsers + " (" + String.format("%.1f", activePercent) + "%)", SUCCESS_COLOR);
-        addAdminKpiCell(kpiTable, "🔒", "INACTIFS", String.valueOf(inactiveUsers), DANGER_COLOR);
-        addAdminKpiCell(kpiTable, "➕", "NOUVEAUX", String.valueOf(newUsers), WARNING_COLOR);
+        // Label sur fond doux
+        PdfPCell lbl = new PdfPCell();
+        lbl.setBackgroundColor(PRIMARY_LIGHT);
+        lbl.setBorder(Rectangle.NO_BORDER);
+        lbl.setPaddingLeft(10);
+        lbl.setPaddingTop(7);
+        lbl.setPaddingBottom(7);
+        lbl.setPaddingRight(10);
+        Paragraph p = new Paragraph(label, h2(PRIMARY_DARK));
+        lbl.addElement(p);
+        t.addCell(lbl);
 
-        document.add(kpiTable);
-        document.add(new Paragraph(" "));
+        doc.add(t);
     }
 
-    private void addAdminKpiCell(PdfPTable table, String icon, String label, String value, Color color) {
+    // ── KPI Cards Admin ────────────────────────────────────────────────────────
+    private void addAdminKpiCards(Document doc, ReportingDataDto data) throws DocumentException {
+        long total      = data.getUserStats().getTotalUsers();
+        long active     = data.getUserStats().getActiveUsers();
+        long inactive   = data.getUserStats().getInactiveUsers();
+        int  newU       = data.getUserStats().getNewUsersThisMonth();
+        double activePct= data.getUserStats().getActivePercentage();
+
+        PdfPTable t = new PdfPTable(4);
+        t.setWidthPercentage(100);
+        t.setSpacingAfter(6);
+
+        addKpiCard(t, "UTILISATEURS", String.valueOf(total),
+                "Total inscrits", PRIMARY, PRIMARY_LIGHT);
+        addKpiCard(t, "ACTIFS",
+                active + " (" + String.format("%.0f", activePct) + "%)",
+                "Comptes actifs", SUCCESS, SUCCESS_LIGHT);
+        addKpiCard(t, "INACTIFS", String.valueOf(inactive),
+                "Comptes inactifs", DANGER, DANGER_LIGHT);
+        addKpiCard(t, "CE MOIS", "+" + newU,
+                "Nouveaux inscrits", WARNING, WARNING_LIGHT);
+
+        doc.add(t);
+        doc.add(spacer(4));
+    }
+
+    private void addKpiCard(PdfPTable table, String label, String value, String sub, Color accent, Color bg) {
         PdfPCell cell = new PdfPCell();
-        cell.setBorder(Rectangle.BOX);
-        cell.setBorderColor(new Color(229, 231, 235));
-        cell.setPadding(10);
-        cell.setBackgroundColor(BG_LIGHT);
+        cell.setBackgroundColor(bg);
+        // Bordure basse colorée plus épaisse pour l'effet "tab"
+        cell.setBorderColorBottom(accent);
+        cell.setBorderWidthBottom(3f);
+        cell.setBorderColorTop(BORDER);
+        cell.setBorderWidthTop(0.5f);
+        cell.setBorderColorLeft(BORDER);
+        cell.setBorderWidthLeft(0.5f);
+        cell.setBorderColorRight(BORDER);
+        cell.setBorderWidthRight(0.5f);
+        cell.setPaddingTop(13);
+        cell.setPaddingBottom(13);
+        cell.setPaddingLeft(8);
+        cell.setPaddingRight(8);
 
-        Paragraph iconPara = new Paragraph(icon, new Font(Font.HELVETICA, 22));
-        iconPara.setAlignment(Element.ALIGN_CENTER);
-        cell.addElement(iconPara);
+        Paragraph lp = new Paragraph(label, captionB(accent));
+        lp.setAlignment(Element.ALIGN_CENTER);
+        lp.setSpacingAfter(3);
+        cell.addElement(lp);
 
-        Paragraph labelPara = new Paragraph(label, new Font(Font.HELVETICA, 8, Font.BOLD, TEXT_MUTED));
-        labelPara.setAlignment(Element.ALIGN_CENTER);
-        cell.addElement(labelPara);
+        Paragraph vp = new Paragraph(value, kpiValue(accent));
+        vp.setAlignment(Element.ALIGN_CENTER);
+        vp.setSpacingAfter(3);
+        cell.addElement(vp);
 
-        Paragraph valuePara = new Paragraph(value, new Font(Font.HELVETICA, 12, Font.BOLD, color));
-        valuePara.setAlignment(Element.ALIGN_CENTER);
-        cell.addElement(valuePara);
+        Paragraph sp = new Paragraph(sub, caption(TEXT_MUTED));
+        sp.setAlignment(Element.ALIGN_CENTER);
+        cell.addElement(sp);
 
         table.addCell(cell);
     }
 
-    private void addAdminEvolutionWithNumbers(Document document, ReportingDataDto data) throws DocumentException {
-        Paragraph title = new Paragraph("📈 EVOLUTION DES UTILISATEURS",
-                new Font(Font.HELVETICA, 14, Font.BOLD, PRIMARY_COLOR));
-        title.setSpacingBefore(10);
-        title.setSpacingAfter(8);
-        document.add(title);
-
-        List<ReportingDataDto.EvolutionDataDto> evolution = data.getUserEvolution();
-        if (evolution != null && !evolution.isEmpty()) {
-            // Tableau avec chiffres
-            PdfPTable table = new PdfPTable(2);
-            table.setWidthPercentage(60);
-            table.setWidths(new float[]{50f, 50f});
-            table.setSpacingAfter(10);
-
-            PdfPCell header1 = new PdfPCell(new Paragraph("Mois", new Font(Font.HELVETICA, 9, Font.BOLD, Color.WHITE)));
-            header1.setBackgroundColor(PRIMARY_COLOR);
-            header1.setPadding(5);
-            table.addCell(header1);
-
-            PdfPCell header2 = new PdfPCell(new Paragraph("Nombre", new Font(Font.HELVETICA, 9, Font.BOLD, Color.WHITE)));
-            header2.setBackgroundColor(PRIMARY_COLOR);
-            header2.setPadding(5);
-            table.addCell(header2);
-
-            for (ReportingDataDto.EvolutionDataDto evo : evolution) {
-                table.addCell(new PdfPCell(new Paragraph(evo.getMonth(), new Font(Font.HELVETICA, 9, Font.NORMAL))));
-                PdfPCell countCell = new PdfPCell(new Paragraph(String.valueOf(evo.getCount()), new Font(Font.HELVETICA, 9, Font.BOLD, PRIMARY_COLOR)));
-                countCell.setHorizontalAlignment(Element.ALIGN_CENTER);
-                table.addCell(countCell);
-            }
-            document.add(table);
-
-            // Graphique simple (barres)
-            document.add(new Paragraph("Visualisation:", new Font(Font.HELVETICA, 9, Font.ITALIC, TEXT_MUTED)));
-
-            int maxCount = 0;
-            for (ReportingDataDto.EvolutionDataDto evo : evolution) {
-                if (evo.getCount() > maxCount) maxCount = (int) evo.getCount();
-            }
-            if (maxCount == 0) maxCount = 1;
-
-            for (ReportingDataDto.EvolutionDataDto evo : evolution) {
-                int barLength = (int) ((float) evo.getCount() / maxCount * 40);
-                StringBuilder bar = new StringBuilder();
-                for (int i = 0; i < barLength; i++) bar.append("█");
-                for (int i = barLength; i < 40; i++) bar.append("░");
-
-                Paragraph barPara = new Paragraph(evo.getMonth() + " " + bar.toString() + " " + evo.getCount(),
-                        new Font(Font.HELVETICA, 8, Font.NORMAL, PRIMARY_COLOR));
-                document.add(barPara);
-            }
-            document.add(new Paragraph(" "));
+    // ── Évolution (barres horizontales propres) ────────────────────────────────
+    private void addAdminEvolution(Document doc, ReportingDataDto data) throws DocumentException {
+        List<ReportingDataDto.EvolutionDataDto> evo = data.getUserEvolution();
+        if (evo == null || evo.isEmpty()) {
+            doc.add(emptyState("Aucune donnée d'évolution"));
+            return;
         }
+        long max = evo.stream().mapToLong(ReportingDataDto.EvolutionDataDto::getCount).max().orElse(1);
+
+        PdfPTable t = new PdfPTable(new float[]{22f, 9f, 69f});
+        t.setWidthPercentage(88);
+        t.setSpacingAfter(12);
+
+        addTableHeader(t, new String[]{"Mois", "Nb", "Évolution"});
+
+        boolean alt = false;
+        for (ReportingDataDto.EvolutionDataDto e : evo) {
+            Color bg = alt ? SURFACE : WHITE;
+            alt = !alt;
+            int filled = (int) Math.round(e.getCount() * 52.0 / max);
+            addCell(t, e.getMonth(), body(TEXT_DARK), bg, Element.ALIGN_LEFT);
+            addCell(t, String.valueOf(e.getCount()), bodyB(PRIMARY), bg, Element.ALIGN_CENTER);
+            addBarCell(t, filled, 52, PRIMARY, bg);
+        }
+        doc.add(t);
     }
 
-    private void addAdminRoleDistributionWithNumbers(Document document, ReportingDataDto data) throws DocumentException {
-        Paragraph title = new Paragraph("👥 REPARTITION PAR ROLE",
-                new Font(Font.HELVETICA, 14, Font.BOLD, PRIMARY_COLOR));
-        title.setSpacingBefore(10);
-        title.setSpacingAfter(8);
-        document.add(title);
-
-        List<ReportingDataDto.RoleDistributionDto> roles = data.getRoleDistribution();
-        if (roles != null && !roles.isEmpty()) {
-            long total = 0;
-            for (ReportingDataDto.RoleDistributionDto role : roles) total += role.getCount();
-
-            PdfPTable table = new PdfPTable(3);
-            table.setWidthPercentage(90);
-            table.setWidths(new float[]{40f, 30f, 30f});
-
-            PdfPCell header1 = new PdfPCell(new Paragraph("Role", new Font(Font.HELVETICA, 9, Font.BOLD, Color.WHITE)));
-            header1.setBackgroundColor(PRIMARY_COLOR);
-            header1.setPadding(6);
-            table.addCell(header1);
-
-            PdfPCell header2 = new PdfPCell(new Paragraph("Nombre", new Font(Font.HELVETICA, 9, Font.BOLD, Color.WHITE)));
-            header2.setBackgroundColor(PRIMARY_COLOR);
-            header2.setPadding(6);
-            table.addCell(header2);
-
-            PdfPCell header3 = new PdfPCell(new Paragraph("Pourcentage", new Font(Font.HELVETICA, 9, Font.BOLD, Color.WHITE)));
-            header3.setBackgroundColor(PRIMARY_COLOR);
-            header3.setPadding(6);
-            table.addCell(header3);
-
-            Color[] colors = {PRIMARY_COLOR, INFO_COLOR, SUCCESS_COLOR, WARNING_COLOR, DANGER_COLOR};
-            for (int i = 0; i < roles.size(); i++) {
-                ReportingDataDto.RoleDistributionDto role = roles.get(i);
-                float percent = (role.getCount() * 100f / total);
-                Color barColor = colors[i % colors.length];
-
-                table.addCell(new PdfPCell(new Paragraph(role.getRole(), new Font(Font.HELVETICA, 9, Font.NORMAL))));
-
-                PdfPCell countCell = new PdfPCell(new Paragraph(String.valueOf(role.getCount()), new Font(Font.HELVETICA, 9, Font.BOLD, barColor)));
-                countCell.setHorizontalAlignment(Element.ALIGN_CENTER);
-                table.addCell(countCell);
-
-                // Barre + pourcentage
-                int barLength = Math.round(percent / 2);
-                StringBuilder bar = new StringBuilder();
-                for (int j = 0; j < barLength; j++) bar.append("█");
-                for (int j = barLength; j < 50; j++) bar.append("░");
-
-                PdfPCell percentCell = new PdfPCell(new Paragraph(bar.toString() + " " + String.format("%.1f%%", percent),
-                        new Font(Font.HELVETICA, 8, Font.NORMAL, barColor)));
-                table.addCell(percentCell);
-            }
-            document.add(table);
-            document.add(new Paragraph(" "));
+    // ── Distribution table ──────────────────────────────────────────────────────
+    private void addDistributionTable(Document doc, Object[][] rows, String[] headers) throws DocumentException {
+        if (rows == null || rows.length == 0) {
+            doc.add(emptyState("Aucune donnée"));
+            return;
         }
+        PdfPTable t = new PdfPTable(new float[]{32f, 10f, 58f});
+        t.setWidthPercentage(92);
+        t.setSpacingAfter(12);
+
+        addTableHeader(t, headers);
+
+        Color[] accents = {PRIMARY, INFO, SUCCESS, WARNING, DANGER};
+        boolean alt = false;
+        for (int i = 0; i < rows.length; i++) {
+            Color bg  = alt ? SURFACE : WHITE;
+            alt = !alt;
+            Color accent = accents[i % accents.length];
+            String name  = (String) rows[i][0];
+            long   count = (long)   rows[i][1];
+            float  pct   = (float)  rows[i][2];
+            int filled   = Math.round(pct * 52f / 100f);
+
+            addCell(t, name, body(TEXT_DARK), bg, Element.ALIGN_LEFT);
+            addCell(t, String.valueOf(count), bodyB(accent), bg, Element.ALIGN_CENTER);
+            addBarCellWithPct(t, filled, 52, pct, accent, bg);
+        }
+        doc.add(t);
     }
 
-    private void addAdminProfileDistributionWithNumbers(Document document, ReportingDataDto data) throws DocumentException {
-        Paragraph title = new Paragraph("🧩 REPARTITION PAR PROFIL",
-                new Font(Font.HELVETICA, 14, Font.BOLD, PRIMARY_COLOR));
-        title.setSpacingBefore(10);
-        title.setSpacingAfter(8);
-        document.add(title);
-
-        List<ReportingDataDto.ProfileDistributionDto> profiles = data.getProfileDistribution();
-        if (profiles != null && !profiles.isEmpty()) {
-            long total = 0;
-            for (ReportingDataDto.ProfileDistributionDto profile : profiles) total += profile.getCount();
-
-            PdfPTable table = new PdfPTable(3);
-            table.setWidthPercentage(90);
-            table.setWidths(new float[]{35f, 30f, 35f});
-
-            PdfPCell header1 = new PdfPCell(new Paragraph("Profil", new Font(Font.HELVETICA, 9, Font.BOLD, Color.WHITE)));
-            header1.setBackgroundColor(PRIMARY_COLOR);
-            header1.setPadding(6);
-            table.addCell(header1);
-
-            PdfPCell header2 = new PdfPCell(new Paragraph("Nombre", new Font(Font.HELVETICA, 9, Font.BOLD, Color.WHITE)));
-            header2.setBackgroundColor(PRIMARY_COLOR);
-            header2.setPadding(6);
-            table.addCell(header2);
-
-            PdfPCell header3 = new PdfPCell(new Paragraph("Pourcentage", new Font(Font.HELVETICA, 9, Font.BOLD, Color.WHITE)));
-            header3.setBackgroundColor(PRIMARY_COLOR);
-            header3.setPadding(6);
-            table.addCell(header3);
-
-            Color[] colors = {PRIMARY_COLOR, INFO_COLOR, SUCCESS_COLOR, WARNING_COLOR, DANGER_COLOR};
-            for (int i = 0; i < profiles.size(); i++) {
-                ReportingDataDto.ProfileDistributionDto profile = profiles.get(i);
-                float percent = (profile.getCount() * 100f / total);
-                Color barColor = colors[i % colors.length];
-
-                String displayName = profile.getProfile();
-                if (displayName.length() > 15) displayName = displayName.substring(0, 12) + "...";
-
-                table.addCell(new PdfPCell(new Paragraph(displayName, new Font(Font.HELVETICA, 9, Font.NORMAL))));
-
-                PdfPCell countCell = new PdfPCell(new Paragraph(String.valueOf(profile.getCount()), new Font(Font.HELVETICA, 9, Font.BOLD, barColor)));
-                countCell.setHorizontalAlignment(Element.ALIGN_CENTER);
-                table.addCell(countCell);
-
-                int barLength = Math.round(percent / 2);
-                StringBuilder bar = new StringBuilder();
-                for (int j = 0; j < barLength; j++) bar.append("█");
-                for (int j = barLength; j < 50; j++) bar.append("░");
-
-                PdfPCell percentCell = new PdfPCell(new Paragraph(bar.toString() + " " + String.format("%.1f%%", percent),
-                        new Font(Font.HELVETICA, 8, Font.NORMAL, barColor)));
-                table.addCell(percentCell);
-            }
-            document.add(table);
-            document.add(new Paragraph(" "));
+    private Object[][] buildRoleRows(ReportingDataDto data) {
+        List<ReportingDataDto.RoleDistributionDto> list = data.getRoleDistribution();
+        if (list == null) return new Object[0][0];
+        long total = list.stream().mapToLong(ReportingDataDto.RoleDistributionDto::getCount).sum();
+        Object[][] rows = new Object[list.size()][3];
+        for (int i = 0; i < list.size(); i++) {
+            rows[i][0] = list.get(i).getRole();
+            rows[i][1] = list.get(i).getCount();
+            rows[i][2] = total > 0 ? (list.get(i).getCount() * 100f / total) : 0f;
         }
+        return rows;
     }
 
-    private void addAdminTopClientsWithNumbers(Document document, ReportingDataDto data) throws DocumentException {
-        Paragraph title = new Paragraph("🏆 TOP CLIENTS",
-                new Font(Font.HELVETICA, 14, Font.BOLD, PRIMARY_COLOR));
-        title.setSpacingBefore(10);
-        title.setSpacingAfter(8);
-        document.add(title);
+    private Object[][] buildProfileRows(ReportingDataDto data) {
+        List<ReportingDataDto.ProfileDistributionDto> list = data.getProfileDistribution();
+        if (list == null) return new Object[0][0];
+        long total = list.stream().mapToLong(ReportingDataDto.ProfileDistributionDto::getCount).sum();
+        Object[][] rows = new Object[list.size()][3];
+        for (int i = 0; i < list.size(); i++) {
+            String name = list.get(i).getProfile();
+            if (name.length() > 22) name = name.substring(0, 20) + "…";
+            rows[i][0] = name;
+            rows[i][1] = list.get(i).getCount();
+            rows[i][2] = total > 0 ? (list.get(i).getCount() * 100f / total) : 0f;
+        }
+        return rows;
+    }
 
+    // ── Top Clients Admin ──────────────────────────────────────────────────────
+    private void addAdminTopClients(Document doc, ReportingDataDto data) throws DocumentException {
         List<ReportingDataDto.ClientActivityDto> clients = data.getTopClients();
-        if (clients != null && !clients.isEmpty()) {
-            int maxProjects = 0;
-            for (ReportingDataDto.ClientActivityDto client : clients) {
-                if (client.getProjectsCount() > maxProjects) maxProjects = (int) client.getProjectsCount();
-            }
-            if (maxProjects == 0) maxProjects = 1;
-
-            PdfPTable table = new PdfPTable(3);
-            table.setWidthPercentage(95);
-            table.setWidths(new float[]{10f, 50f, 40f});
-
-            PdfPCell header1 = new PdfPCell(new Paragraph("#", new Font(Font.HELVETICA, 9, Font.BOLD, Color.WHITE)));
-            header1.setBackgroundColor(PRIMARY_COLOR);
-            header1.setPadding(6);
-            table.addCell(header1);
-
-            PdfPCell header2 = new PdfPCell(new Paragraph("Client", new Font(Font.HELVETICA, 9, Font.BOLD, Color.WHITE)));
-            header2.setBackgroundColor(PRIMARY_COLOR);
-            header2.setPadding(6);
-            table.addCell(header2);
-
-            PdfPCell header3 = new PdfPCell(new Paragraph("Projets", new Font(Font.HELVETICA, 9, Font.BOLD, Color.WHITE)));
-            header3.setBackgroundColor(PRIMARY_COLOR);
-            header3.setPadding(6);
-            table.addCell(header3);
-
-            for (int i = 0; i < Math.min(10, clients.size()); i++) {
-                ReportingDataDto.ClientActivityDto client = clients.get(i);
-                float percent = (client.getProjectsCount() * 100f / maxProjects);
-
-                table.addCell(new PdfPCell(new Paragraph(String.valueOf(i + 1), new Font(Font.HELVETICA, 9, Font.BOLD))));
-                table.addCell(new PdfPCell(new Paragraph(client.getClient(), new Font(Font.HELVETICA, 9, Font.NORMAL))));
-
-                int barLength = Math.round(percent);
-                StringBuilder bar = new StringBuilder();
-                for (int j = 0; j < barLength; j++) bar.append("█");
-                for (int j = barLength; j < 100; j++) bar.append("░");
-
-                PdfPCell projectsCell = new PdfPCell(new Paragraph(bar.toString() + " " + client.getProjectsCount(),
-                        new Font(Font.HELVETICA, 8, Font.NORMAL, PRIMARY_COLOR)));
-                table.addCell(projectsCell);
-            }
-            document.add(table);
-            document.add(new Paragraph(" "));
+        if (clients == null || clients.isEmpty()) {
+            doc.add(emptyState("Aucun client à afficher"));
+            return;
         }
+        long max = clients.stream().mapToLong(ReportingDataDto.ClientActivityDto::getProjectsCount).max().orElse(1);
+
+        PdfPTable t = new PdfPTable(new float[]{7f, 38f, 55f});
+        t.setWidthPercentage(96);
+        t.setSpacingAfter(12);
+
+        addTableHeader(t, new String[]{"#", "Client", "Projets"});
+
+        Color[] medals = {new Color(202, 138, 4), new Color(148, 163, 184), new Color(180, 83, 9)};
+        boolean alt = false;
+        for (int i = 0; i < Math.min(10, clients.size()); i++) {
+            Color bg = alt ? SURFACE : WHITE;
+            alt = !alt;
+            ReportingDataDto.ClientActivityDto c = clients.get(i);
+            int filled = (int) Math.round(c.getProjectsCount() * 52.0 / max);
+            String rank = i < 3 ? new String[]{"1er","2e","3e"}[i] : String.valueOf(i + 1);
+            Color rankColor = i < 3 ? medals[i] : TEXT_MUTED;
+
+            addCell(t, rank, bodyB(rankColor), bg, Element.ALIGN_CENTER);
+            addCell(t, c.getClient(), body(TEXT_DARK), bg, Element.ALIGN_LEFT);
+            addBarCellWithCount(t, filled, 52, c.getProjectsCount(), PRIMARY, bg);
+        }
+        doc.add(t);
     }
 
-    private void addAdminSynthesis(Document document, ReportingDataDto data) throws DocumentException {
-        Paragraph title = new Paragraph("📊 SYNTHESE",
-                new Font(Font.HELVETICA, 14, Font.BOLD, PRIMARY_COLOR));
-        title.setSpacingBefore(10);
-        title.setSpacingAfter(8);
-        document.add(title);
+    // ── Admin Synthesis ────────────────────────────────────────────────────────
+    private void addAdminSynthesis(Document doc, ReportingDataDto data) throws DocumentException {
+        float activePct = (float) data.getUserStats().getActivePercentage();
+        int   newUsers  = data.getUserStats().getNewUsersThisMonth();
+        long  active    = data.getUserStats().getActiveUsers();
+        long  total     = data.getUserStats().getTotalUsers();
+        long  roles     = data.getActiveRolesCount();
 
-        PdfPTable card = new PdfPTable(3);
-        card.setWidthPercentage(100);
-        card.setWidths(new float[]{33f, 33f, 34f});
+        PdfPTable t = new PdfPTable(3);
+        t.setWidthPercentage(100);
+        t.setSpacingAfter(10);
 
-        // Carte 1: Taux d'activité
-        PdfPCell activityCell = new PdfPCell();
-        activityCell.setBackgroundColor(BG_LIGHT);
-        activityCell.setPadding(10);
-        activityCell.setBorder(Rectangle.BOX);
+        addSynthCard(t, "TAUX D'ACTIVITÉ",
+                String.format("%.1f%%", activePct),
+                active + " / " + total + " utilisateurs", SUCCESS);
+        addSynthCard(t, "NOUVEAUX CE MOIS",
+                "+" + newUsers,
+                "inscriptions récentes", WARNING);
+        addSynthCard(t, "RÔLES ACTIFS",
+                String.valueOf(roles),
+                "profils en service", INFO);
 
-        Paragraph activityTitle = new Paragraph("ACTIVITE", new Font(Font.HELVETICA, 9, Font.BOLD, TEXT_MUTED));
-        activityTitle.setAlignment(Element.ALIGN_CENTER);
-        activityCell.addElement(activityTitle);
-
-        float activePercent = (float) data.getUserStats().getActivePercentage();
-        Paragraph percentPara = new Paragraph(String.format("%.1f%%", activePercent), new Font(Font.HELVETICA, 18, Font.BOLD, SUCCESS_COLOR));
-        percentPara.setAlignment(Element.ALIGN_CENTER);
-        activityCell.addElement(percentPara);
-
-        Paragraph activeText = new Paragraph(data.getUserStats().getActiveUsers() + " / " + data.getUserStats().getTotalUsers() + " utilisateurs",
-                new Font(Font.HELVETICA, 8, Font.NORMAL, TEXT_MUTED));
-        activeText.setAlignment(Element.ALIGN_CENTER);
-        activityCell.addElement(activeText);
-
-        card.addCell(activityCell);
-
-        // Carte 2: Nouveautés
-        PdfPCell newCell = new PdfPCell();
-        newCell.setBackgroundColor(BG_LIGHT);
-        newCell.setPadding(10);
-        newCell.setBorder(Rectangle.BOX);
-
-        Paragraph newTitle = new Paragraph("NOUVEAUTES", new Font(Font.HELVETICA, 9, Font.BOLD, TEXT_MUTED));
-        newTitle.setAlignment(Element.ALIGN_CENTER);
-        newCell.addElement(newTitle);
-
-        Paragraph newUsers = new Paragraph("+" + data.getUserStats().getNewUsersThisMonth(), new Font(Font.HELVETICA, 18, Font.BOLD, WARNING_COLOR));
-        newUsers.setAlignment(Element.ALIGN_CENTER);
-        newCell.addElement(newUsers);
-
-        Paragraph newText = new Paragraph("nouveaux utilisateurs ce mois", new Font(Font.HELVETICA, 8, Font.NORMAL, TEXT_MUTED));
-        newText.setAlignment(Element.ALIGN_CENTER);
-        newCell.addElement(newText);
-
-        card.addCell(newCell);
-
-        // Carte 3: Rôles
-        PdfPCell rolesCell = new PdfPCell();
-        rolesCell.setBackgroundColor(BG_LIGHT);
-        rolesCell.setPadding(10);
-        rolesCell.setBorder(Rectangle.BOX);
-
-        Paragraph rolesTitle = new Paragraph("DIVERS", new Font(Font.HELVETICA, 9, Font.BOLD, TEXT_MUTED));
-        rolesTitle.setAlignment(Element.ALIGN_CENTER);
-        rolesCell.addElement(rolesTitle);
-
-        Paragraph rolesCount = new Paragraph(String.valueOf(data.getActiveRolesCount()), new Font(Font.HELVETICA, 18, Font.BOLD, INFO_COLOR));
-        rolesCount.setAlignment(Element.ALIGN_CENTER);
-        rolesCell.addElement(rolesCount);
-
-        Paragraph rolesText = new Paragraph("roles actifs", new Font(Font.HELVETICA, 8, Font.NORMAL, TEXT_MUTED));
-        rolesText.setAlignment(Element.ALIGN_CENTER);
-        rolesCell.addElement(rolesText);
-
-        card.addCell(rolesCell);
-
-        document.add(card);
+        doc.add(t);
     }
+
+    private void addSynthCard(PdfPTable table, String title, String value, String sub, Color accent) {
+        PdfPCell cell = new PdfPCell();
+        cell.setBackgroundColor(WHITE);
+        cell.setBorderColor(BORDER);
+        cell.setBorderWidth(0.5f);
+        cell.setBorderColorTop(accent);
+        cell.setBorderWidthTop(3f);
+        cell.setPaddingTop(14);
+        cell.setPaddingBottom(14);
+        cell.setPaddingLeft(10);
+        cell.setPaddingRight(10);
+
+        Paragraph tp = new Paragraph(title, captionB(TEXT_MUTED));
+        tp.setAlignment(Element.ALIGN_CENTER);
+        tp.setSpacingAfter(5);
+        cell.addElement(tp);
+
+        Paragraph vp = new Paragraph(value, new Font(Font.HELVETICA, 20, Font.BOLD, accent));
+        vp.setAlignment(Element.ALIGN_CENTER);
+        vp.setSpacingAfter(4);
+        cell.addElement(vp);
+
+        Paragraph sp = new Paragraph(sub, caption(TEXT_MUTED));
+        sp.setAlignment(Element.ALIGN_CENTER);
+        cell.addElement(sp);
+
+        table.addCell(cell);
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    //  CHEF DE PROJET REPORT
+    // ─────────────────────────────────────────────────────────────────────────
     public byte[] exportChefProjetReport(ReportingDataDto data) {
         try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
-            Document document = new Document(PageSize.A4);
-            PdfWriter.getInstance(document, out);
-            document.open();
+            Document doc = new Document(PageSize.A4, 36, 36, 36, 50);
+            PdfWriter writer = PdfWriter.getInstance(doc, out);
+            writer.setPageEvent(new FooterEvent("Rapport Chef de Projet"));
+            doc.open();
 
-            // ========== EN-TÊTE ==========
-            PdfPTable headerTable = new PdfPTable(1);
-            headerTable.setWidthPercentage(100);
-            headerTable.setSpacingAfter(10);
-            headerTable.setTotalWidth(523); // Largeur fixe
+            addHeader(doc, "RAPPORT CHEF DE PROJET", "Suivi des projets, tâches et équipe");
 
-            PdfPCell headerCell = new PdfPCell();
-            headerCell.setBackgroundColor(PRIMARY_COLOR);
-            headerCell.setPadding(15);
-            headerCell.setBorder(Rectangle.NO_BORDER);
+            long proj    = data.getMyProjects() != null ? data.getMyProjects().size() : 0;
+            long team    = data.getTeamPerformance() != null ? data.getTeamPerformance().size() : 0;
+            long done    = data.getTaskStats() != null ? data.getTaskStats().getCompletedTasks() : 0;
+            long inProg  = data.getTaskStats() != null ? data.getTaskStats().getInProgressTasks() : 0;
+            long pending = data.getTaskStats() != null ? data.getTaskStats().getPendingTasks() : 0;
+            long late    = data.getTaskStats() != null ? data.getTaskStats().getLateTasks() : 0;
 
-            Paragraph title = new Paragraph("RAPPORT CHEF DE PROJET",
-                    new Font(Font.HELVETICA, 18, Font.BOLD, Color.WHITE));
-            title.setAlignment(Element.ALIGN_CENTER);
-            headerCell.addElement(title);
+            // 6 KPI en 2 lignes de 3
+            PdfPTable row1 = new PdfPTable(3);
+            row1.setWidthPercentage(100);
+            row1.setSpacingAfter(4);
+            addKpiCard(row1, "PROJETS",   String.valueOf(proj),    "sous ma responsabilité", PRIMARY, PRIMARY_LIGHT);
+            addKpiCard(row1, "ÉQUIPE",    String.valueOf(team),    "membres assignés",        INFO,    INFO_LIGHT);
+            addKpiCard(row1, "TERMINÉES", String.valueOf(done),    "tâches achevées",         SUCCESS, SUCCESS_LIGHT);
+            doc.add(row1);
 
-            Paragraph date = new Paragraph(LocalDate.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy")),
-                    new Font(Font.HELVETICA, 10, Font.NORMAL, Color.WHITE));
-            date.setAlignment(Element.ALIGN_CENTER);
-            headerCell.addElement(date);
+            PdfPTable row2 = new PdfPTable(3);
+            row2.setWidthPercentage(100);
+            row2.setSpacingAfter(12);
+            addKpiCard(row2, "EN COURS",  String.valueOf(inProg),  "tâches actives",          WARNING, WARNING_LIGHT);
+            addKpiCard(row2, "À FAIRE",   String.valueOf(pending), "tâches planifiées",       INFO,    INFO_LIGHT);
+            addKpiCard(row2, "RETARD",    String.valueOf(late),    "tâches en retard",        DANGER,  DANGER_LIGHT);
+            doc.add(row2);
 
-            headerTable.addCell(headerCell);
-            document.add(headerTable);
-            document.add(new Paragraph(" "));
+            addSectionDivider(doc, "ÉTAT DES PROJETS");
+            addProjectStatus(doc, data.getMyProjects());
 
-            // ========== KPI ==========
-            Paragraph kpiTitle = new Paragraph("INDICATEURS CLES",
-                    new Font(Font.HELVETICA, 12, Font.BOLD, PRIMARY_COLOR));
-            kpiTitle.setSpacingAfter(8);
-            document.add(kpiTitle);
-
-            long projectsCount = data.getMyProjects() != null ? data.getMyProjects().size() : 0;
-            long teamCount = data.getTeamPerformance() != null ? data.getTeamPerformance().size() : 0;
-            long completedTasks = data.getTaskStats() != null ? data.getTaskStats().getCompletedTasks() : 0;
-            long inProgressTasks = data.getTaskStats() != null ? data.getTaskStats().getInProgressTasks() : 0;
-            long pendingTasks = data.getTaskStats() != null ? data.getTaskStats().getPendingTasks() : 0;
-            long lateTasks = data.getTaskStats() != null ? data.getTaskStats().getLateTasks() : 0;
-
-            // Ligne 1
-            PdfPTable kpiTable1 = new PdfPTable(3);
-            kpiTable1.setWidthPercentage(100);
-            addKpiCell(kpiTable1, "📁", "PROJETS", String.valueOf(projectsCount), PRIMARY_COLOR);
-            addKpiCell(kpiTable1, "👥", "EQUIPE", String.valueOf(teamCount), INFO_COLOR);
-            addKpiCell(kpiTable1, "✅", "TERMINEES", String.valueOf(completedTasks), SUCCESS_COLOR);
-            document.add(kpiTable1);
-
-            // Ligne 2
-            PdfPTable kpiTable2 = new PdfPTable(3);
-            kpiTable2.setWidthPercentage(100);
-            addKpiCell(kpiTable2, "⏳", "EN COURS", String.valueOf(inProgressTasks), WARNING_COLOR);
-            addKpiCell(kpiTable2, "📝", "A FAIRE", String.valueOf(pendingTasks), TEXT_MUTED);
-            addKpiCell(kpiTable2, "⚠️", "RETARD", String.valueOf(lateTasks), DANGER_COLOR);
-            document.add(kpiTable2);
-            document.add(new Paragraph(" "));
-
-            // ========== PROJETS ==========
-            Paragraph projectsTitle = new Paragraph("📊 ETAT DES PROJETS",
-                    new Font(Font.HELVETICA, 11, Font.BOLD, PRIMARY_COLOR));
-            projectsTitle.setSpacingAfter(8);
-            document.add(projectsTitle);
-
-            List<ReportingDataDto.ProjectSummaryDto> projects = data.getMyProjects();
-            if (projects != null && !projects.isEmpty()) {
-                int enCours = 0, enValidation = 0, preValides = 0, rejetes = 0;
-                for (ReportingDataDto.ProjectSummaryDto p : projects) {
-                    String status = p.getStatus();
-                    if ("EN_COURS".equals(status)) enCours++;
-                    else if ("EN_VALIDATION".equals(status)) enValidation++;
-                    else if ("PRE_VALIDE".equals(status)) preValides++;
-                    else if ("REJETE".equals(status)) rejetes++;
-                }
-                int total = enCours + enValidation + preValides + rejetes;
-                if (total > 0) {
-                    addProgressBarFixed(document, "En cours", enCours, total, INFO_COLOR);
-                    addProgressBarFixed(document, "En validation", enValidation, total, WARNING_COLOR);
-                    addProgressBarFixed(document, "Pré-validés", preValides, total, SUCCESS_COLOR);
-                    addProgressBarFixed(document, "Rejetés", rejetes, total, DANGER_COLOR);
-                }
-            } else {
-                document.add(new Paragraph("Aucun projet", new Font(Font.HELVETICA, 10, Font.NORMAL)));
-            }
-            document.add(new Paragraph(" "));
-
-            // ========== TACHES ==========
-            Paragraph tasksTitle = new Paragraph("✅ ETAT DES TACHES",
-                    new Font(Font.HELVETICA, 11, Font.BOLD, PRIMARY_COLOR));
-            tasksTitle.setSpacingAfter(8);
-            document.add(tasksTitle);
-
+            addSectionDivider(doc, "ÉTAT DES TÂCHES");
             long totalTasks = data.getTaskStats() != null ? data.getTaskStats().getTotalTasks() : 0;
             if (totalTasks > 0) {
-                int completed = (int) completedTasks;
-                int inProgress = (int) inProgressTasks;
-                int pending = (int) pendingTasks;
-                int late = (int) lateTasks;
-                int total = (int) totalTasks;
-
-                addProgressBarFixed(document, "Terminées", completed, total, SUCCESS_COLOR);
-                addProgressBarFixed(document, "En cours", inProgress, total, INFO_COLOR);
-                addProgressBarFixed(document, "À faire", pending, total, TEXT_MUTED);
-                addProgressBarFixed(document, "En retard", late, total, DANGER_COLOR);
-
-                float completionRate = totalTasks > 0 ? (completed * 100f / totalTasks) : 0;
-                Paragraph taux = new Paragraph("Taux d'achèvement: " + String.format("%.0f%%", completionRate),
-                        new Font(Font.HELVETICA, 9, Font.BOLD, SUCCESS_COLOR));
-                taux.setAlignment(Element.ALIGN_CENTER);
-                taux.setSpacingBefore(5);
-                document.add(taux);
-            } else {
-                document.add(new Paragraph("Aucune tâche", new Font(Font.HELVETICA, 10, Font.NORMAL)));
-            }
-            document.add(new Paragraph(" "));
-
-            // ========== PERFORMANCES DE L'EQUIPE ==========
-            Paragraph teamTitle = new Paragraph("👥 PERFORMANCES DE L'EQUIPE",
-                    new Font(Font.HELVETICA, 12, Font.BOLD, PRIMARY_COLOR));
-            teamTitle.setSpacingAfter(10);
-            document.add(teamTitle);
-
-            List<ReportingDataDto.TeamPerformanceDto> team = data.getTeamPerformance();
-            if (team != null && !team.isEmpty()) {
-                PdfPTable table = new PdfPTable(4);
-                table.setWidthPercentage(100);
-                table.setWidths(new float[]{30f, 40f, 15f, 15f});
-
-                String[] headers = {"Membre", "Email", "Tâches", "Efficacité"};
-                for (String header : headers) {
-                    PdfPCell headerCell2 = new PdfPCell(new Paragraph(header, new Font(Font.HELVETICA, 9, Font.BOLD, Color.WHITE)));
-                    headerCell2.setBackgroundColor(PRIMARY_COLOR);
-                    headerCell2.setPadding(6);
-                    table.addCell(headerCell2);
-                }
-
-                for (ReportingDataDto.TeamPerformanceDto member : team) {
-                    table.addCell(new PdfPCell(new Paragraph(member.getMemberName(), new Font(Font.HELVETICA, 8, Font.NORMAL))));
-                    table.addCell(new PdfPCell(new Paragraph(member.getEmail(), new Font(Font.HELVETICA, 8, Font.NORMAL))));
-
-                    PdfPCell tasksCell = new PdfPCell(new Paragraph(String.valueOf(member.getCompletedTasks()), new Font(Font.HELVETICA, 8, Font.NORMAL)));
-                    tasksCell.setHorizontalAlignment(Element.ALIGN_CENTER);
-                    table.addCell(tasksCell);
-
-                    int efficiency = (int) member.getEfficiency();
-                    Color effColor = efficiency >= 70 ? SUCCESS_COLOR : (efficiency >= 40 ? WARNING_COLOR : DANGER_COLOR);
-                    PdfPCell effCell = new PdfPCell(new Paragraph(efficiency + "%", new Font(Font.HELVETICA, 8, Font.BOLD, effColor)));
-                    effCell.setHorizontalAlignment(Element.ALIGN_CENTER);
-                    table.addCell(effCell);
-                }
-                document.add(table);
-            } else {
-                document.add(new Paragraph("Aucune donnée équipe disponible", new Font(Font.HELVETICA, 10, Font.NORMAL)));
+                addProgressBarsTable(doc,
+                        new String[]{"Terminées", "En cours", "À faire", "En retard"},
+                        new long[]{done, inProg, pending, late},
+                        totalTasks,
+                        new Color[]{SUCCESS, INFO, TEXT_MUTED, DANGER});
+                float rate = done * 100f / totalTasks;
+                addRateChip(doc, "Taux d'achèvement : " + String.format("%.0f%%", rate), SUCCESS, SUCCESS_LIGHT);
             }
 
-            document.close();
+            addSectionDivider(doc, "PERFORMANCES DE L'ÉQUIPE");
+            addTeamTable(doc, data.getTeamPerformance());
+
+            doc.close();
             return out.toByteArray();
-
         } catch (DocumentException | IOException e) {
-            throw new RuntimeException("Erreur generation PDF: " + e.getMessage(), e);
+            throw new RuntimeException("Erreur génération PDF chef de projet", e);
         }
     }
 
-    private void addKpiCell(PdfPTable table, String icon, String label, String value, Color color) {
-        PdfPCell cell = new PdfPCell();
-        cell.setBorder(Rectangle.BOX);
-        cell.setBorderColor(new Color(229, 231, 235));
-        cell.setPadding(8);
-        cell.setBackgroundColor(BG_LIGHT);
-
-        Paragraph iconPara = new Paragraph(icon, new Font(Font.HELVETICA, 20));
-        iconPara.setAlignment(Element.ALIGN_CENTER);
-        cell.addElement(iconPara);
-
-        Paragraph labelPara = new Paragraph(label, new Font(Font.HELVETICA, 7, Font.BOLD, TEXT_MUTED));
-        labelPara.setAlignment(Element.ALIGN_CENTER);
-        cell.addElement(labelPara);
-
-        Paragraph valuePara = new Paragraph(value, new Font(Font.HELVETICA, 14, Font.BOLD, color));
-        valuePara.setAlignment(Element.ALIGN_CENTER);
-        cell.addElement(valuePara);
-
-        table.addCell(cell);
+    private void addProjectStatus(Document doc, List<ReportingDataDto.ProjectSummaryDto> projects) throws DocumentException {
+        if (projects == null || projects.isEmpty()) {
+            doc.add(emptyState("Aucun projet"));
+            return;
+        }
+        int enCours = 0, enVal = 0, preVal = 0, rejetes = 0;
+        for (ReportingDataDto.ProjectSummaryDto p : projects) {
+            switch (p.getStatus() != null ? p.getStatus() : "") {
+                case "EN_COURS"      -> enCours++;
+                case "EN_VALIDATION" -> enVal++;
+                case "PRE_VALIDE"    -> preVal++;
+                case "REJETE"        -> rejetes++;
+            }
+        }
+        int total = enCours + enVal + preVal + rejetes;
+        if (total > 0) {
+            addProgressBarsTable(doc,
+                    new String[]{"En cours", "En validation", "Pré-validés", "Rejetés"},
+                    new long[]{enCours, enVal, preVal, rejetes},
+                    total,
+                    new Color[]{INFO, WARNING, SUCCESS, DANGER});
+        }
     }
 
-    // Version corrigée de addProgressBar - sans setWidths problématique
-    private void addProgressBarFixed(Document document, String label, int value, int total, Color color) throws DocumentException {
-        if (total <= 0) return;
+    private void addProgressBarsTable(Document doc, String[] labels, long[] values, long total, Color[] colors) throws DocumentException {
+        PdfPTable t = new PdfPTable(new float[]{20f, 8f, 62f, 10f});
+        t.setWidthPercentage(90);
+        t.setSpacingAfter(10);
 
-        // Utiliser un Paragraph simple au lieu d'une table complexe
-        float percent = (value * 100f / total);
-        percent = Math.min(percent, 100);
+        for (int i = 0; i < labels.length; i++) {
+            float pct    = total > 0 ? Math.min(values[i] * 100f / total, 100f) : 0f;
+            int   filled = Math.round(pct * 52f / 100f);
+            Color accent = colors[i % colors.length];
 
-        // Texte du label
-        Paragraph labelPara = new Paragraph(label + " (" + value + "/" + total + ") - " + String.format("%.0f%%", percent),
-                new Font(Font.HELVETICA, 9, Font.NORMAL));
-        document.add(labelPara);
-
-        // Barre de progression simple (texte)
-        int barLength = Math.round(percent / 2); // 50 caractères max
-        StringBuilder bar = new StringBuilder();
-        bar.append("█".repeat(Math.max(0, barLength)));
-        bar.append("░".repeat(Math.max(0, 50 - barLength)));
-
-        Paragraph barPara = new Paragraph(bar.toString(), new Font(Font.HELVETICA, 8, Font.NORMAL, color));
-        document.add(barPara);
-        document.add(new Paragraph(" "));
+            addCell(t, labels[i], body(TEXT_DARK), WHITE, Element.ALIGN_LEFT);
+            addCell(t, String.valueOf(values[i]), bodyB(accent), WHITE, Element.ALIGN_CENTER);
+            addBarCell(t, filled, 52, accent, WHITE);
+            addCell(t, String.format("%.0f%%", pct), smallB(accent), WHITE, Element.ALIGN_RIGHT);
+        }
+        doc.add(t);
     }
-    // ================= RAPPORT MANAGER =================
 
+    private void addRateChip(Document doc, String text, Color color, Color bg) throws DocumentException {
+        PdfPTable t = new PdfPTable(1);
+        t.setWidthPercentage(38);
+        t.setHorizontalAlignment(Element.ALIGN_CENTER);
+        t.setSpacingAfter(10);
+
+        PdfPCell cell = new PdfPCell(new Paragraph(text, bodyB(color)));
+        cell.setBackgroundColor(bg);
+        cell.setBorderColor(color);
+        cell.setBorderWidth(0.5f);
+        cell.setPaddingTop(5);
+        cell.setPaddingBottom(5);
+        cell.setPaddingLeft(10);
+        cell.setPaddingRight(10);
+        cell.setHorizontalAlignment(Element.ALIGN_CENTER);
+        t.addCell(cell);
+        doc.add(t);
+    }
+
+    private void addTeamTable(Document doc, List<ReportingDataDto.TeamPerformanceDto> team) throws DocumentException {
+        if (team == null || team.isEmpty()) {
+            doc.add(emptyState("Aucune donnée équipe"));
+            return;
+        }
+        PdfPTable t = new PdfPTable(new float[]{26f, 36f, 14f, 24f});
+        t.setWidthPercentage(100);
+        t.setSpacingAfter(10);
+
+        addTableHeader(t, new String[]{"Membre", "Email", "Tâches", "Efficacité"});
+
+        boolean alt = false;
+        for (ReportingDataDto.TeamPerformanceDto m : team) {
+            Color bg = alt ? SURFACE : WHITE;
+            alt = !alt;
+            int eff = (int) m.getEfficiency();
+            Color effColor = eff >= 70 ? SUCCESS : (eff >= 40 ? WARNING : DANGER);
+            Color effBg    = eff >= 70 ? SUCCESS_LIGHT : (eff >= 40 ? WARNING_LIGHT : DANGER_LIGHT);
+
+            addCell(t, m.getMemberName(), bodyB(TEXT_DARK), bg, Element.ALIGN_LEFT);
+            addCell(t, m.getEmail(), small(TEXT_MUTED), bg, Element.ALIGN_LEFT);
+            addCell(t, String.valueOf(m.getCompletedTasks()), bodyB(INFO), bg, Element.ALIGN_CENTER);
+
+            // Cellule efficacité avec badge coloré
+            PdfPCell effCell = new PdfPCell();
+            effCell.setBackgroundColor(bg);
+            effCell.setBorder(Rectangle.BOX);
+            effCell.setBorderColor(BORDER);
+            effCell.setBorderWidth(0.5f);
+            effCell.setPaddingTop(5);
+            effCell.setPaddingBottom(5);
+            effCell.setHorizontalAlignment(Element.ALIGN_CENTER);
+
+            PdfPTable badge = new PdfPTable(1);
+            badge.setWidthPercentage(60);
+            badge.setHorizontalAlignment(Element.ALIGN_CENTER);
+            PdfPCell bc = new PdfPCell(new Paragraph(eff + "%", bodyB(effColor)));
+            bc.setBackgroundColor(effBg);
+            bc.setBorder(Rectangle.NO_BORDER);
+            bc.setHorizontalAlignment(Element.ALIGN_CENTER);
+            bc.setPaddingTop(2);
+            bc.setPaddingBottom(2);
+            bc.setPaddingLeft(4);
+            bc.setPaddingRight(4);
+            badge.addCell(bc);
+            effCell.addElement(badge);
+            t.addCell(effCell);
+        }
+        doc.add(t);
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    //  MANAGER REPORT
+    // ─────────────────────────────────────────────────────────────────────────
     public byte[] exportManagerReport(ReportingDataDto data) {
         try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
-            Document document = new Document(PageSize.A4);
-            PdfWriter.getInstance(document, out);
-            document.open();
+            Document doc = new Document(PageSize.A4, 36, 36, 36, 50);
+            PdfWriter writer = PdfWriter.getInstance(doc, out);
+            writer.setPageEvent(new FooterEvent("Rapport Manager"));
+            doc.open();
 
-            // ========== EN-TÊTE ==========
-            PdfPTable headerTable = new PdfPTable(1);
-            headerTable.setWidthPercentage(100);
-            headerTable.setSpacingAfter(10);
+            addHeader(doc, "RAPPORT MANAGER", "Validation et supervision des projets");
 
-            PdfPCell headerCell = new PdfPCell();
-            headerCell.setBackgroundColor(PRIMARY_COLOR);
-            headerCell.setPadding(15);
-            headerCell.setBorder(Rectangle.NO_BORDER);
+            List<ReportingDataDto.ProjectSummaryDto> mgrProj   = data.getManagerProjects();
+            List<ReportingDataDto.ProjectReviewDto>  pending   = data.getPendingProjects();
+            List<ReportingDataDto.ProjectReviewDto>  processed = data.getProcessedProjects();
 
-            Paragraph title = new Paragraph("RAPPORT MANAGER",
-                    new Font(Font.HELVETICA, 18, Font.BOLD, Color.WHITE));
-            title.setAlignment(Element.ALIGN_CENTER);
-            headerCell.addElement(title);
-
-            Paragraph date = new Paragraph(LocalDate.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy")),
-                    new Font(Font.HELVETICA, 10, Font.NORMAL, Color.WHITE));
-            date.setAlignment(Element.ALIGN_CENTER);
-            headerCell.addElement(date);
-
-            headerTable.addCell(headerCell);
-            document.add(headerTable);
-            document.add(new Paragraph(" "));
-
-            // ========== KPI ==========
-            Paragraph kpiTitle = new Paragraph("INDICATEURS CLES",
-                    new Font(Font.HELVETICA, 12, Font.BOLD, PRIMARY_COLOR));
-            kpiTitle.setSpacingAfter(8);
-            document.add(kpiTitle);
-
-            List<ReportingDataDto.ProjectSummaryDto> managerProjects = data.getManagerProjects();
-            List<ReportingDataDto.ProjectReviewDto> pendingProjects = data.getPendingProjects();
-            List<ReportingDataDto.ProjectReviewDto> processedProjects = data.getProcessedProjects();
-
-            int totalProjects = managerProjects != null ? managerProjects.size() : 0;
-            int pendingCount = pendingProjects != null ? pendingProjects.size() : 0;
-            int validatedCount = 0;
-            int rejectedCount = 0;
-
-            if (processedProjects != null) {
-                for (ReportingDataDto.ProjectReviewDto p : processedProjects) {
-                    if ("PRE_VALIDE".equals(p.getStatus())) validatedCount++;
-                    else if ("REJETE".equals(p.getStatus())) rejectedCount++;
+            int totalP = mgrProj != null ? mgrProj.size() : 0;
+            int pendingC = pending != null ? pending.size() : 0;
+            int validatedC = 0, rejectedC = 0;
+            if (processed != null) {
+                for (var p : processed) {
+                    if ("PRE_VALIDE".equals(p.getStatus())) validatedC++;
+                    else if ("REJETE".equals(p.getStatus())) rejectedC++;
                 }
             }
+            double validRate = totalP > 0 ? (validatedC * 100.0 / totalP) : 0;
 
-            double validationRate = totalProjects > 0 ? (validatedCount * 100.0 / totalProjects) : 0;
+            PdfPTable kpi = new PdfPTable(4);
+            kpi.setWidthPercentage(100);
+            kpi.setSpacingAfter(12);
+            addKpiCard(kpi, "À VALIDER", String.valueOf(pendingC),   "en attente",  WARNING, WARNING_LIGHT);
+            addKpiCard(kpi, "VALIDÉS",   String.valueOf(validatedC), "pré-validés", SUCCESS, SUCCESS_LIGHT);
+            addKpiCard(kpi, "REJETÉS",   String.valueOf(rejectedC),  "refusés",     DANGER,  DANGER_LIGHT);
+            addKpiCard(kpi, "TOTAL",     String.valueOf(totalP),     "tous projets",PRIMARY, PRIMARY_LIGHT);
+            doc.add(kpi);
 
-            // 4 cartes KPI
-            PdfPTable kpiTable = new PdfPTable(4);
-            kpiTable.setWidthPercentage(100);
-            addManagerKpiCell(kpiTable, "⏳", "A VALIDER", String.valueOf(pendingCount), WARNING_COLOR);
-            addManagerKpiCell(kpiTable, "✅", "VALIDES", String.valueOf(validatedCount), SUCCESS_COLOR);
-            addManagerKpiCell(kpiTable, "❌", "REJETES", String.valueOf(rejectedCount), DANGER_COLOR);
-            addManagerKpiCell(kpiTable, "📁", "TOTAL", String.valueOf(totalProjects), PRIMARY_COLOR);
-            document.add(kpiTable);
-            document.add(new Paragraph(" "));
+            addSectionDivider(doc, "RÉPARTITION DES PROJETS");
+            addProjectStatus(doc, mgrProj);
 
-            // ========== RÉPARTITION DES PROJETS ==========
-            Paragraph statsTitle = new Paragraph("📊 REPARTITION DES PROJETS",
-                    new Font(Font.HELVETICA, 11, Font.BOLD, PRIMARY_COLOR));
-            statsTitle.setSpacingAfter(8);
-            document.add(statsTitle);
+            addSectionDivider(doc, "TAUX DE VALIDATION");
+            addProgressBarsTable(doc,
+                    new String[]{"Validés", "Rejetés"},
+                    new long[]{validatedC, rejectedC},
+                    totalP > 0 ? totalP : 1,
+                    new Color[]{SUCCESS, DANGER});
+            addRateChip(doc, String.format("Taux de validation : %.0f%%", validRate), SUCCESS, SUCCESS_LIGHT);
 
-            if (managerProjects != null && !managerProjects.isEmpty()) {
-                int enCours = 0, enValidation = 0, preValides = 0, rejetes = 0;
-                for (ReportingDataDto.ProjectSummaryDto p : managerProjects) {
-                    String status = p.getStatus();
-                    if ("EN_COURS".equals(status)) enCours++;
-                    else if ("EN_VALIDATION".equals(status)) enValidation++;
-                    else if ("PRE_VALIDE".equals(status)) preValides++;
-                    else if ("REJETE".equals(status)) rejetes++;
-                }
-                int total = enCours + enValidation + preValides + rejetes;
-                if (total > 0) {
-                    addManagerProgressBar(document, "En cours", enCours, total, INFO_COLOR);
-                    addManagerProgressBar(document, "En validation", enValidation, total, WARNING_COLOR);
-                    addManagerProgressBar(document, "Pré-validés", preValides, total, SUCCESS_COLOR);
-                    addManagerProgressBar(document, "Rejetés", rejetes, total, DANGER_COLOR);
-                }
-            } else {
-                document.add(new Paragraph("Aucun projet", new Font(Font.HELVETICA, 10, Font.NORMAL)));
-            }
-            document.add(new Paragraph(" "));
+            addSectionDivider(doc, "PROJETS EN ATTENTE DE VALIDATION");
+            addPendingProjectsList(doc, pending);
 
-            // ========== TAUX DE VALIDATION ==========
-            Paragraph rateTitle = new Paragraph("📈 TAUX DE VALIDATION",
-                    new Font(Font.HELVETICA, 11, Font.BOLD, PRIMARY_COLOR));
-            rateTitle.setSpacingAfter(8);
-            document.add(rateTitle);
+            addSectionDivider(doc, "HISTORIQUE DES DÉCISIONS");
+            addProcessedTable(doc, processed);
 
-            // Barre de validation
-            int validationPercent = (int) Math.min(validationRate, 100);
-            StringBuilder validationBar = new StringBuilder();
-            validationBar.append("█".repeat(Math.max(0, validationPercent / 2)));
-            validationBar.append("░".repeat(Math.max(0, 50 - (validationPercent / 2))));
-
-            Paragraph validationPara = new Paragraph("Taux de validation: " + String.format("%.0f%%", validationRate),
-                    new Font(Font.HELVETICA, 10, Font.BOLD, SUCCESS_COLOR));
-            document.add(validationPara);
-
-            Paragraph barPara = new Paragraph(validationBar.toString(), new Font(Font.HELVETICA, 8, Font.NORMAL, SUCCESS_COLOR));
-            document.add(barPara);
-            document.add(new Paragraph(" "));
-
-            // ========== PROJETS EN ATTENTE ==========
-            Paragraph pendingTitle = new Paragraph("📋 PROJETS EN ATTENTE DE VALIDATION",
-                    new Font(Font.HELVETICA, 11, Font.BOLD, PRIMARY_COLOR));
-            pendingTitle.setSpacingAfter(8);
-            document.add(pendingTitle);
-
-            if (pendingProjects != null && !pendingProjects.isEmpty()) {
-                for (ReportingDataDto.ProjectReviewDto p : pendingProjects.stream().limit(10).toList()) {
-                    PdfPTable row = new PdfPTable(2);
-                    row.setWidthPercentage(100);
-                    row.setWidths(new float[]{70f, 30f});
-                    row.setSpacingAfter(4);
-
-                    PdfPCell nameCell = new PdfPCell(new Paragraph(p.getName(), new Font(Font.HELVETICA, 9, Font.NORMAL)));
-                    nameCell.setBorder(Rectangle.NO_BORDER);
-                    row.addCell(nameCell);
-
-                    PdfPCell clientCell = new PdfPCell(new Paragraph(p.getClient(), new Font(Font.HELVETICA, 8, Font.NORMAL, TEXT_MUTED)));
-                    clientCell.setHorizontalAlignment(Element.ALIGN_RIGHT);
-                    clientCell.setBorder(Rectangle.NO_BORDER);
-                    row.addCell(clientCell);
-
-                    document.add(row);
-                }
-            } else {
-                document.add(new Paragraph("Aucun projet en attente", new Font(Font.HELVETICA, 10, Font.NORMAL)));
-            }
-            document.add(new Paragraph(" "));
-
-            // ========== HISTORIQUE DES DÉCISIONS ==========
-            Paragraph historyTitle = new Paragraph("📜 HISTORIQUE DES DECISIONS",
-                    new Font(Font.HELVETICA, 11, Font.BOLD, PRIMARY_COLOR));
-            historyTitle.setSpacingAfter(8);
-            document.add(historyTitle);
-
-            if (processedProjects != null && !processedProjects.isEmpty()) {
-                PdfPTable table = new PdfPTable(3);
-                table.setWidthPercentage(100);
-                table.setWidths(new float[]{40f, 30f, 30f});
-
-                String[] headers = {"Projet", "Client", "Decision"};
-                for (String header : headers) {
-                    PdfPCell headerCell2 = new PdfPCell(new Paragraph(header, new Font(Font.HELVETICA, 9, Font.BOLD, Color.WHITE)));
-                    headerCell2.setBackgroundColor(PRIMARY_COLOR);
-                    headerCell2.setPadding(5);
-                    table.addCell(headerCell2);
-                }
-
-                for (ReportingDataDto.ProjectReviewDto p : processedProjects.stream().limit(15).toList()) {
-                    table.addCell(new PdfPCell(new Paragraph(p.getName(), new Font(Font.HELVETICA, 8, Font.NORMAL))));
-                    table.addCell(new PdfPCell(new Paragraph(p.getClient(), new Font(Font.HELVETICA, 8, Font.NORMAL))));
-
-                    String decision = "PRE_VALIDE".equals(p.getStatus()) ? "✅ Valide" : "❌ Rejete";
-                    Color decisionColor = "PRE_VALIDE".equals(p.getStatus()) ? SUCCESS_COLOR : DANGER_COLOR;
-                    PdfPCell decisionCell = new PdfPCell(new Paragraph(decision, new Font(Font.HELVETICA, 8, Font.BOLD, decisionColor)));
-                    decisionCell.setHorizontalAlignment(Element.ALIGN_CENTER);
-                    table.addCell(decisionCell);
-                }
-                document.add(table);
-            } else {
-                document.add(new Paragraph("Aucun historique", new Font(Font.HELVETICA, 10, Font.NORMAL)));
-            }
-
-            document.close();
+            doc.close();
             return out.toByteArray();
-
         } catch (DocumentException | IOException e) {
-            throw new RuntimeException("Erreur generation PDF manager: " + e.getMessage(), e);
+            throw new RuntimeException("Erreur génération PDF manager", e);
         }
     }
 
-    private void addManagerKpiCell(PdfPTable table, String icon, String label, String value, Color color) {
-        PdfPCell cell = new PdfPCell();
-        cell.setBorder(Rectangle.BOX);
-        cell.setBorderColor(new Color(229, 231, 235));
-        cell.setPadding(10);
-        cell.setBackgroundColor(BG_LIGHT);
+    private void addPendingProjectsList(Document doc, List<ReportingDataDto.ProjectReviewDto> list) throws DocumentException {
+        if (list == null || list.isEmpty()) {
+            doc.add(emptyState("Aucun projet en attente"));
+            return;
+        }
+        PdfPTable t = new PdfPTable(new float[]{65f, 35f});
+        t.setWidthPercentage(96);
+        t.setSpacingAfter(10);
+        addTableHeaderColored(t, new String[]{"Projet", "Client"}, WARNING);
 
-        Paragraph iconPara = new Paragraph(icon, new Font(Font.HELVETICA, 22));
-        iconPara.setAlignment(Element.ALIGN_CENTER);
-        cell.addElement(iconPara);
-
-        Paragraph labelPara = new Paragraph(label, new Font(Font.HELVETICA, 8, Font.BOLD, TEXT_MUTED));
-        labelPara.setAlignment(Element.ALIGN_CENTER);
-        cell.addElement(labelPara);
-
-        Paragraph valuePara = new Paragraph(value, new Font(Font.HELVETICA, 18, Font.BOLD, color));
-        valuePara.setAlignment(Element.ALIGN_CENTER);
-        cell.addElement(valuePara);
-
-        table.addCell(cell);
+        boolean alt = false;
+        for (var p : list.stream().limit(10).toList()) {
+            Color bg = alt ? WARNING_LIGHT : WHITE;
+            alt = !alt;
+            addCell(t, p.getName(), body(TEXT_DARK), bg, Element.ALIGN_LEFT);
+            addCell(t, p.getClient(), small(TEXT_MUTED), bg, Element.ALIGN_LEFT);
+        }
+        doc.add(t);
     }
 
-    private void addManagerProgressBar(Document document, String label, int value, int total, Color color) throws DocumentException {
-        if (total <= 0) return;
+    private void addProcessedTable(Document doc, List<ReportingDataDto.ProjectReviewDto> list) throws DocumentException {
+        if (list == null || list.isEmpty()) {
+            doc.add(emptyState("Aucun historique"));
+            return;
+        }
+        PdfPTable t = new PdfPTable(new float[]{42f, 30f, 28f});
+        t.setWidthPercentage(100);
+        t.setSpacingAfter(10);
+        addTableHeader(t, new String[]{"Projet", "Client", "Décision"});
 
-        float percent = (value * 100f / total);
-        percent = Math.min(percent, 100);
-
-        Paragraph labelPara = new Paragraph(label + " (" + value + "/" + total + ") - " + String.format("%.0f%%", percent),
-                new Font(Font.HELVETICA, 9, Font.NORMAL));
-        document.add(labelPara);
-
-        int barLength = Math.round(percent / 2);
-        StringBuilder bar = new StringBuilder();
-        bar.append("█".repeat(Math.max(0, barLength)));
-        bar.append("░".repeat(Math.max(0, 50 - barLength)));
-
-        Paragraph barPara = new Paragraph(bar.toString(), new Font(Font.HELVETICA, 8, Font.NORMAL, color));
-        document.add(barPara);
-        document.add(new Paragraph(" "));
+        boolean alt = false;
+        for (var p : list.stream().limit(15).toList()) {
+            Color bg = alt ? SURFACE : WHITE;
+            alt = !alt;
+            boolean ok = "PRE_VALIDE".equals(p.getStatus());
+            addCell(t, p.getName(), body(TEXT_DARK), bg, Element.ALIGN_LEFT);
+            addCell(t, p.getClient(), small(TEXT_MUTED), bg, Element.ALIGN_LEFT);
+            // Badge décision
+            addCell(t, ok ? "✓  Validé" : "✗  Rejeté", bodyB(ok ? SUCCESS : DANGER), ok ? SUCCESS_LIGHT : DANGER_LIGHT, Element.ALIGN_CENTER);
+        }
+        doc.add(t);
     }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    //  MEMBRE ÉQUIPE REPORT
+    // ─────────────────────────────────────────────────────────────────────────
     public byte[] exportMembreEquipeReport(ReportingDataDto data) {
         try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
-            Document document = new Document(PageSize.A4);
-            PdfWriter.getInstance(document, out);
-            document.open();
+            Document doc = new Document(PageSize.A4, 36, 36, 36, 50);
+            PdfWriter writer = PdfWriter.getInstance(doc, out);
+            writer.setPageEvent(new FooterEvent("Rapport Membre Équipe"));
+            doc.open();
 
-            // ========== EN-TÊTE ==========
-            PdfPTable headerTable = new PdfPTable(1);
-            headerTable.setWidthPercentage(100);
-            headerTable.setSpacingAfter(10);
+            addHeader(doc, "RAPPORT MEMBRE ÉQUIPE", "Suivi personnel de mes tâches et performances");
 
-            PdfPCell headerCell = new PdfPCell();
-            headerCell.setBackgroundColor(PRIMARY_COLOR);
-            headerCell.setPadding(15);
-            headerCell.setBorder(Rectangle.NO_BORDER);
+            long total   = data.getPersonalTaskStats() != null ? data.getPersonalTaskStats().getTotalTasks() : 0;
+            long done    = data.getPersonalTaskStats() != null ? data.getPersonalTaskStats().getCompletedTasks() : 0;
+            long inProg  = data.getPersonalTaskStats() != null ? data.getPersonalTaskStats().getInProgressTasks() : 0;
+            long pending = data.getPersonalTaskStats() != null ? data.getPersonalTaskStats().getPendingTasks() : 0;
+            long late    = data.getPersonalTaskStats() != null ? data.getPersonalTaskStats().getLateTasks() : 0;
 
-            Paragraph title = new Paragraph("RAPPORT MEMBRE EQUIPE",
-                    new Font(Font.HELVETICA, 18, Font.BOLD, Color.WHITE));
-            title.setAlignment(Element.ALIGN_CENTER);
-            headerCell.addElement(title);
+            PdfPTable kpi = new PdfPTable(5);
+            kpi.setWidthPercentage(100);
+            kpi.setSpacingAfter(12);
+            addKpiCard(kpi, "TOTAL",     String.valueOf(total),   "mes tâches", PRIMARY, PRIMARY_LIGHT);
+            addKpiCard(kpi, "TERMINÉES", String.valueOf(done),    "achevées",   SUCCESS, SUCCESS_LIGHT);
+            addKpiCard(kpi, "EN COURS",  String.valueOf(inProg),  "actives",    WARNING, WARNING_LIGHT);
+            addKpiCard(kpi, "À FAIRE",   String.valueOf(pending), "planifiées", INFO,    INFO_LIGHT);
+            addKpiCard(kpi, "RETARD",    String.valueOf(late),    "en retard",  DANGER,  DANGER_LIGHT);
+            doc.add(kpi);
 
-            Paragraph date = new Paragraph(LocalDate.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy")),
-                    new Font(Font.HELVETICA, 10, Font.NORMAL, Color.WHITE));
-            date.setAlignment(Element.ALIGN_CENTER);
-            headerCell.addElement(date);
+            addSectionDivider(doc, "TAUX D'ACHÈVEMENT");
+            double rate = data.getPersonalCompletionRate();
+            addProgressBarsTable(doc,
+                    new String[]{"Terminées", "En cours", "À faire", "En retard"},
+                    new long[]{done, inProg, pending, late},
+                    total > 0 ? total : 1,
+                    new Color[]{SUCCESS, INFO, TEXT_MUTED, DANGER});
+            addRateChip(doc, "Progression globale : " + String.format("%.0f%%", rate), SUCCESS, SUCCESS_LIGHT);
 
-            headerTable.addCell(headerCell);
-            document.add(headerTable);
-            document.add(new Paragraph(" "));
-
-            // ========== INDICATEURS CLES ==========
-            Paragraph kpiTitle = new Paragraph("INDICATEURS CLES",
-                    new Font(Font.HELVETICA, 12, Font.BOLD, PRIMARY_COLOR));
-            kpiTitle.setSpacingAfter(8);
-            document.add(kpiTitle);
-
-            long totalTasks = data.getPersonalTaskStats() != null ? data.getPersonalTaskStats().getTotalTasks() : 0;
-            long completedTasks = data.getPersonalTaskStats() != null ? data.getPersonalTaskStats().getCompletedTasks() : 0;
-            long inProgressTasks = data.getPersonalTaskStats() != null ? data.getPersonalTaskStats().getInProgressTasks() : 0;
-            long pendingTasks = data.getPersonalTaskStats() != null ? data.getPersonalTaskStats().getPendingTasks() : 0;
-            long lateTasks = data.getPersonalTaskStats() != null ? data.getPersonalTaskStats().getLateTasks() : 0;
-
-            PdfPTable kpiTable = new PdfPTable(5);
-            kpiTable.setWidthPercentage(100);
-            addMembreKpiCell(kpiTable, "📋", "TOTAL", String.valueOf(totalTasks), PRIMARY_COLOR);
-            addMembreKpiCell(kpiTable, "✅", "TERMINEES", String.valueOf(completedTasks), SUCCESS_COLOR);
-            addMembreKpiCell(kpiTable, "⏳", "EN COURS", String.valueOf(inProgressTasks), WARNING_COLOR);
-            addMembreKpiCell(kpiTable, "📝", "A FAIRE", String.valueOf(pendingTasks), INFO_COLOR);
-            addMembreKpiCell(kpiTable, "⚠️", "RETARD", String.valueOf(lateTasks), DANGER_COLOR);
-            document.add(kpiTable);
-            document.add(new Paragraph(" "));
-
-            // ========== TAUX D'ACHEVEMENT ==========
-            Paragraph rateTitle = new Paragraph("📈 TAUX D'ACHEVEMENT",
-                    new Font(Font.HELVETICA, 11, Font.BOLD, PRIMARY_COLOR));
-            rateTitle.setSpacingAfter(8);
-            document.add(rateTitle);
-
-            double completionRate = data.getPersonalCompletionRate();
-            int ratePercent = (int) Math.min(completionRate, 100);
-
-            StringBuilder rateBar = new StringBuilder();
-            rateBar.append("█".repeat(Math.max(0, ratePercent / 2)));
-            rateBar.append("░".repeat(Math.max(0, 50 - (ratePercent / 2))));
-
-            Paragraph ratePara = new Paragraph("Progression: " + String.format("%.0f%%", completionRate),
-                    new Font(Font.HELVETICA, 10, Font.BOLD, SUCCESS_COLOR));
-            document.add(ratePara);
-
-            Paragraph barPara = new Paragraph(rateBar.toString(), new Font(Font.HELVETICA, 8, Font.NORMAL, SUCCESS_COLOR));
-            document.add(barPara);
-            document.add(new Paragraph(" "));
-
-            // ========== REPARTITION PAR PRIORITE ==========
-            Paragraph priorityTitle = new Paragraph("🎯 REPARTITION PAR PRIORITE",
-                    new Font(Font.HELVETICA, 11, Font.BOLD, PRIMARY_COLOR));
-            priorityTitle.setSpacingAfter(8);
-            document.add(priorityTitle);
-
-            long highCount = data.getPriorityDistribution() != null ? data.getPriorityDistribution().getHighPriorityCount() : 0;
-            long mediumCount = data.getPriorityDistribution() != null ? data.getPriorityDistribution().getMediumPriorityCount() : 0;
-            long lowCount = data.getPriorityDistribution() != null ? data.getPriorityDistribution().getLowPriorityCount() : 0;
-            long total = highCount + mediumCount + lowCount;
-
-            if (total > 0) {
-                addMembreProgressBar(document, "Haute priorite", (int) highCount, (int) total, DANGER_COLOR);
-                addMembreProgressBar(document, "Priorite moyenne", (int) mediumCount, (int) total, WARNING_COLOR);
-                addMembreProgressBar(document, "Basse priorite", (int) lowCount, (int) total, INFO_COLOR);
-            } else {
-                document.add(new Paragraph("Aucune tache", new Font(Font.HELVETICA, 10, Font.NORMAL)));
-            }
-            document.add(new Paragraph(" "));
-
-            // ========== EVOLUTION HEBDOMADAIRE ==========
-            Paragraph weeklyTitle = new Paragraph("📅 EVOLUTION HEBDOMADAIRE",
-                    new Font(Font.HELVETICA, 11, Font.BOLD, PRIMARY_COLOR));
-            weeklyTitle.setSpacingAfter(8);
-            document.add(weeklyTitle);
-
-            List<ReportingDataDto.WeeklyEvolutionDto> weekly = data.getWeeklyEvolution();
-            if (weekly != null && !weekly.isEmpty()) {
-                PdfPTable weeklyTable = new PdfPTable(3);
-                weeklyTable.setWidthPercentage(100);
-                weeklyTable.setWidths(new float[]{30f, 35f, 35f});
-
-                String[] headers = {"Semaine", "Taches", "Taux"};
-                for (String header : headers) {
-                    PdfPCell headerCell2 = new PdfPCell(new Paragraph(header, new Font(Font.HELVETICA, 9, Font.BOLD, Color.WHITE)));
-                    headerCell2.setBackgroundColor(PRIMARY_COLOR);
-                    headerCell2.setPadding(5);
-                    weeklyTable.addCell(headerCell2);
-                }
-
-                for (ReportingDataDto.WeeklyEvolutionDto w : weekly) {
-                    weeklyTable.addCell(new PdfPCell(new Paragraph(w.getWeek(), new Font(Font.HELVETICA, 8, Font.NORMAL))));
-                    weeklyTable.addCell(new PdfPCell(new Paragraph(w.getCompleted() + "/" + w.getTotal(), new Font(Font.HELVETICA, 8, Font.NORMAL))));
-                    weeklyTable.addCell(new PdfPCell(new Paragraph(String.format("%.0f%%", w.getCompletionRate()), new Font(Font.HELVETICA, 8, Font.BOLD, SUCCESS_COLOR))));
-                }
-                document.add(weeklyTable);
-            } else {
-                document.add(new Paragraph("Aucune donnee hebdomadaire", new Font(Font.HELVETICA, 10, Font.NORMAL)));
-            }
-            document.add(new Paragraph(" "));
-
-            // ========== TACHES PRIORITAIRES (HAUTE) ==========
-            Paragraph highTasksTitle = new Paragraph("⚠️ TACHES PRIORITAIRES (HAUTE)",
-                    new Font(Font.HELVETICA, 11, Font.BOLD, PRIMARY_COLOR));
-            highTasksTitle.setSpacingAfter(8);
-            document.add(highTasksTitle);
-
-            List<ReportingDataDto.TaskSummaryDto> highPriorityTasks = data.getCurrentTasks() != null ?
-                    data.getCurrentTasks().stream()
-                            .filter(t -> "HAUTE".equals(t.getPriority()))
-                            .limit(10)
-                            .toList() : List.of();
-
-            if (!highPriorityTasks.isEmpty()) {
-                PdfPTable tasksTable = new PdfPTable(3);
-                tasksTable.setWidthPercentage(100);
-                tasksTable.setWidths(new float[]{40f, 35f, 25f});
-
-                String[] taskHeaders = {"Tache", "Projet", "Echeance"};
-                for (String header : taskHeaders) {
-                    PdfPCell headerCell2 = new PdfPCell(new Paragraph(header, new Font(Font.HELVETICA, 9, Font.BOLD, Color.WHITE)));
-                    headerCell2.setBackgroundColor(DANGER_COLOR);
-                    headerCell2.setPadding(5);
-                    tasksTable.addCell(headerCell2);
-                }
-
-                for (ReportingDataDto.TaskSummaryDto t : highPriorityTasks) {
-                    tasksTable.addCell(new PdfPCell(new Paragraph(t.getTitle(), new Font(Font.HELVETICA, 8, Font.NORMAL))));
-                    tasksTable.addCell(new PdfPCell(new Paragraph(t.getProjectName() != null ? t.getProjectName() : "-", new Font(Font.HELVETICA, 8, Font.NORMAL))));
-
-                    String dateStr = t.getEstimatedEndDate() != null ? t.getEstimatedEndDate() : "Non definie";
-                    PdfPCell dateCell = new PdfPCell(new Paragraph(dateStr, new Font(Font.HELVETICA, 8, Font.NORMAL, DANGER_COLOR)));
-                    tasksTable.addCell(dateCell);
-                }
-                document.add(tasksTable);
-            } else {
-                document.add(new Paragraph("Aucune tache prioritaire", new Font(Font.HELVETICA, 10, Font.NORMAL)));
-            }
-            document.add(new Paragraph(" "));
-
-            // ========== TACHES A FAIRE ==========
-            Paragraph todoTitle = new Paragraph("📝 TACHES A FAIRE",
-                    new Font(Font.HELVETICA, 11, Font.BOLD, PRIMARY_COLOR));
-            todoTitle.setSpacingAfter(8);
-            document.add(todoTitle);
-
-            List<ReportingDataDto.TaskSummaryDto> todoTasks = data.getCurrentTasks() != null ?
-                    data.getCurrentTasks().stream()
-                            .filter(t -> "A_faire".equals(t.getStatus()) || "PENDING".equals(t.getStatus()))
-                            .limit(10)
-                            .toList() : List.of();
-
-            if (!todoTasks.isEmpty()) {
-                PdfPTable todoTable = new PdfPTable(4);
-                todoTable.setWidthPercentage(100);
-                todoTable.setWidths(new float[]{35f, 30f, 20f, 15f});
-
-                String[] todoHeaders = {"Tache", "Projet", "Priorite", "Echeance"};
-                for (String header : todoHeaders) {
-                    PdfPCell headerCell2 = new PdfPCell(new Paragraph(header, new Font(Font.HELVETICA, 9, Font.BOLD, Color.WHITE)));
-                    headerCell2.setBackgroundColor(INFO_COLOR);
-                    headerCell2.setPadding(5);
-                    todoTable.addCell(headerCell2);
-                }
-
-                for (ReportingDataDto.TaskSummaryDto t : todoTasks) {
-                    todoTable.addCell(new PdfPCell(new Paragraph(t.getTitle(), new Font(Font.HELVETICA, 8, Font.NORMAL))));
-                    todoTable.addCell(new PdfPCell(new Paragraph(t.getProjectName() != null ? t.getProjectName() : "-", new Font(Font.HELVETICA, 8, Font.NORMAL))));
-
-                    // Priorité
-                    Color priorityColor = "HAUTE".equals(t.getPriority()) ? DANGER_COLOR :
-                            ("MOYENNE".equals(t.getPriority()) ? WARNING_COLOR : INFO_COLOR);
-                    String priorityLabel = "HAUTE".equals(t.getPriority()) ? "Haute" :
-                            ("MOYENNE".equals(t.getPriority()) ? "Moyenne" : "Basse");
-                    PdfPCell priorityCell = new PdfPCell(new Paragraph(priorityLabel, new Font(Font.HELVETICA, 8, Font.BOLD, priorityColor)));
-                    priorityCell.setHorizontalAlignment(Element.ALIGN_CENTER);
-                    todoTable.addCell(priorityCell);
-
-                    String dateStr = t.getEstimatedEndDate() != null ? t.getEstimatedEndDate() : "Non definie";
-                    PdfPCell dateCell = new PdfPCell(new Paragraph(dateStr, new Font(Font.HELVETICA, 8, Font.NORMAL)));
-                    dateCell.setHorizontalAlignment(Element.ALIGN_CENTER);
-                    todoTable.addCell(dateCell);
-                }
-                document.add(todoTable);
-            } else {
-                document.add(new Paragraph("Aucune tache a faire", new Font(Font.HELVETICA, 10, Font.NORMAL)));
+            addSectionDivider(doc, "RÉPARTITION PAR PRIORITÉ");
+            long high    = data.getPriorityDistribution() != null ? data.getPriorityDistribution().getHighPriorityCount()   : 0;
+            long medium  = data.getPriorityDistribution() != null ? data.getPriorityDistribution().getMediumPriorityCount() : 0;
+            long low     = data.getPriorityDistribution() != null ? data.getPriorityDistribution().getLowPriorityCount()    : 0;
+            long prioTotal = high + medium + low;
+            if (prioTotal > 0) {
+                addProgressBarsTable(doc,
+                        new String[]{"Haute", "Moyenne", "Basse"},
+                        new long[]{high, medium, low},
+                        prioTotal,
+                        new Color[]{DANGER, WARNING, INFO});
             }
 
-            document.close();
+            addSectionDivider(doc, "ÉVOLUTION HEBDOMADAIRE");
+            addWeeklyTable(doc, data.getWeeklyEvolution());
+
+            addSectionDivider(doc, "TÂCHES PRIORITAIRES (HAUTE)");
+            addHighPriorityTasksTable(doc, data.getCurrentTasks());
+
+            addSectionDivider(doc, "TÂCHES À FAIRE");
+            addTodoTasksTable(doc, data.getCurrentTasks());
+
+            doc.close();
             return out.toByteArray();
-
         } catch (DocumentException | IOException e) {
-            throw new RuntimeException("Erreur generation PDF membre equipe: " + e.getMessage(), e);
+            throw new RuntimeException("Erreur génération PDF membre équipe", e);
         }
     }
-    // Ajoutez ces méthodes après la méthode exportMembreEquipeReport
 
-    private void addMembreKpiCell(PdfPTable table, String icon, String label, String value, Color color) {
-        PdfPCell cell = new PdfPCell();
-        cell.setBorder(Rectangle.BOX);
-        cell.setBorderColor(new Color(229, 231, 235));
-        cell.setPadding(8);
-        cell.setBackgroundColor(BG_LIGHT);
+    private void addWeeklyTable(Document doc, List<ReportingDataDto.WeeklyEvolutionDto> weekly) throws DocumentException {
+        if (weekly == null || weekly.isEmpty()) {
+            doc.add(emptyState("Aucune donnée hebdomadaire"));
+            return;
+        }
+        PdfPTable t = new PdfPTable(new float[]{28f, 18f, 18f, 36f});
+        t.setWidthPercentage(86);
+        t.setSpacingAfter(10);
+        addTableHeader(t, new String[]{"Semaine", "Terminées", "Total", "Taux"});
 
-        Paragraph iconPara = new Paragraph(icon, new Font(Font.HELVETICA, 18));
-        iconPara.setAlignment(Element.ALIGN_CENTER);
-        cell.addElement(iconPara);
-
-        Paragraph labelPara = new Paragraph(label, new Font(Font.HELVETICA, 7, Font.BOLD, TEXT_MUTED));
-        labelPara.setAlignment(Element.ALIGN_CENTER);
-        cell.addElement(labelPara);
-
-        Paragraph valuePara = new Paragraph(value, new Font(Font.HELVETICA, 12, Font.BOLD, color));
-        valuePara.setAlignment(Element.ALIGN_CENTER);
-        cell.addElement(valuePara);
-
-        table.addCell(cell);
+        boolean alt = false;
+        for (var w : weekly) {
+            Color bg = alt ? SURFACE : WHITE;
+            alt = !alt;
+            double cr = w.getCompletionRate();
+            Color rateColor = cr >= 70 ? SUCCESS : (cr >= 40 ? WARNING : DANGER);
+            addCell(t, w.getWeek(), body(TEXT_DARK), bg, Element.ALIGN_LEFT);
+            addCell(t, String.valueOf(w.getCompleted()), bodyB(SUCCESS), bg, Element.ALIGN_CENTER);
+            addCell(t, String.valueOf(w.getTotal()), body(TEXT_MUTED), bg, Element.ALIGN_CENTER);
+            // Badge taux
+            addCell(t, String.format("%.0f%%", cr), bodyB(rateColor), cr >= 70 ? SUCCESS_LIGHT : (cr >= 40 ? WARNING_LIGHT : DANGER_LIGHT), Element.ALIGN_CENTER);
+        }
+        doc.add(t);
     }
 
-    private void addMembreProgressBar(Document document, String label, int value, int total, Color color) throws DocumentException {
-        if (total <= 0) return;
-
-        float percent = (value * 100f / total);
-        percent = Math.min(percent, 100);
-
-        Paragraph labelPara = new Paragraph(label + " (" + value + "/" + total + ") - " + String.format("%.0f%%", percent),
-                new Font(Font.HELVETICA, 9, Font.NORMAL));
-        document.add(labelPara);
-
-        int barLength = Math.round(percent / 2);
-        StringBuilder bar = new StringBuilder();
-        for (int i = 0; i < barLength; i++) {
-            bar.append("█");
+    private void addHighPriorityTasksTable(Document doc, List<ReportingDataDto.TaskSummaryDto> tasks) throws DocumentException {
+        List<ReportingDataDto.TaskSummaryDto> filtered = tasks != null
+                ? tasks.stream().filter(t -> "HAUTE".equals(t.getPriority())).limit(10).toList()
+                : List.of();
+        if (filtered.isEmpty()) {
+            doc.add(emptyState("Aucune tâche prioritaire"));
+            return;
         }
-        for (int i = barLength; i < 50; i++) {
-            bar.append("░");
-        }
+        PdfPTable t = new PdfPTable(new float[]{40f, 34f, 26f});
+        t.setWidthPercentage(100);
+        t.setSpacingAfter(10);
+        addTableHeaderColored(t, new String[]{"Tâche", "Projet", "Échéance"}, DANGER);
 
-        Paragraph barPara = new Paragraph(bar.toString(), new Font(Font.HELVETICA, 8, Font.NORMAL, color));
-        document.add(barPara);
-        document.add(new Paragraph(" "));
+        boolean alt = false;
+        for (var task : filtered) {
+            Color bg = alt ? new Color(255, 245, 245) : WHITE;
+            alt = !alt;
+            addCell(t, task.getTitle(), body(TEXT_DARK), bg, Element.ALIGN_LEFT);
+            addCell(t, task.getProjectName() != null ? task.getProjectName() : "–", small(TEXT_MUTED), bg, Element.ALIGN_LEFT);
+            addCell(t, task.getEstimatedEndDate() != null ? task.getEstimatedEndDate() : "Non définie", smallB(DANGER), bg, Element.ALIGN_CENTER);
+        }
+        doc.add(t);
     }
-    // ================= RAPPORT RESPONSABLE CONTRAT =================
 
+    private void addTodoTasksTable(Document doc, List<ReportingDataDto.TaskSummaryDto> tasks) throws DocumentException {
+        List<ReportingDataDto.TaskSummaryDto> filtered = tasks != null
+                ? tasks.stream()
+                .filter(t -> "A_faire".equals(t.getStatus()) || "PENDING".equals(t.getStatus()))
+                .limit(10).toList()
+                : List.of();
+        if (filtered.isEmpty()) {
+            doc.add(emptyState("Aucune tâche à faire"));
+            return;
+        }
+        PdfPTable t = new PdfPTable(new float[]{35f, 30f, 17f, 18f});
+        t.setWidthPercentage(100);
+        t.setSpacingAfter(10);
+        addTableHeaderColored(t, new String[]{"Tâche", "Projet", "Priorité", "Échéance"}, INFO);
+
+        boolean alt = false;
+        for (var task : filtered) {
+            Color bg = alt ? SURFACE : WHITE;
+            alt = !alt;
+            boolean isHigh = "HAUTE".equals(task.getPriority());
+            boolean isMed  = "MOYENNE".equals(task.getPriority());
+            Color pc  = isHigh ? DANGER : isMed ? WARNING : INFO;
+            Color pcBg= isHigh ? DANGER_LIGHT : isMed ? WARNING_LIGHT : INFO_LIGHT;
+            String pl = isHigh ? "Haute" : isMed ? "Moyenne" : "Basse";
+
+            addCell(t, task.getTitle(), body(TEXT_DARK), bg, Element.ALIGN_LEFT);
+            addCell(t, task.getProjectName() != null ? task.getProjectName() : "–", small(TEXT_MUTED), bg, Element.ALIGN_LEFT);
+            addCell(t, pl, bodyB(pc), pcBg, Element.ALIGN_CENTER);
+            addCell(t, task.getEstimatedEndDate() != null ? task.getEstimatedEndDate() : "–", small(TEXT_MUTED), bg, Element.ALIGN_CENTER);
+        }
+        doc.add(t);
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    //  RESPONSABLE CONTRAT REPORT
+    // ─────────────────────────────────────────────────────────────────────────
     public byte[] exportResponsableContratReport(ReportingDataDto data) {
         try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
-            Document document = new Document(PageSize.A4);
-            PdfWriter.getInstance(document, out);
-            document.open();
+            Document doc = new Document(PageSize.A4, 36, 36, 36, 50);
+            PdfWriter writer = PdfWriter.getInstance(doc, out);
+            writer.setPageEvent(new FooterEvent("Rapport Responsable Contrat"));
+            doc.open();
 
-            // ========== EN-TÊTE ==========
-            addRcHeader(document);
+            addHeader(doc, "RAPPORT RESPONSABLE CONTRAT", "Gestion contractuelle & facturation");
+            addRcKpiCards(doc, data);
 
-            // ========== KPI CARDS ==========
-            addRcKpiCards(document, data);
+            addSectionDivider(doc, "RÉPARTITION DES PROFILS");
+            addDistributionTable(doc, buildProfileRows(data), new String[]{"Profil", "Nb", "Répartition"});
 
-            // ========== RÉPARTITION DES PROFILS ==========
-            addRcProfileDistribution(document, data);
+            addSectionDivider(doc, "PROJETS PAR MOIS");
+            addRcProjectsByMonth(doc, data);
 
-            // ========== PROJETS PAR MOIS ==========
-            addRcProjectsByMonth(document, data);
+            addSectionDivider(doc, "TOP CLIENTS PAR CA");
+            addRcTopClients(doc, data);
 
-            // ========== TOP CLIENTS ==========
-            addRcTopClients(document, data);
+            addSectionDivider(doc, "SYNTHÈSE CONTRACTUELLE");
+            addRcSynthesis(doc, data);
 
-            // ========== SYNTHÈSE ==========
-            addRcSynthesis(document, data);
-
-            document.close();
+            doc.close();
             return out.toByteArray();
         } catch (DocumentException | IOException e) {
-            throw new RuntimeException("Erreur generation PDF responsable contrat: " + e.getMessage(), e);
+            throw new RuntimeException("Erreur génération PDF responsable contrat", e);
         }
     }
 
-    private void addRcHeader(Document document) throws DocumentException {
-        PdfPTable headerTable = new PdfPTable(1);
-        headerTable.setWidthPercentage(100);
-        headerTable.setSpacingAfter(15);
-
-        PdfPCell headerCell = new PdfPCell();
-        headerCell.setBackgroundColor(PRIMARY_COLOR);
-        headerCell.setPadding(20);
-        headerCell.setBorder(Rectangle.NO_BORDER);
-
-        Paragraph title = new Paragraph("RAPPORT RESPONSABLE CONTRAT",
-                new Font(Font.HELVETICA, 18, Font.BOLD, Color.WHITE));
-        title.setAlignment(Element.ALIGN_CENTER);
-        headerCell.addElement(title);
-
-        Paragraph date = new Paragraph(LocalDate.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy")),
-                new Font(Font.HELVETICA, 10, Font.NORMAL, Color.WHITE));
-        date.setAlignment(Element.ALIGN_CENTER);
-        headerCell.addElement(date);
-
-        headerTable.addCell(headerCell);
-        document.add(headerTable);
-        document.add(new Paragraph(" "));
-    }
-
-    private void addRcKpiCards(Document document, ReportingDataDto data) throws DocumentException {
-        Paragraph sectionTitle = new Paragraph("INDICATEURS CLES",
-                new Font(Font.HELVETICA, 14, Font.BOLD, PRIMARY_COLOR));
-        sectionTitle.setSpacingBefore(5);
-        sectionTitle.setSpacingAfter(10);
-        document.add(sectionTitle);
-
-        long totalProjects = data.getAllProjects() != null ? data.getAllProjects().size() : 0;
-        long enValidation = 0;
-        long preValides = 0;
-        long rejetes = 0;
-
+    private void addRcKpiCards(Document doc, ReportingDataDto data) throws DocumentException {
+        long totalP = data.getAllProjects() != null ? data.getAllProjects().size() : 0;
+        long enVal = 0, preVal = 0, rej = 0;
         if (data.getAllProjects() != null) {
-            for (ReportingDataDto.ProjectSummaryDto p : data.getAllProjects()) {
-                String status = p.getStatus();
-                if ("EN_VALIDATION".equals(status)) enValidation++;
-                else if ("PRE_VALIDE".equals(status)) preValides++;
-                else if ("REJETE".equals(status)) rejetes++;
+            for (var p : data.getAllProjects()) {
+                if      ("EN_VALIDATION".equals(p.getStatus())) enVal++;
+                else if ("PRE_VALIDE".equals(p.getStatus()))    preVal++;
+                else if ("REJETE".equals(p.getStatus()))        rej++;
             }
         }
-
-        long activeClients = data.getActiveClientsCount();
+        long   clients = data.getActiveClientsCount();
         double totalHT = data.getBillingStats() != null ? data.getBillingStats().getTotalHT().doubleValue() : 0;
-        double totalTTC = data.getBillingStats() != null ? data.getBillingStats().getTotalTTC().doubleValue() : 0;
 
-        PdfPTable kpiTable = new PdfPTable(3);
-        kpiTable.setWidthPercentage(100);
-        kpiTable.setWidths(new float[]{33f, 33f, 34f});
+        PdfPTable r1 = new PdfPTable(3);
+        r1.setWidthPercentage(100);
+        r1.setSpacingAfter(4);
+        addKpiCard(r1, "PROJETS",       String.valueOf(totalP), "tous statuts",      PRIMARY, PRIMARY_LIGHT);
+        addKpiCard(r1, "EN VALIDATION", String.valueOf(enVal),  "en cours d'examen", WARNING, WARNING_LIGHT);
+        addKpiCard(r1, "PRÉ-VALIDÉS",   String.valueOf(preVal), "approuvés",         SUCCESS, SUCCESS_LIGHT);
 
-        addRcKpiCell(kpiTable, "📁", "PROJETS", String.valueOf(totalProjects), PRIMARY_COLOR);
-        addRcKpiCell(kpiTable, "⏳", "EN VALIDATION", String.valueOf(enValidation), WARNING_COLOR);
-        addRcKpiCell(kpiTable, "✓", "PRE-VALIDES", String.valueOf(preValides), SUCCESS_COLOR);
+        PdfPTable r2 = new PdfPTable(3);
+        r2.setWidthPercentage(100);
+        r2.setSpacingAfter(12);
+        addKpiCard(r2, "REJETÉS",        String.valueOf(rej),  "refusés",             DANGER,  DANGER_LIGHT);
+        addKpiCard(r2, "CLIENTS ACTIFS", String.valueOf(clients), "entreprises",       INFO,    INFO_LIGHT);
+        addKpiCard(r2, "CA HT",          String.format("%.0f MAD", totalHT), "hors taxes", SUCCESS, SUCCESS_LIGHT);
 
-        PdfPTable kpiTable2 = new PdfPTable(3);
-        kpiTable2.setWidthPercentage(100);
-        kpiTable2.setWidths(new float[]{33f, 33f, 34f});
-
-        addRcKpiCell(kpiTable2, "❌", "REJETES", String.valueOf(rejetes), DANGER_COLOR);
-        addRcKpiCell(kpiTable2, "🏢", "CLIENTS ACTIFS", String.valueOf(activeClients), INFO_COLOR);
-        addRcKpiCell(kpiTable2, "💰", "CA HT", String.format("%.0f", totalHT) + " MAD", SUCCESS_COLOR);
-
-        document.add(kpiTable);
-        document.add(kpiTable2);
-        document.add(new Paragraph(" "));
+        doc.add(r1);
+        doc.add(r2);
     }
 
-    private void addRcKpiCell(PdfPTable table, String icon, String label, String value, Color color) {
-        PdfPCell cell = new PdfPCell();
-        cell.setBorder(Rectangle.BOX);
-        cell.setBorderColor(new Color(229, 231, 235));
-        cell.setPadding(10);
-        cell.setBackgroundColor(BG_LIGHT);
-
-        Paragraph iconPara = new Paragraph(icon, new Font(Font.HELVETICA, 22));
-        iconPara.setAlignment(Element.ALIGN_CENTER);
-        cell.addElement(iconPara);
-
-        Paragraph labelPara = new Paragraph(label, new Font(Font.HELVETICA, 8, Font.BOLD, TEXT_MUTED));
-        labelPara.setAlignment(Element.ALIGN_CENTER);
-        cell.addElement(labelPara);
-
-        Paragraph valuePara = new Paragraph(value, new Font(Font.HELVETICA, 12, Font.BOLD, color));
-        valuePara.setAlignment(Element.ALIGN_CENTER);
-        cell.addElement(valuePara);
-
-        table.addCell(cell);
-    }
-
-    private void addRcProfileDistribution(Document document, ReportingDataDto data) throws DocumentException {
-        Paragraph title = new Paragraph("REPARTITION DES PROFILS",
-                new Font(Font.HELVETICA, 14, Font.BOLD, PRIMARY_COLOR));
-        title.setSpacingBefore(10);
-        title.setSpacingAfter(10);
-        document.add(title);
-
-        List<ReportingDataDto.ProfileDistributionDto> profiles = data.getProfileDistribution();
-        if (profiles != null && !profiles.isEmpty()) {
-            long total = 0;
-            for (ReportingDataDto.ProfileDistributionDto profile : profiles) total += profile.getCount();
-
-            PdfPTable table = new PdfPTable(3);
-            table.setWidthPercentage(90);
-            table.setWidths(new float[]{35f, 15f, 50f});
-
-            PdfPCell header1 = new PdfPCell(new Paragraph("PROFIL", new Font(Font.HELVETICA, 10, Font.BOLD, Color.WHITE)));
-            header1.setBackgroundColor(PRIMARY_COLOR);
-            header1.setPadding(8);
-            header1.setHorizontalAlignment(Element.ALIGN_CENTER);
-            table.addCell(header1);
-
-            PdfPCell header2 = new PdfPCell(new Paragraph("NBR", new Font(Font.HELVETICA, 10, Font.BOLD, Color.WHITE)));
-            header2.setBackgroundColor(PRIMARY_COLOR);
-            header2.setPadding(8);
-            header2.setHorizontalAlignment(Element.ALIGN_CENTER);
-            table.addCell(header2);
-
-            PdfPCell header3 = new PdfPCell(new Paragraph("REPARTITION", new Font(Font.HELVETICA, 10, Font.BOLD, Color.WHITE)));
-            header3.setBackgroundColor(PRIMARY_COLOR);
-            header3.setPadding(8);
-            header3.setHorizontalAlignment(Element.ALIGN_CENTER);
-            table.addCell(header3);
-
-            Color[] colors = {PRIMARY_COLOR, INFO_COLOR, SUCCESS_COLOR, WARNING_COLOR, DANGER_COLOR};
-
-            for (int i = 0; i < profiles.size(); i++) {
-                ReportingDataDto.ProfileDistributionDto profile = profiles.get(i);
-                float percent = (profile.getCount() * 100f / total);
-                Color barColor = colors[i % colors.length];
-
-                String displayName = profile.getProfile();
-                if (displayName.length() > 20) displayName = displayName.substring(0, 18) + "...";
-
-                table.addCell(new PdfPCell(new Paragraph(displayName, new Font(Font.HELVETICA, 9, Font.NORMAL))));
-
-                PdfPCell countCell = new PdfPCell(new Paragraph(String.valueOf(profile.getCount()),
-                        new Font(Font.HELVETICA, 10, Font.BOLD, barColor)));
-                countCell.setHorizontalAlignment(Element.ALIGN_CENTER);
-                table.addCell(countCell);
-
-                int barLength = Math.round(percent);
-                StringBuilder bar = new StringBuilder();
-                for (int j = 0; j < barLength; j++) bar.append("█");
-                for (int j = barLength; j < 100; j++) bar.append("░");
-
-                PdfPCell percentCell = new PdfPCell(new Paragraph(bar.toString() + "  " + String.format("%.1f", percent) + "%",
-                        new Font(Font.HELVETICA, 8, Font.NORMAL, barColor)));
-                table.addCell(percentCell);
-            }
-            document.add(table);
-            document.add(new Paragraph(" "));
-        }
-    }
-
-    private void addRcProjectsByMonth(Document document, ReportingDataDto data) throws DocumentException {
-        Paragraph title = new Paragraph("PROJETS PAR MOIS",
-                new Font(Font.HELVETICA, 14, Font.BOLD, PRIMARY_COLOR));
-        title.setSpacingBefore(10);
-        title.setSpacingAfter(10);
-        document.add(title);
-
+    private void addRcProjectsByMonth(Document doc, ReportingDataDto data) throws DocumentException {
         List<ReportingDataDto.MonthlyProjectDto> monthly = data.getProjectsByMonth();
-        if (monthly != null && !monthly.isEmpty()) {
-            int maxCount = 0;
-            for (ReportingDataDto.MonthlyProjectDto m : monthly) {
-                if (m.getCount() > maxCount) maxCount = (int) m.getCount();
-            }
-            if (maxCount == 0) maxCount = 1;
-
-            PdfPTable table = new PdfPTable(2);
-            table.setWidthPercentage(80);
-            table.setWidths(new float[]{40f, 60f});
-
-            PdfPCell header1 = new PdfPCell(new Paragraph("MOIS", new Font(Font.HELVETICA, 10, Font.BOLD, Color.WHITE)));
-            header1.setBackgroundColor(PRIMARY_COLOR);
-            header1.setPadding(8);
-            header1.setHorizontalAlignment(Element.ALIGN_CENTER);
-            table.addCell(header1);
-
-            PdfPCell header2 = new PdfPCell(new Paragraph("NOMBRE DE PROJETS", new Font(Font.HELVETICA, 10, Font.BOLD, Color.WHITE)));
-            header2.setBackgroundColor(PRIMARY_COLOR);
-            header2.setPadding(8);
-            header2.setHorizontalAlignment(Element.ALIGN_CENTER);
-            table.addCell(header2);
-
-            for (ReportingDataDto.MonthlyProjectDto m : monthly) {
-                table.addCell(new PdfPCell(new Paragraph(m.getMonth(), new Font(Font.HELVETICA, 9, Font.NORMAL))));
-
-                float percent = (m.getCount() * 100f / maxCount);
-                int barLength = Math.round(percent);
-                StringBuilder bar = new StringBuilder();
-                for (int j = 0; j < barLength; j++) bar.append("█");
-                for (int j = barLength; j < 100; j++) bar.append("░");
-
-                PdfPCell countCell = new PdfPCell(new Paragraph(bar.toString() + "  " + m.getCount(),
-                        new Font(Font.HELVETICA, 8, Font.NORMAL, PRIMARY_COLOR)));
-                table.addCell(countCell);
-            }
-            document.add(table);
-            document.add(new Paragraph(" "));
+        if (monthly == null || monthly.isEmpty()) {
+            doc.add(emptyState("Aucune donnée mensuelle"));
+            return;
         }
+        long max = monthly.stream().mapToLong(ReportingDataDto.MonthlyProjectDto::getCount).max().orElse(1);
+
+        PdfPTable t = new PdfPTable(new float[]{28f, 10f, 62f});
+        t.setWidthPercentage(84);
+        t.setSpacingAfter(12);
+        addTableHeader(t, new String[]{"Mois", "Nb", "Volume"});
+
+        boolean alt = false;
+        for (var m : monthly) {
+            Color bg = alt ? SURFACE : WHITE;
+            alt = !alt;
+            int filled = (int) Math.round(m.getCount() * 52.0 / max);
+            addCell(t, m.getMonth(), body(TEXT_DARK), bg, Element.ALIGN_LEFT);
+            addCell(t, String.valueOf(m.getCount()), bodyB(PRIMARY), bg, Element.ALIGN_CENTER);
+            addBarCell(t, filled, 52, PRIMARY, bg);
+        }
+        doc.add(t);
     }
 
-    private void addRcTopClients(Document document, ReportingDataDto data) throws DocumentException {
-        Paragraph title = new Paragraph("TOP CLIENTS",
-                new Font(Font.HELVETICA, 14, Font.BOLD, PRIMARY_COLOR));
-        title.setSpacingBefore(10);
-        title.setSpacingAfter(10);
-        document.add(title);
-
+    private void addRcTopClients(Document doc, ReportingDataDto data) throws DocumentException {
         List<ReportingDataDto.ClientRevenueDto> clients = data.getTopClientsByRevenue();
-        if (clients != null && !clients.isEmpty()) {
-            double maxHT = 0;
-            for (ReportingDataDto.ClientRevenueDto client : clients) {
-                if (client.getTotalHT() != null && client.getTotalHT().doubleValue() > maxHT) {
-                    maxHT = client.getTotalHT().doubleValue();
-                }
-            }
-            if (maxHT == 0) maxHT = 1;
+        if (clients == null || clients.isEmpty()) {
+            doc.add(emptyState("Aucun client"));
+            return;
+        }
+        double maxHT = clients.stream()
+                .mapToDouble(c -> c.getTotalHT() != null ? c.getTotalHT().doubleValue() : 0)
+                .max().orElse(1);
 
-            PdfPTable table = new PdfPTable(3);
-            table.setWidthPercentage(95);
-            table.setWidths(new float[]{10f, 50f, 40f});
+        PdfPTable t = new PdfPTable(new float[]{7f, 40f, 53f});
+        t.setWidthPercentage(96);
+        t.setSpacingAfter(12);
+        addTableHeaderColored(t, new String[]{"#", "Client", "CA HT (MAD)"}, SUCCESS);
 
-            PdfPCell header1 = new PdfPCell(new Paragraph("RANG", new Font(Font.HELVETICA, 10, Font.BOLD, Color.WHITE)));
-            header1.setBackgroundColor(PRIMARY_COLOR);
-            header1.setPadding(8);
-            header1.setHorizontalAlignment(Element.ALIGN_CENTER);
-            table.addCell(header1);
+        String[] rankLabels = {"1er", "2e", "3e"};
+        Color[]  medals     = {new Color(202,138,4), new Color(148,163,184), new Color(180,83,9)};
+        boolean alt = false;
+        for (int i = 0; i < Math.min(8, clients.size()); i++) {
+            Color bg = alt ? SURFACE : WHITE;
+            alt = !alt;
+            var c = clients.get(i);
+            double ht = c.getTotalHT() != null ? c.getTotalHT().doubleValue() : 0;
+            int    filled = (int) Math.round(ht * 52.0 / maxHT);
+            String name   = c.getClient().length() > 28 ? c.getClient().substring(0, 26) + "…" : c.getClient();
+            String rank   = i < 3 ? rankLabels[i] : String.valueOf(i + 1);
+            Color  rc     = i < 3 ? medals[i] : TEXT_MUTED;
 
-            PdfPCell header2 = new PdfPCell(new Paragraph("CLIENT", new Font(Font.HELVETICA, 10, Font.BOLD, Color.WHITE)));
-            header2.setBackgroundColor(PRIMARY_COLOR);
-            header2.setPadding(8);
-            table.addCell(header2);
+            addCell(t, rank, bodyB(rc), bg, Element.ALIGN_CENTER);
+            addCell(t, name, body(TEXT_DARK), bg, Element.ALIGN_LEFT);
+            addBarCellWithCount(t, filled, 52, (long) ht, SUCCESS, bg);
+        }
+        doc.add(t);
+    }
 
-            PdfPCell header3 = new PdfPCell(new Paragraph("CA HT (MAD)", new Font(Font.HELVETICA, 10, Font.BOLD, Color.WHITE)));
-            header3.setBackgroundColor(PRIMARY_COLOR);
-            header3.setPadding(8);
-            header3.setHorizontalAlignment(Element.ALIGN_CENTER);
-            table.addCell(header3);
+    private void addRcSynthesis(Document doc, ReportingDataDto data) throws DocumentException {
+        long totalP = data.getAllProjects() != null ? data.getAllProjects().size() : 0;
+        long preVal = 0;
+        if (data.getAllProjects() != null)
+            for (var p : data.getAllProjects())
+                if ("PRE_VALIDE".equals(p.getStatus())) preVal++;
 
-            for (int i = 0; i < Math.min(8, clients.size()); i++) {
-                ReportingDataDto.ClientRevenueDto client = clients.get(i);
-                double ht = client.getTotalHT() != null ? client.getTotalHT().doubleValue() : 0;
-                float percent = (float) (ht * 100 / maxHT);
+        double vRate   = totalP > 0 ? (preVal * 100.0 / totalP) : 0;
+        double totalHT = data.getBillingStats() != null ? data.getBillingStats().getTotalHT().doubleValue() : 0;
+        long   clients = data.getActiveClientsCount();
 
-                String rank = (i == 0) ? "🥇" : (i == 1) ? "🥈" : (i == 2) ? "🥉" : String.valueOf(i + 1);
-                PdfPCell rankCell = new PdfPCell(new Paragraph(rank, new Font(Font.HELVETICA, 11, Font.NORMAL)));
-                rankCell.setHorizontalAlignment(Element.ALIGN_CENTER);
-                rankCell.setPadding(6);
-                table.addCell(rankCell);
+        PdfPTable t = new PdfPTable(3);
+        t.setWidthPercentage(100);
+        t.setSpacingAfter(10);
 
-                String clientName = client.getClient();
-                if (clientName.length() > 25) clientName = clientName.substring(0, 22) + "...";
-                table.addCell(new PdfPCell(new Paragraph(clientName, new Font(Font.HELVETICA, 9, Font.NORMAL))));
+        addSynthCard(t, "TAUX DE VALIDATION",
+                String.format("%.1f%%", vRate),
+                preVal + " / " + totalP + " projets", SUCCESS);
+        addSynthCard(t, "CHIFFRE D'AFFAIRES",
+                String.format("%.0f MAD", totalHT),
+                "hors taxes (HT)", SUCCESS);
+        addSynthCard(t, "CLIENTS ACTIFS",
+                String.valueOf(clients),
+                "entreprises partenaires", INFO);
 
-                // Barre + CA
-                int barLength = Math.round(percent);
-                StringBuilder bar = new StringBuilder();
-                for (int j = 0; j < barLength; j++) bar.append("█");
-                for (int j = barLength; j < 100; j++) bar.append("░");
+        doc.add(t);
+    }
 
-                PdfPCell htCell = new PdfPCell(new Paragraph(bar.toString() + "  " + String.format("%.0f", ht),
-                        new Font(Font.HELVETICA, 8, Font.NORMAL, SUCCESS_COLOR)));
-                table.addCell(htCell);
-            }
-            document.add(table);
-            document.add(new Paragraph(" "));
+    // ─────────────────────────────────────────────────────────────────────────
+    //  HELPERS TABLEAUX
+    // ─────────────────────────────────────────────────────────────────────────
+
+    /** État vide stylisé */
+    private Paragraph emptyState(String msg) {
+        Paragraph p = new Paragraph(msg, small(TEXT_MUTED));
+        p.setAlignment(Element.ALIGN_CENTER);
+        p.setSpacingBefore(4);
+        p.setSpacingAfter(10);
+        return p;
+    }
+
+    private void addTableHeader(PdfPTable t, String[] labels) {
+        addTableHeaderColored(t, labels, PRIMARY);
+    }
+
+    private void addTableHeaderColored(PdfPTable t, String[] labels, Color bg) {
+        for (String label : labels) {
+            PdfPCell cell = new PdfPCell(new Paragraph(label, bodyB(WHITE)));
+            cell.setBackgroundColor(bg);
+            cell.setBorder(Rectangle.NO_BORDER);
+            cell.setPaddingTop(7);
+            cell.setPaddingBottom(7);
+            cell.setPaddingLeft(7);
+            cell.setPaddingRight(7);
+            t.addCell(cell);
         }
     }
 
-    private void addRcSynthesis(Document document, ReportingDataDto data) throws DocumentException {
-        Paragraph title = new Paragraph("SYNTHESE",
-                new Font(Font.HELVETICA, 14, Font.BOLD, PRIMARY_COLOR));
-        title.setSpacingBefore(10);
-        title.setSpacingAfter(10);
-        document.add(title);
+    private void addCell(PdfPTable t, String text, Font font, Color bg, int align) {
+        PdfPCell cell = new PdfPCell(new Paragraph(text != null ? text : "", font));
+        cell.setBackgroundColor(bg);
+        cell.setBorder(Rectangle.BOX);
+        cell.setBorderColor(BORDER);
+        cell.setBorderWidth(0.5f);
+        cell.setHorizontalAlignment(align);
+        cell.setPaddingTop(5);
+        cell.setPaddingBottom(5);
+        cell.setPaddingLeft(7);
+        cell.setPaddingRight(7);
+        t.addCell(cell);
+    }
 
-        long totalProjects = data.getAllProjects() != null ? data.getAllProjects().size() : 0;
-        long enValidation = 0;
-        long preValides = 0;
+    // Barre utilisant des blocs Unicode de largeur fine pour un rendu plus propre
+    private String buildBar(int filled, int total) {
+        // Bloc plein + bloc vide (léger)
+        return "█".repeat(Math.max(0, filled)) + "▒".repeat(Math.max(0, total - filled));
+    }
 
-        if (data.getAllProjects() != null) {
-            for (ReportingDataDto.ProjectSummaryDto p : data.getAllProjects()) {
-                if ("EN_VALIDATION".equals(p.getStatus())) enValidation++;
-                else if ("PRE_VALIDE".equals(p.getStatus())) preValides++;
-            }
+    private void addBarCell(PdfPTable t, int filled, int total, Color color, Color bg) {
+        String bar = buildBar(filled, total);
+        Font barFont = new Font(Font.HELVETICA, 6, Font.NORMAL, color);
+        PdfPCell cell = new PdfPCell(new Paragraph(bar, barFont));
+        cell.setBackgroundColor(bg);
+        cell.setBorder(Rectangle.BOX);
+        cell.setBorderColor(BORDER);
+        cell.setBorderWidth(0.5f);
+        cell.setPaddingTop(6);
+        cell.setPaddingBottom(4);
+        cell.setPaddingLeft(6);
+        cell.setPaddingRight(6);
+        t.addCell(cell);
+    }
+
+    private void addBarCellWithPct(PdfPTable t, int filled, int total, float pct, Color color, Color bg) {
+        String bar = buildBar(filled, total) + "  " + String.format("%.1f%%", pct);
+        Font barFont = new Font(Font.HELVETICA, 6, Font.NORMAL, color);
+        PdfPCell cell = new PdfPCell(new Paragraph(bar, barFont));
+        cell.setBackgroundColor(bg);
+        cell.setBorder(Rectangle.BOX);
+        cell.setBorderColor(BORDER);
+        cell.setBorderWidth(0.5f);
+        cell.setPaddingTop(6);
+        cell.setPaddingBottom(4);
+        cell.setPaddingLeft(6);
+        cell.setPaddingRight(6);
+        t.addCell(cell);
+    }
+
+    private void addBarCellWithCount(PdfPTable t, int filled, int total, long count, Color color, Color bg) {
+        String bar = buildBar(filled, total) + "  " + count;
+        Font barFont = new Font(Font.HELVETICA, 6, Font.NORMAL, color);
+        PdfPCell cell = new PdfPCell(new Paragraph(bar, barFont));
+        cell.setBackgroundColor(bg);
+        cell.setBorder(Rectangle.BOX);
+        cell.setBorderColor(BORDER);
+        cell.setBorderWidth(0.5f);
+        cell.setPaddingTop(6);
+        cell.setPaddingBottom(4);
+        cell.setPaddingLeft(6);
+        cell.setPaddingRight(6);
+        t.addCell(cell);
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    //  FOOTER EVENT
+    // ─────────────────────────────────────────────────────────────────────────
+    private static class FooterEvent extends PdfPageEventHelper {
+        private final String reportName;
+        FooterEvent(String reportName) { this.reportName = reportName; }
+
+        @Override
+        public void onEndPage(PdfWriter writer, Document document) {
+            try {
+                PdfContentByte cb   = writer.getDirectContent();
+                Rectangle      page = document.getPageSize();
+                float y = document.bottomMargin() - 10;
+
+                // Ligne de séparation fine
+                cb.setColorStroke(new Color(226, 232, 240));
+                cb.setLineWidth(0.5f);
+                cb.moveTo(document.leftMargin(), y + 14);
+                cb.lineTo(page.getWidth() - document.rightMargin(), y + 14);
+                cb.stroke();
+
+                com.lowagie.text.pdf.BaseFont bf =
+                        com.lowagie.text.pdf.BaseFont.createFont(
+                                com.lowagie.text.pdf.BaseFont.HELVETICA,
+                                com.lowagie.text.pdf.BaseFont.WINANSI, false);
+
+                // Texte gauche : nom du rapport
+                cb.beginText();
+                cb.setFontAndSize(bf, 7);
+                cb.setColorFill(new Color(148, 163, 184));
+                cb.setTextMatrix(document.leftMargin(), y);
+                cb.showText("DXC Platform  ·  " + reportName
+                        + "  ·  " + LocalDate.now().format(
+                        DateTimeFormatter.ofPattern("dd/MM/yyyy")));
+                cb.endText();
+
+                // Numéro de page (droite)
+                cb.beginText();
+                cb.setFontAndSize(bf, 7);
+                cb.setColorFill(new Color(148, 163, 184));
+                cb.setTextMatrix(page.getWidth() - document.rightMargin() - 28, y);
+                cb.showText("Page " + writer.getPageNumber());
+                cb.endText();
+
+            } catch (Exception ignored) {}
         }
-
-        double validationRate = totalProjects > 0 ? (preValides * 100.0 / totalProjects) : 0;
-        double totalHT = data.getBillingStats() != null ? data.getBillingStats().getTotalHT().doubleValue() : 0;
-        long activeClients = data.getActiveClientsCount();
-
-        PdfPTable card = new PdfPTable(3);
-        card.setWidthPercentage(100);
-        card.setWidths(new float[]{33f, 33f, 34f});
-
-        // Carte 1: Taux de validation
-        PdfPCell rateCell = new PdfPCell();
-        rateCell.setBackgroundColor(BG_LIGHT);
-        rateCell.setPadding(12);
-        rateCell.setBorder(Rectangle.BOX);
-
-        Paragraph rateTitle = new Paragraph("TAUX DE VALIDATION", new Font(Font.HELVETICA, 9, Font.BOLD, TEXT_MUTED));
-        rateTitle.setAlignment(Element.ALIGN_CENTER);
-        rateCell.addElement(rateTitle);
-
-        Paragraph rateValue = new Paragraph(String.format("%.1f%%", validationRate), new Font(Font.HELVETICA, 20, Font.BOLD, SUCCESS_COLOR));
-        rateValue.setAlignment(Element.ALIGN_CENTER);
-        rateCell.addElement(rateValue);
-
-        Paragraph rateSub = new Paragraph(preValides + " / " + totalProjects + " projets", new Font(Font.HELVETICA, 8, Font.NORMAL, TEXT_MUTED));
-        rateSub.setAlignment(Element.ALIGN_CENTER);
-        rateCell.addElement(rateSub);
-
-        card.addCell(rateCell);
-
-        // Carte 2: CA Total
-        PdfPCell caCell = new PdfPCell();
-        caCell.setBackgroundColor(BG_LIGHT);
-        caCell.setPadding(12);
-        caCell.setBorder(Rectangle.BOX);
-
-        Paragraph caTitle = new Paragraph("CHIFFRE D'AFFAIRES", new Font(Font.HELVETICA, 9, Font.BOLD, TEXT_MUTED));
-        caTitle.setAlignment(Element.ALIGN_CENTER);
-        caCell.addElement(caTitle);
-
-        Paragraph caValue = new Paragraph(String.format("%.0f", totalHT) + " MAD", new Font(Font.HELVETICA, 16, Font.BOLD, SUCCESS_COLOR));
-        caValue.setAlignment(Element.ALIGN_CENTER);
-        caCell.addElement(caValue);
-
-        Paragraph caSub = new Paragraph("HT", new Font(Font.HELVETICA, 8, Font.NORMAL, TEXT_MUTED));
-        caSub.setAlignment(Element.ALIGN_CENTER);
-        caCell.addElement(caSub);
-
-        card.addCell(caCell);
-
-        // Carte 3: Clients actifs
-        PdfPCell clientCell = new PdfPCell();
-        clientCell.setBackgroundColor(BG_LIGHT);
-        clientCell.setPadding(12);
-        clientCell.setBorder(Rectangle.BOX);
-
-        Paragraph clientTitle = new Paragraph("CLIENTS ACTIFS", new Font(Font.HELVETICA, 9, Font.BOLD, TEXT_MUTED));
-        clientTitle.setAlignment(Element.ALIGN_CENTER);
-        clientCell.addElement(clientTitle);
-
-        Paragraph clientValue = new Paragraph(String.valueOf(activeClients), new Font(Font.HELVETICA, 20, Font.BOLD, INFO_COLOR));
-        clientValue.setAlignment(Element.ALIGN_CENTER);
-        clientCell.addElement(clientValue);
-
-        Paragraph clientSub = new Paragraph("entreprises partenaires", new Font(Font.HELVETICA, 8, Font.NORMAL, TEXT_MUTED));
-        clientSub.setAlignment(Element.ALIGN_CENTER);
-        clientCell.addElement(clientSub);
-
-        card.addCell(clientCell);
-
-        document.add(card);
     }
 }

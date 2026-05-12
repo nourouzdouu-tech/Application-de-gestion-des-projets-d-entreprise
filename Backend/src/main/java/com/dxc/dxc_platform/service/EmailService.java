@@ -20,6 +20,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.time.LocalDate;
+
 @Service
 public class EmailService {
 
@@ -404,8 +405,10 @@ public class EmailService {
         sendSimpleEmail(assignedTo.getEmail(), subject, content);
     }
 
+    // ================= NOTIFICATIONS MOT DE PASSE =================
+
     /**
-     * Notification de mot de passe temporaire
+     * Notification de mot de passe temporaire (envoyée par l'admin)
      */
     public void notifyTemporaryPassword(User user, String tempPassword) {
         String subject = "Réinitialisation du mot de passe - DXC Platform";
@@ -431,6 +434,40 @@ public class EmailService {
         );
 
         sendSimpleEmail(user.getEmail(), subject, content);
+    }
+
+    /**
+     * Notification de confirmation après changement de mot de passe réussi par l'utilisateur
+     */
+    public void notifyPasswordChanged(User user) {
+        String subject = "🔑 Votre mot de passe a été modifié - DXC Platform";
+
+        String now = LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss"));
+
+        String content = String.format("""
+            Bonjour %s,
+
+            Votre mot de passe a été modifié avec succès.
+
+            ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+            📧 Compte  : %s
+            ✅ Statut  : Mot de passe mis à jour
+            ⏰ Date    : %s
+            ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+            Si vous n'êtes pas à l'origine de cette modification, contactez immédiatement votre administrateur.
+
+            ---
+            Cet email a été envoyé automatiquement pour des raisons de sécurité.
+            © DXC Technology - Plateforme de gestion de projets
+            """,
+                user.getPrenom(),
+                user.getEmail(),
+                now
+        );
+
+        sendSimpleEmail(user.getEmail(), subject, content);
+        log.info("Notification de changement de mot de passe envoyée à {}", user.getEmail());
     }
 
     // ================= NOUVELLES NOTIFICATIONS ADMIN =================
@@ -573,12 +610,8 @@ public class EmailService {
         }
     }
 
-
-    // Dans EmailService.java, ajoutez cette méthode
-
     /**
      * Notification quand quelqu'un reçoit un nouveau message
-     * (Sans montrer le contenu du message)
      */
     public void notifyNewMessageReceived(User sender, User receiver) {
         String subject = "💬 Nouveau message sur DXC Platform";
@@ -596,7 +629,6 @@ public class EmailService {
         
         Pour consulter votre message, connectez-vous à la plateforme et rendez-vous dans votre messagerie.
         
-        
         ---
         Cet email a été envoyé automatiquement. Merci de ne pas y répondre.
         © DXC Technology - Plateforme de gestion de projets
@@ -606,8 +638,7 @@ public class EmailService {
                 sender.getNom(),
                 sender.getPrenom(),
                 sender.getNom(),
-                java.time.LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss")),
-                "http://localhost:8080"  // ou votre base URL
+                java.time.LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss"))
         );
 
         sendSimpleEmail(receiver.getEmail(), subject, content);
@@ -643,14 +674,11 @@ public class EmailService {
                 sender.getPrenom(),
                 sender.getNom(),
                 fileName,
-                java.time.LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss")),
-                "http://localhost:8080"
+                java.time.LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss"))
         );
 
         sendSimpleEmail(receiver.getEmail(), subject, content);
     }
-
-    // Dans EmailService.java, ajoutez cette méthode
 
     /**
      * Notification quand quelqu'un est invité à un événement du calendrier
@@ -697,5 +725,134 @@ public class EmailService {
         );
 
         sendSimpleEmail(invitedUserEmail, subject, content);
+    }
+
+    /**
+     * Notification au manager quand il est assigné à un projet par le responsable de contrat
+     */
+    public void notifyManagerAssignedToProject(Project project, User manager, User responsableContrat) {
+        String subject = "📁 Vous êtes assigné(e) au projet : " + project.getName();
+        String content = String.format("""
+        Bonjour %s,
+
+        %s vous a assigné(e) en tant que manager au projet suivant :
+
+        ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+        📁 Projet       : %s
+        🏢 Client       : %s
+        👤 Assigné par  : %s
+        ⏰ Date         : %s
+        ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+        Connectez-vous à la plateforme pour consulter le projet et commencer la gestion.
+
+        ---
+        Cet email a été envoyé automatiquement. Merci de ne pas y répondre.
+        © DXC Technology - Plateforme de gestion de projets
+        """,
+                manager.getPrenom(),
+                responsableContrat != null ? responsableContrat.getFullName() : "Le responsable de contrat",
+                project.getName(),
+                project.getClient() != null ? project.getClient() : "N/A",
+                responsableContrat != null ? responsableContrat.getFullName() : "N/A",
+                LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss"))
+        );
+        sendSimpleEmail(manager.getEmail(), subject, content);
+    }
+
+    // ================= NOTIFICATIONS VALIDATION PROJET PAR MANAGER =================
+
+    /**
+     * Notification au RC (Responsable de Contrat) quand le manager VALIDE un projet.
+     */
+    public void notifyRcProjectValidatedByManager(Project project, User rc, User manager,
+                                                  User chefProjet, String commentaire) {
+        String subject = "✅ Projet validé par le manager - " + project.getName();
+
+        String commentaireText = (commentaire != null && !commentaire.isBlank())
+                ? "Commentaire du manager : " + commentaire
+                : "Commentaire du manager : Aucun commentaire";
+
+        String chefProjetInfo = (chefProjet != null)
+                ? chefProjet.getFullName() + " (" + chefProjet.getEmail() + ")"
+                : "Non encore assigné";
+
+        String content = String.format("""
+            Bonjour %s,
+
+            Le manager a validé le projet suivant et a assigné un Chef de Projet :
+
+            ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+            📁 Projet          : %s
+            🏢 Client          : %s
+            ✅ Statut          : VALIDÉ
+            👨‍💼 Manager         : %s
+            👤 Chef de Projet  : %s
+            ⏰ Date            : %s
+            ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+            💬 %s
+
+            Connectez-vous à la plateforme pour consulter les détails du projet.
+
+            ---
+            Cet email a été envoyé automatiquement. Merci de ne pas y répondre.
+            © DXC Technology - Plateforme de gestion de projets
+            """,
+                rc.getPrenom(),
+                project.getName(),
+                project.getClient() != null ? project.getClient() : "N/A",
+                manager != null ? manager.getFullName() : "N/A",
+                chefProjetInfo,
+                LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss")),
+                commentaireText
+        );
+
+        sendSimpleEmail(rc.getEmail(), subject, content);
+        log.info("Notification de validation de projet envoyée au RC : {}", rc.getEmail());
+    }
+
+    /**
+     * Notification au RC (Responsable de Contrat) quand le manager REJETTE un projet.
+     */
+    public void notifyRcProjectRejectedByManager(Project project, User rc, User manager,
+                                                 String commentaire) {
+        String subject = "❌ Projet rejeté par le manager - " + project.getName();
+
+        String motifText = (commentaire != null && !commentaire.isBlank())
+                ? "Motif du rejet : " + commentaire
+                : "Motif du rejet : Non spécifié";
+
+        String content = String.format("""
+            Bonjour %s,
+
+            Le manager a rejeté le projet suivant. Veuillez en prendre connaissance et apporter les corrections nécessaires.
+
+            ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+            📁 Projet   : %s
+            🏢 Client   : %s
+            ❌ Statut   : REJETÉ
+            👨‍💼 Manager  : %s
+            ⏰ Date     : %s
+            ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+            💬 %s
+
+            Connectez-vous à la plateforme pour modifier le projet et le soumettre à nouveau.
+
+            ---
+            Cet email a été envoyé automatiquement. Merci de ne pas y répondre.
+            © DXC Technology - Plateforme de gestion de projets
+            """,
+                rc.getPrenom(),
+                project.getName(),
+                project.getClient() != null ? project.getClient() : "N/A",
+                manager != null ? manager.getFullName() : "N/A",
+                LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss")),
+                motifText
+        );
+
+        sendSimpleEmail(rc.getEmail(), subject, content);
+        log.info("Notification de rejet de projet envoyée au RC : {}", rc.getEmail());
     }
 }

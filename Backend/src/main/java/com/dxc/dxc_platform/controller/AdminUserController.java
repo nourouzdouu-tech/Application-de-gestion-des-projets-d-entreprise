@@ -68,10 +68,18 @@ public class AdminUserController {
         return ResponseEntity.ok(userAdminService.resetPassword(id, req));
     }
 
+    // ✅ NOUVEAU : endpoint appelé quand l'utilisateur change son mot de passe
+    @PatchMapping("/{id}/change-password")
+    public ResponseEntity<Void> changePassword(
+            @PathVariable Long id,
+            @RequestBody UserDto.ChangePasswordRequest req) {
+        userAdminService.changePassword(id, req.newPassword());
+        return ResponseEntity.noContent().build();
+    }
+
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> softDelete(@PathVariable Long id) {
         userAdminService.softDelete(id);
         return ResponseEntity.noContent().build();
     }
-
 }

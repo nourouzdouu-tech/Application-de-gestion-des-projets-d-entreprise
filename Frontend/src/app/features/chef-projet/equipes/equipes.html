@@ -1,6 +1,4 @@
-
-
-  <main class="main-content">
+<main class="main-content">
      <router-outlet></router-outlet>
      <div class="breadcrumb">
     <span class="breadcrumb-parent" (click)="goToDashboard()" style="cursor: pointer;">Tableau de bord</span>
@@ -26,8 +24,6 @@
         Créer équipe
       </button>
     </div>
-
-    
 
     <!-- Statistiques -->
     <div class="stats-grid">
@@ -72,92 +68,93 @@
       </div>
     </div>
     <div class="stats-team-spacer"></div>
-    <!-- Barre des boutons d'action (s'affiche uniquement quand une équipe est sélectionnée) -->
-<!-- Barre des boutons d'action (s'affiche uniquement quand une équipe est sélectionnée) -->
-<div class="team-actions-container" *ngIf="selectedTeam">
-  <div class="team-actions-wrapper">
-    <button class="btn-action btn-assign" type="button" (click)="openAssignModal()">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-        <circle cx="9" cy="7" r="4" />
-        <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-        <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-      </svg>
-      Assigner membre
-    </button>
 
-    <button class="btn-action btn-edit" type="button" (click)="openEditModal()">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <path d="M17 3l4 4-7 7H10v-4l7-7z" />
-        <path d="M4 20h16" />
-      </svg>
-      Modifier l'équipe
-    </button>
-
-    <button class="btn-action btn-delete" type="button" (click)="deleteTeam()">
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <path d="M4 7h16" />
-        <path d="M10 11v6" />
-        <path d="M14 11v6" />
-        <path d="M5 7l1 13a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2l1-13" />
-        <path d="M9 3h6a2 2 0 0 1 2 2v2H7V5a2 2 0 0 1 2-2z" />
-      </svg>
-      Supprimer l'équipe
-    </button>
-  </div>
-</div>
-<div class="stats-team-spacer"></div>
-    <!-- Barre de sélection des équipes -->
-<div class="team-selector-wrapper" *ngIf="teams.length > 0">
-  <div class="team-selector-container">
-    <div class="team-selector-header">
-      <span class="team-selector-icon">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-          <circle cx="9" cy="7" r="4" />
-          <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-          <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-        </svg>
-      </span>
-      <span class="team-selector-label">Mes équipes</span>
-      <span class="team-selector-count">{{ teams.length }} équipe(s)</span>
-    </div>
-    
-    <div class="team-selector-buttons">
-      <button 
-        *ngFor="let team of teams" 
-        class="team-btn"
-        [class.active]="selectedTeam?.id === team.id"
-        (click)="selectTeam(team)">
-        <div class="team-btn-content">
-          <div class="team-btn-icon">
-            <span class="team-selector-icon">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-          <circle cx="9" cy="7" r="4" />
-          <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-          <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-        </svg>
-      </span>
-          </div>
-          <div class="team-btn-info">
-            <span class="team-btn-name">{{ team.name }}</span>
-            <span class="team-btn-stats">
-              {{ team.members?.length || 0 }} membre(s)
-              <span class="team-btn-separator">•</span>
-              {{ team.projectManagerName || 'Chef de projet' }}
-            </span>
-          </div>
-        </div>
-        <div class="team-btn-badge" *ngIf="selectedTeam?.id === team.id">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-            <polyline points="20 6 9 17 4 12" />
+    <!-- Barre des boutons d'action -->
+    <div class="team-actions-container" *ngIf="selectedTeam">
+      <div class="team-actions-wrapper">
+        <button class="btn-action btn-assign" type="button" (click)="openAssignModal()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+            <circle cx="9" cy="7" r="4" />
+            <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+            <path d="M16 3.13a4 4 0 0 1 0 7.75" />
           </svg>
-        </div>
-      </button>
+          Assigner membre
+        </button>
+
+        <button class="btn-action btn-edit" type="button" (click)="openEditModal()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M17 3l4 4-7 7H10v-4l7-7z" />
+            <path d="M4 20h16" />
+          </svg>
+          Modifier l'équipe
+        </button>
+
+        <button class="btn-action btn-delete" type="button" (click)="confirmDeleteTeam()">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M4 7h16" />
+            <path d="M10 11v6" />
+            <path d="M14 11v6" />
+            <path d="M5 7l1 13a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2l1-13" />
+            <path d="M9 3h6a2 2 0 0 1 2 2v2H7V5a2 2 0 0 1 2-2z" />
+          </svg>
+          Supprimer l'équipe
+        </button>
+      </div>
     </div>
-  </div>
-</div>
+    <div class="stats-team-spacer"></div>
+
+    <!-- Barre de sélection des équipes -->
+    <div class="team-selector-wrapper" *ngIf="teams.length > 0">
+      <div class="team-selector-container">
+        <div class="team-selector-header">
+          <span class="team-selector-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+              <circle cx="9" cy="7" r="4" />
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+              <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+            </svg>
+          </span>
+          <span class="team-selector-label">Mes équipes</span>
+          <span class="team-selector-count">{{ teams.length }} équipe(s)</span>
+        </div>
+
+        <div class="team-selector-buttons">
+          <button
+            *ngFor="let team of teams"
+            class="team-btn"
+            [class.active]="selectedTeam?.id === team.id"
+            (click)="selectTeam(team)">
+            <div class="team-btn-content">
+              <div class="team-btn-icon">
+                <span class="team-selector-icon">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+                    <circle cx="9" cy="7" r="4" />
+                    <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+                    <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                  </svg>
+                </span>
+              </div>
+              <div class="team-btn-info">
+                <span class="team-btn-name">{{ team.name }}</span>
+                <span class="team-btn-stats">
+                  {{ team.members?.length || 0 }} membre(s)
+                  <span class="team-btn-separator">•</span>
+                  {{ team.projectManagerName || 'Chef de projet' }}
+                </span>
+              </div>
+            </div>
+            <div class="team-btn-badge" *ngIf="selectedTeam?.id === team.id">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <polyline points="20 6 9 17 4 12" />
+              </svg>
+            </div>
+          </button>
+        </div>
+      </div>
+    </div>
 
     <!-- Messages -->
     @if (successMessage) {
@@ -189,140 +186,137 @@
           />
         </div>
 
-        
         <!-- Modal Assigner -->
-        <!-- Modal Assigner -->
-@if (showAssignModal) {
-  <div class="modal-overlay" (click)="closeAssignModal()">
-    <div class="modal-container" (click)="$event.stopPropagation()" role="dialog" aria-modal="true">
-      <div class="modal-header">
-        <div class="modal-title-wrapper">
-          <div class="icon-circle">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-              <circle cx="9" cy="7" r="4"></circle>
-              <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
-              <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-            </svg>
-          </div>
-          <h2 class="modal-title">Assigner des membres</h2>
-        </div>
-        <button class="btn-close" (click)="closeAssignModal()" type="button" title="Fermer">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="2">
-            <line x1="18" y1="6" x2="6" y2="18"></line>
-            <line x1="6" y1="6" x2="18" y2="18"></line>
-          </svg>
-        </button>
-      </div>
-
-      <div class="modal-body">
-        <div class="form-group" style="position: relative;">
-          <label for="userSearch">Rechercher par nom, email ou rôle</label>
-          <input
-            id="userSearch"
-            type="text"
-            class="form-control"
-            placeholder="Ex: Safae Ibrahimi, safae@dxc.com, membre..."
-            [(ngModel)]="assignForm.searchQuery"
-            (input)="onSearchUser()"
-            autocomplete="off"
-          />
-
-          @if (assignForm.searchQuery.length >= 2) {
-            @if (isSearching) {
-              <div class="search-dropdown">
-                <div class="search-dropdown-item loading">
-                  <div class="spinner-small"></div>
-                  Recherche en cours...
+        @if (showAssignModal) {
+          <div class="modal-overlay" (click)="closeAssignModal()">
+            <div class="modal-container" (click)="$event.stopPropagation()" role="dialog" aria-modal="true">
+              <div class="modal-header">
+                <div class="modal-title-wrapper">
+                  <div class="icon-circle">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                      <circle cx="9" cy="7" r="4"></circle>
+                      <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                      <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                    </svg>
+                  </div>
+                  <h2 class="modal-title">Assigner des membres</h2>
                 </div>
+                <button class="btn-close" (click)="closeAssignModal()" type="button" title="Fermer">
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                  </svg>
+                </button>
               </div>
-            }
-            
-            @if (!isSearching && searchResults.length > 0) {
-              <div class="search-dropdown">
-                @for (user of searchResults; track user.id) {
-                  <div class="search-dropdown-item" 
-                       [class.already-assigned-item]="user.alreadyInTeam"
-                       [class.chef-projet-item]="(user.roleName || '').toUpperCase().includes('CHEF_PROJET')"
-                       (click)="selectUser(user)">
-                    <div class="dropdown-user-avatar" 
-                         [class.chef-projet-avatar]="(user.roleName || '').toUpperCase().includes('CHEF_PROJET')"
-                         [class.already-assigned-avatar]="user.alreadyInTeam">
-                      {{ getMemberInitials(user.fullName) }}
-                    </div>
-                    <div class="dropdown-user-info">
-                      <span class="dropdown-user-name">
-                        {{ user.fullName }}
-                        <span *ngIf="(user.roleName || '').toUpperCase().includes('CHEF_PROJET')" class="badge-chef-projet">
-                          Chef Projet
-                        </span>
-                        <span *ngIf="(user.roleName || '').toUpperCase().includes('MANAGER') && !(user.roleName || '').toUpperCase().includes('CHEF_PROJET')" class="badge-manager">
-                          Manager
-                        </span>
-                        <span *ngIf="user.alreadyInTeam" class="badge-already-assigned">
-                          Déjà assigné
-                        </span>
-                      </span>
-                      <span class="dropdown-user-meta">{{ user.email }} · {{ user.roleName || 'Rôle inconnu' }}</span>
-                      <span *ngIf="user.teamName" class="team-name-meta">Équipe: {{ user.teamName }}</span>
-                    </div>
-                    <div *ngIf="user.alreadyInTeam" class="disabled-icon">
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2">
-                        <circle cx="12" cy="12" r="10"/>
-                        <line x1="12" y1="8" x2="12" y2="12"/>
-                        <line x1="12" y1="16" x2="12.01" y2="16"/>
-                      </svg>
-                    </div>
+
+              <div class="modal-body">
+                <div class="form-group" style="position: relative;">
+                  <label for="userSearch">Rechercher par nom, email ou rôle</label>
+                  <input
+                    id="userSearch"
+                    type="text"
+                    class="form-control"
+                    placeholder="Ex: Safae Ibrahimi, safae@dxc.com, membre..."
+                    [(ngModel)]="assignForm.searchQuery"
+                    (input)="onSearchUser()"
+                    autocomplete="off"
+                  />
+
+                  @if (assignForm.searchQuery.length >= 2) {
+                    @if (isSearching) {
+                      <div class="search-dropdown">
+                        <div class="search-dropdown-item loading">
+                          <div class="spinner-small"></div>
+                          Recherche en cours...
+                        </div>
+                      </div>
+                    }
+
+                    @if (!isSearching && searchResults.length > 0) {
+                      <div class="search-dropdown">
+                        @for (user of searchResults; track user.id) {
+                          <div class="search-dropdown-item"
+                               [class.already-assigned-item]="user.alreadyInTeam"
+                               [class.chef-projet-item]="(user.roleName || '').toUpperCase().includes('CHEF_PROJET')"
+                               (click)="selectUser(user)">
+                            <div class="dropdown-user-avatar"
+                                 [class.chef-projet-avatar]="(user.roleName || '').toUpperCase().includes('CHEF_PROJET')"
+                                 [class.already-assigned-avatar]="user.alreadyInTeam">
+                              {{ getMemberInitials(user.fullName) }}
+                            </div>
+                            <div class="dropdown-user-info">
+                              <span class="dropdown-user-name">
+                                {{ user.fullName }}
+                                <span *ngIf="(user.roleName || '').toUpperCase().includes('CHEF_PROJET')" class="badge-chef-projet">
+                                  Chef Projet
+                                </span>
+                                <span *ngIf="(user.roleName || '').toUpperCase().includes('MANAGER') && !(user.roleName || '').toUpperCase().includes('CHEF_PROJET')" class="badge-manager">
+                                  Manager
+                                </span>
+                                <span *ngIf="user.alreadyInTeam" class="badge-already-assigned">
+                                  Déjà assigné
+                                </span>
+                              </span>
+                              <span class="dropdown-user-meta">{{ user.email }} · {{ user.roleName || 'Rôle inconnu' }}</span>
+                              <span *ngIf="user.teamName" class="team-name-meta">Équipe: {{ user.teamName }}</span>
+                            </div>
+                            <div *ngIf="user.alreadyInTeam" class="disabled-icon">
+                              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#f59e0b" stroke-width="2">
+                                <circle cx="12" cy="12" r="10"/>
+                                <line x1="12" y1="8" x2="12" y2="12"/>
+                                <line x1="12" y1="16" x2="12.01" y2="16"/>
+                              </svg>
+                            </div>
+                          </div>
+                        }
+                      </div>
+                    }
+
+                    @if (!isSearching && assignForm.searchQuery.length >= 2 && searchResults.length === 0) {
+                      <div class="search-dropdown">
+                        <div class="search-dropdown-item empty">
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="11" cy="11" r="8"/>
+                            <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                          </svg>
+                          Aucun utilisateur disponible trouvé.
+                        </div>
+                      </div>
+                    }
+                  }
+
+                  @if (userIdError) {
+                    <span class="field-error">{{ userIdError }}</span>
+                  }
+                </div>
+
+                @if (selectedUsers.length > 0) {
+                  <div class="selected-users-list">
+                    @for (user of selectedUsers; track user.id) {
+                      <div class="selected-user-tag">
+                        <span class="tag-name">{{ user.fullName }}</span>
+                        <button type="button" class="tag-remove" (click)="removeSelectedUser(user)">✕</button>
+                      </div>
+                    }
                   </div>
                 }
               </div>
-            }
 
-            @if (!isSearching && assignForm.searchQuery.length >= 2 && searchResults.length === 0) {
-              <div class="search-dropdown">
-                <div class="search-dropdown-item empty">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <circle cx="11" cy="11" r="8"/>
-                    <line x1="21" y1="21" x2="16.65" y2="16.65"/>
-                  </svg>
-                  Aucun utilisateur disponible trouvé.
-                </div>
+              <div class="modal-footer">
+                <button class="btn-cancel" (click)="closeAssignModal()" type="button" [disabled]="isLoading">
+                  Annuler
+                </button>
+                <button class="btn-submit" (click)="submitAssignForm()" type="button" [disabled]="isLoading">
+                  @if (isLoading) {
+                    <span class="spinner"></span>
+                  }
+                  Assigner ({{ selectedUsers.length }})
+                </button>
               </div>
-            }
-          }
-
-          @if (userIdError) {
-            <span class="field-error">{{ userIdError }}</span>
-          }
-        </div>
-
-        <!-- ✅ Zone des membres sélectionnés (tags) -->
-        @if (selectedUsers.length > 0) {
-          <div class="selected-users-list">
-            @for (user of selectedUsers; track user.id) {
-              <div class="selected-user-tag">
-                <span class="tag-name">{{ user.fullName }}</span>
-                <button type="button" class="tag-remove" (click)="removeSelectedUser(user)">✕</button>
-              </div>
-            }
+            </div>
           </div>
         }
-      </div>
-
-      <div class="modal-footer">
-        <button class="btn-cancel" (click)="closeAssignModal()" type="button" [disabled]="isLoading">
-          Annuler
-        </button>
-        <button class="btn-submit" (click)="submitAssignForm()" type="button" [disabled]="isLoading">
-          @if (isLoading) {
-            <span class="spinner"></span>
-          }
-          Assigner ({{ selectedUsers.length }})
-        </button>
-      </div>
-    </div>
-  </div>
-}
       </div>
 
       <!-- Tableau des informations de l'équipe -->
@@ -379,10 +373,10 @@
               </span>
             </td>
             <td>
-              <button 
+              <button
                 *ngIf="!isProjectManager(member)"
-                class="btn-remove-member" 
-                (click)="removeMember(member)"
+                class="btn-remove-member"
+                (click)="confirmRemoveMember(member)"
                 [disabled]="isRemovingMember"
                 title="Retirer de l'équipe">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -391,7 +385,7 @@
                 </svg>
                 Retirer
               </button>
-              
+
               <span *ngIf="isProjectManager(member)" class="pm-protected">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
@@ -496,5 +490,74 @@
         </div>
       </div>
     }
-    
+
+    <!-- Modal Confirmation Suppression Équipe -->
+    @if (showDeleteTeamModal) {
+      <div class="modal-overlay" (click)="cancelDeleteTeam()">
+        <div class="modal-container modal-confirm" (click)="$event.stopPropagation()" role="dialog" aria-modal="true">
+          <button class="btn-close modal-close-absolute" type="button" (click)="cancelDeleteTeam()" title="Fermer">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="2">
+              <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+          </button>
+          <div class="modal-header modal-confirm-header">
+            <div class="confirm-icon-wrapper confirm-icon-red">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="26" height="26">
+                <path d="M4 7h16"/>
+                <path d="M10 11v6"/>
+                <path d="M14 11v6"/>
+                <path d="M5 7l1 13a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2l1-13"/>
+                <path d="M9 3h6a2 2 0 0 1 2 2v2H7V5a2 2 0 0 1 2-2z"/>
+              </svg>
+            </div>
+          </div>
+          <div class="modal-body modal-confirm-body">
+            <h2 class="modal-title">Confirmer la suppression</h2>
+            <p class="modal-subtitle">
+              Êtes-vous sûr de vouloir supprimer l'équipe
+              <strong>"{{ selectedTeam?.name }}"</strong> ?
+              Cette action est irréversible.
+            </p>
+          </div>
+          <div class="modal-footer modal-confirm-footer">
+            <button class="btn-cancel" type="button" (click)="cancelDeleteTeam()">Annuler</button>
+            <button class="btn-danger-confirm" type="button" (click)="deleteTeam()">Supprimer</button>
+          </div>
+        </div>
+      </div>
+    }
+
+    <!-- Modal Confirmation Retrait Membre -->
+    @if (showRemoveMemberModal) {
+      <div class="modal-overlay" (click)="cancelRemoveMember()">
+        <div class="modal-container modal-confirm" (click)="$event.stopPropagation()" role="dialog" aria-modal="true">
+          <button class="btn-close modal-close-absolute" type="button" (click)="cancelRemoveMember()" title="Fermer">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="2">
+              <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+          </button>
+          <div class="modal-header modal-confirm-header">
+            <div class="confirm-icon-wrapper confirm-icon-orange">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="26" height="26">
+                <path d="M18 6L6 18"/>
+                <path d="M6 6l12 12"/>
+              </svg>
+            </div>
+          </div>
+          <div class="modal-body modal-confirm-body">
+            <h2 class="modal-title">Retirer le membre</h2>
+            <p class="modal-subtitle">
+              Êtes-vous sûr de vouloir retirer
+              <strong>{{ memberToRemove?.fullName }}</strong>
+              de l'équipe ? Il pourra être réassigné ultérieurement.
+            </p>
+          </div>
+          <div class="modal-footer modal-confirm-footer">
+            <button class="btn-cancel" type="button" (click)="cancelRemoveMember()">Annuler</button>
+            <button class="btn-danger-confirm" type="button" (click)="removeMember()">Retirer</button>
+          </div>
+        </div>
+      </div>
+    }
+
   </main>

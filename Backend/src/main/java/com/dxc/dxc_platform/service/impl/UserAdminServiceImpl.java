@@ -94,10 +94,9 @@ public class UserAdminServiceImpl implements UserAdminService {
 
         User saved = userRepository.save(user);
 
-        // Audit log
         auditService.log("CREATE_USER", "USER", saved.getId(),
                 "Création de l'utilisateur " + saved.getEmail(),
-                getCurrentUserEmail(),  null);
+                getCurrentUserEmail(), null);
         return userMapper.toResponse(saved);
     }
 
@@ -156,14 +155,12 @@ public class UserAdminServiceImpl implements UserAdminService {
 
         userRepository.save(user);
 
-        // Audit log
         auditService.log("UPDATE_USER", "USER", id,
                 "Modification de l'utilisateur " + oldEmail + " → " + req.email(),
-                getCurrentUserEmail(),  null);
+                getCurrentUserEmail(), null);
 
         return userMapper.toResponse(user);
     }
-
 
     @Override
     public void disable(Long id) {
@@ -173,7 +170,6 @@ public class UserAdminServiceImpl implements UserAdminService {
         user.setLocked(true);
         userRepository.save(user);
 
-        // ✅ Appel à EmailService au lieu de la méthode locale
         List<User> admins = userRepository.findAllAdmins();
         emailService.notifyAllAdminsAccountDisabled(user, admins, getCurrentUserEmail());
 
@@ -190,7 +186,6 @@ public class UserAdminServiceImpl implements UserAdminService {
         user.setLocked(false);
         userRepository.save(user);
 
-        // ✅ Appel à EmailService au lieu de la méthode locale
         List<User> admins = userRepository.findAllAdmins();
         emailService.notifyAllAdminsAccountEnabled(user, admins, getCurrentUserEmail());
 
@@ -198,6 +193,7 @@ public class UserAdminServiceImpl implements UserAdminService {
                 "Compte déverrouillé de l'utilisateur " + user.getEmail(),
                 getCurrentUserEmail(), null);
     }
+
     @Override
     public UserDto.ResetPasswordResponse resetPassword(Long id, UserDto.ResetPasswordRequest req) {
         User user = userRepository.findByIdAndDeletedFalse(id)
@@ -213,6 +209,7 @@ public class UserAdminServiceImpl implements UserAdminService {
         user.setMustChangePassword(true);
         userRepository.save(user);
 
+        // Envoi du mot de passe temporaire à l'utilisateur
         emailService.notifyTemporaryPassword(user, tempPassword);
 
         auditService.log("RESET_PASSWORD", "USER", id,
@@ -225,6 +222,25 @@ public class UserAdminServiceImpl implements UserAdminService {
                 user.isMustChangePassword()
         );
     }
+
+    // ✅ NOUVELLE MÉTHODE : changement de mot de passe par l'utilisateur lui-même
+    @Override
+    public void changePassword(Long id, String newPassword) {
+        User user = userRepository.findByIdAndDeletedFalse(id)
+                .orElseThrow(() -> new NotFoundException("USER_NOT_FOUND", "Utilisateur introuvable: " + id));
+
+        user.setPasswordHash(passwordEncoder.encode(newPassword));
+        user.setMustChangePassword(false); // Le flag est levé après changement réussi
+        userRepository.save(user);
+
+        // ✅ Notification de confirmation envoyée à l'utilisateur
+        emailService.notifyPasswordChanged(user);
+
+        auditService.log("CHANGE_PASSWORD", "USER", id,
+                "Changement de mot de passe pour " + user.getEmail(),
+                getCurrentUserEmail(), null);
+    }
+
     @Override
     public void softDelete(Long id) {
         User user = userRepository.findByIdAndDeletedFalse(id)

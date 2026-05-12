@@ -27,7 +27,7 @@ public class Message {
     @JoinColumn(name = "conversation_id", nullable = false)
     private Conversation conversation;
 
-    @Column(name = "is_read", nullable = false)
+    @Column(name = "read", nullable = false)
     private boolean read = false;
 
     @Column(name = "sent_at", nullable = false)

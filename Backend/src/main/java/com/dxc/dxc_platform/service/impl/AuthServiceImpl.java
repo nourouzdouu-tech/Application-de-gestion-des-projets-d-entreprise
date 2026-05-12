@@ -18,6 +18,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import com.dxc.dxc_platform.service.AuditService;
+import com.dxc.dxc_platform.service.EmailService;
 
 import java.util.stream.Collectors;
 
@@ -32,6 +33,7 @@ public class AuthServiceImpl implements AuthService {
     private final LoginAttemptService loginAttemptService;
     private final AuthMapper authMapper;
     private final AuditService auditService;
+    private final EmailService emailService;
 
     public AuthServiceImpl(AuthenticationManager authenticationManager,
                            UserRepository userRepository,
@@ -39,7 +41,9 @@ public class AuthServiceImpl implements AuthService {
                            UserDetailsService userDetailsService,
                            PasswordEncoder passwordEncoder,
                            LoginAttemptService loginAttemptService,
-                           AuthMapper authMapper, AuditService auditService) {
+                           AuthMapper authMapper,
+                           AuditService auditService,
+                           EmailService emailService) {
         this.authenticationManager = authenticationManager;
         this.userRepository = userRepository;
         this.jwtService = jwtService;
@@ -48,6 +52,7 @@ public class AuthServiceImpl implements AuthService {
         this.loginAttemptService = loginAttemptService;
         this.authMapper = authMapper;
         this.auditService = auditService;
+        this.emailService = emailService;
     }
 
     @Override
@@ -168,6 +173,9 @@ public class AuthServiceImpl implements AuthService {
         user.setLocked(false);
         user.setFailedAttempts(0);
         userRepository.saveAndFlush(user);
+
+        // ✅ Notification de confirmation par email
+        emailService.notifyPasswordChanged(user);
 
         // ✅ Audit pour changement de mot de passe
         auditService.log("RESET_PASSWORD", "USER", user.getId(),
