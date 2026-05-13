@@ -105,6 +105,9 @@ export class ProjectService {
     const params = new HttpParams().set('deleted', deleted.toString());
     return this.http.patch<ProjectDto>(`${this.API_URL}/${projectId}/deleted`, null, { params });
   }
+  updateProjectStatus(id: number, status: string): Observable<any> {
+  return this.http.patch(`${this.API_URL}/${id}/status`, { status });
+}
 
   assignTeamToProject(projectId: number, teamId: number): Observable<ProjectDto> {
     return this.http.patch<ProjectDto>(

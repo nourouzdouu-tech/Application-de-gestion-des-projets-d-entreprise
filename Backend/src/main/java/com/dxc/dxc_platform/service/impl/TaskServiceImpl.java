@@ -272,23 +272,31 @@ public class TaskServiceImpl implements TaskService {
     public List<TaskDto> getTasksByProject(Long projectId) {
         User currentUser = getCurrentUser();
 
-        if (!isChefProjet(currentUser)) {
-            throw new ForbiddenException("FORBIDDEN", "Accès réservé au chef de projet");
-        }
-
-        Project project = projectRepository.findByIdAndDeletedFalse(projectId)
+        // ✅ Récupère le projet même clôturé (findById au lieu de findByIdAndDeletedFalse)
+        Project project = projectRepository.findById(projectId)
                 .orElseThrow(() -> new NotFoundException("PROJECT_NOT_FOUND", "Projet introuvable"));
 
-        if (project.getTeam() == null) {
-            throw new ForbiddenException("FORBIDDEN", "Aucune équipe n'est assignée à ce projet");
+        if (project.isDeleted()) {
+            throw new NotFoundException("PROJECT_NOT_FOUND", "Projet introuvable");
         }
 
-        if (project.getTeam().getProjectManager() == null) {
-            throw new ForbiddenException("FORBIDDEN", "Aucun chef de projet n'est assigné à ce projet");
-        }
+        boolean isChef = isChefProjet(currentUser);
+        boolean isMembre = !isChef && currentUser.getTeam() != null
+                && project.getTeam() != null
+                && currentUser.getTeam().getId().equals(project.getTeam().getId());
 
-        if (!project.getTeam().getProjectManager().getId().equals(currentUser.getId())) {
+        if (!isChef && !isMembre) {
             throw new ForbiddenException("FORBIDDEN", "Accès non autorisé");
+        }
+
+        // ✅ Chef de projet : vérifie qu'il est bien le chef de ce projet
+        if (isChef) {
+            if (project.getTeam() == null || project.getTeam().getProjectManager() == null) {
+                throw new ForbiddenException("FORBIDDEN", "Aucune équipe n'est assignée à ce projet");
+            }
+            if (!project.getTeam().getProjectManager().getId().equals(currentUser.getId())) {
+                throw new ForbiddenException("FORBIDDEN", "Accès non autorisé");
+            }
         }
 
         List<Task> tasks = taskRepository.findAllByProjectIdAndDeletedFalse(projectId);

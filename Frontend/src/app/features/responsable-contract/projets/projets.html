@@ -58,9 +58,13 @@
         En cours de réalisation
       </button>
 
-      <button type="button" class="tab-btn" [class.active]="isStatusActive('REJETE')" (click)="setStatusFilter('REJETE')">
-        Rejetés
-      </button>
+     <button type="button" class="tab-btn" [class.active]="isStatusActive('REJETE')" (click)="setStatusFilter('REJETE')">
+  Rejetés
+</button>
+
+<button type="button" class="tab-btn" [class.active]="isStatusActive('CLOTURE')" (click)="setStatusFilter('CLOTURE')">
+  Clôturés
+</button>
     </div>
   </div>
 
@@ -139,57 +143,57 @@
           </td>
 
           <td class="actions-cell col-actions">
-            <button
-              class="icon-action-btn icon-edit"
-              type="button"
-              [title]="isProjectInProgress(project) ? 'Modification désactivée pour un projet en cours' : 'Modifier'"
-              [disabled]="isProjectInProgress(project)"
-              (click)="openEditForm(project)">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M12 20h9" />
-                <path d="M16.5 3.5a2.12 2.12 0 1 1 3 3L7 19l-4 1 1-4 12.5-12.5z" />
-              </svg>
-            </button>
+  <button
+    class="icon-action-btn icon-edit"
+    type="button"
+    [title]="isProjectInProgress(project) || project.status === 'CLOTURE' ? 'Action désactivée' : 'Modifier'"
+    [disabled]="isProjectInProgress(project) || project.status === 'CLOTURE'"
+    (click)="openEditForm(project)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M12 20h9" />
+      <path d="M16.5 3.5a2.12 2.12 0 1 1 3 3L7 19l-4 1 1-4 12.5-12.5z" />
+    </svg>
+  </button>
 
-            <button
-              class="icon-action-btn icon-delete"
-              type="button"
-              [title]="isProjectInProgress(project) ? 'Suppression désactivée pour un projet en cours' : 'Supprimer'"
-              [disabled]="isProjectInProgress(project)"
-              (click)="confirmDelete(project)">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <polyline points="3 6 5 6 21 6" />
-                <path d="M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2" />
-                <path d="M19 6l-1 14a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1L5 6" />
-                <line x1="10" y1="11" x2="10" y2="17" />
-                <line x1="14" y1="11" x2="14" y2="17" />
-              </svg>
-            </button>
+  <button
+    class="icon-action-btn icon-delete"
+    type="button"
+    [title]="isProjectInProgress(project) || project.status === 'CLOTURE' ? 'Action désactivée' : 'Supprimer'"
+    [disabled]="isProjectInProgress(project) || project.status === 'CLOTURE'"
+    (click)="confirmDelete(project)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <polyline points="3 6 5 6 21 6" />
+      <path d="M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2" />
+      <path d="M19 6l-1 14a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1L5 6" />
+      <line x1="10" y1="11" x2="10" y2="17" />
+      <line x1="14" y1="11" x2="14" y2="17" />
+    </svg>
+  </button>
 
-            <button
-              class="icon-action-btn icon-view"
-              type="button"
-              title="Voir détails"
-              (click)="openDetails(project)">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                <circle cx="12" cy="12" r="3" />
-              </svg>
-            </button>
+  <button
+    class="icon-action-btn icon-view"
+    type="button"
+    title="Voir détails"
+    (click)="openDetails(project)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+      <circle cx="12" cy="12" r="3" />
+    </svg>
+  </button>
 
-            <button
-              class="icon-action-btn icon-billing"
-              type="button"
-              title="Calculer la facture"
-              (click)="goToBilling(project)">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <rect x="4" y="3" width="16" height="18" rx="2" />
-                <line x1="8" y1="7" x2="16" y2="7" />
-                <line x1="8" y1="11" x2="16" y2="11" />
-                <line x1="8" y1="15" x2="12" y2="15" />
-              </svg>
-            </button>
-          </td>
+  <button
+    class="icon-action-btn icon-billing"
+    type="button"
+    [title]="project.status === 'CLOTURE' ? 'Action désactivée' : 'Calculer la facture'"
+    (click)="goToBilling(project)">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <rect x="4" y="3" width="16" height="18" rx="2" />
+      <line x1="8" y1="7" x2="16" y2="7" />
+      <line x1="8" y1="11" x2="16" y2="11" />
+      <line x1="8" y1="15" x2="12" y2="15" />
+    </svg>
+  </button>
+</td>
         </tr>
       </tbody>
     </table>

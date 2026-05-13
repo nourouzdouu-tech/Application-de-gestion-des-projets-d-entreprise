@@ -692,3 +692,70 @@
   cursor: not-allowed;
   border-color: #e5e7eb;
 }
+/* Bouton clôturer - rouge, même style que les autres icônes */
+.icon-action.cloture {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  border: none;
+  background: #FEE2E2;
+  color: #EF4444;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+
+.icon-action.cloture svg {
+  width: 16px;
+  height: 16px;
+}
+
+.icon-action.cloture:hover {
+  background: #EF4444;
+  color: #fff;
+}
+
+/* Boutons désactivés quand projet clôturé */
+.icon-action.action-disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* Badge ✔ vert quand déjà clôturé */
+.badge-cloture-icon {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  background: #D1FAE5;
+  color: #10B981;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.badge-cloture-icon svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* Ligne de projet clôturé légèrement grisée */
+.row-cloture td {
+  opacity: 0.65;
+}
+
+.row-cloture .status-pill.status-cloture {
+  background: #F1F5F9;
+  color: #64748B;
+}
+/* Boutons grisés visuellement pour projet clôturé */
+.icon-action.action-disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+  pointer-events: none;
+  background: #F1F5F9 !important;
+  color: #94A3B8 !important;
+  border: 1px solid #E2E8F0;
+}

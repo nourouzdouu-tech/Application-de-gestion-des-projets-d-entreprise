@@ -629,4 +629,7 @@ export class Projets implements OnInit, OnDestroy {
 
     return steps;
   }
+  isProjectClosed(project: ProjectDto): boolean {
+  return (project?.status ?? '').toUpperCase() === 'CLOTURE';
+}
 }

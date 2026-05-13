@@ -64,9 +64,12 @@ export class Projets implements OnInit {
   validationAction: 'valider' | 'rejeter' = 'valider';
   validationComment = '';
 
-  // ✅ NOUVEAU : Modal de confirmation suppression tâche
   showDeleteTaskModal = false;
   taskIdToDelete: number | null = null;
+
+  // ✅ NOUVEAU : Modal clôture projet
+  showClotureModal = false;
+  projectToCloture: ProjectDto | null = null;
 
   teamMembers: any[] = [];
   searchTerm = '';
@@ -110,6 +113,50 @@ export class Projets implements OnInit {
       endDate: ''
     };
   }
+
+  // ══════════════════════════════════════════════════
+  // CLÔTURE PROJET
+  // ══════════════════════════════════════════════════
+
+  openClotureModal(project: ProjectDto): void {
+    this.projectToCloture = project;
+    this.showClotureModal = true;
+    this.cdr.detectChanges();
+  }
+
+  closeClotureModal(): void {
+    this.showClotureModal = false;
+    this.projectToCloture = null;
+    this.cdr.detectChanges();
+  }
+
+  confirmCloture(): void {
+    if (!this.projectToCloture?.id) return;
+
+    this.projectService.updateProjectStatus(this.projectToCloture.id, 'CLOTURE').subscribe({
+      next: () => this.ngZone.run(() => {
+        // Mettre à jour localement le statut sans recharger toute la liste
+        const idx = this.projects.findIndex(p => p.id === this.projectToCloture!.id);
+        if (idx !== -1) {
+          this.projects[idx] = { ...this.projects[idx], status: 'CLOTURE' };
+          this.projects = [...this.projects];
+          this.updatePaginatedProjects();
+        }
+        this.showToast('🔒 Projet clôturé avec succès', 'success');
+        this.closeClotureModal();
+        this.cdr.detectChanges();
+      }),
+      error: (err) => this.ngZone.run(() => {
+        this.showToast(err?.error?.message || 'Erreur lors de la clôture du projet', 'error');
+        this.closeClotureModal();
+        this.cdr.detectChanges();
+      })
+    });
+  }
+
+  // ══════════════════════════════════════════════════
+  // DÉTAILS PROJET
+  // ══════════════════════════════════════════════════
 
   openDetailModal(project: ProjectDto): void {
     this.detailProject = { ...project };
@@ -599,14 +646,12 @@ export class Projets implements OnInit {
     });
   }
 
-  // ✅ MODIFIÉ : Ouvre le modal de confirmation au lieu du confirm() natif
   deleteTask(taskId: number): void {
     this.taskIdToDelete = taskId;
     this.showDeleteTaskModal = true;
     this.cdr.detectChanges();
   }
 
-  // ✅ NOUVEAU : Confirme la suppression depuis le modal
   confirmDeleteTask(): void {
     if (!this.taskIdToDelete) return;
 
@@ -629,7 +674,6 @@ export class Projets implements OnInit {
     });
   }
 
-  // ✅ NOUVEAU : Ferme le modal de confirmation
   closeDeleteTaskModal(): void {
     this.showDeleteTaskModal = false;
     this.taskIdToDelete = null;

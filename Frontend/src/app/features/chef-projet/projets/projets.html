@@ -63,7 +63,7 @@
           <tr *ngIf="!loading && !error && projects.length === 0">
             <td colspan="7" class="cell-center">Aucun projet trouvé.</td>
           </tr>
-          <tr *ngFor="let project of paginatedProjects">
+          <tr *ngFor="let project of paginatedProjects" [class.row-cloture]="project.status === 'CLOTURE'">
             <td>
               <div class="project-cell">
                 <div class="project-icon">
@@ -85,11 +85,18 @@
               <div class="date-main">{{ project.startDate | date:'dd/MM/yy' }}</div>
               <div class="date-muted">Fin: {{ project.endDate | date:'dd/MM/yy' }}</div>
             </td>
-            <td><span class="status-pill">{{ getStatusLabel(project.status) }}</span></td>
+            <td><span class="status-pill" [class.status-cloture]="project.status === 'CLOTURE'">{{ getStatusLabel(project.status) }}</span></td>
             <td class="team-col">{{ project.teamName || '-' }}</td>
             <td>
               <div class="actions">
-                <button class="icon-action assign-team" type="button" (click)="openAssignTeamModal(project)" title="Assigner une équipe">
+                <!-- Assigner une équipe — désactivé si clôturé -->
+                <button
+                  class="icon-action assign-team"
+                  type="button"
+                  (click)="project.status !== 'CLOTURE' && openAssignTeamModal(project)"
+                  title="Assigner une équipe"
+                  [disabled]="project.status === 'CLOTURE'"
+                  [class.action-disabled]="project.status === 'CLOTURE'">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
                     <circle cx="9" cy="7" r="4" />
@@ -97,18 +104,54 @@
                     <path d="M16 3.13a4 4 0 0 1 0 7.75" />
                   </svg>
                 </button>
-                <button class="icon-action detail" type="button" (click)="openDetailModal(project)" title="Voir détails">
+
+                <!-- Voir détails — toujours cliquable -->
+                <button
+                  class="icon-action detail"
+                  type="button"
+                  (click)="openDetailModal(project)"
+                  title="Voir détails">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
                     <circle cx="12" cy="12" r="3" />
                   </svg>
                 </button>
-                <button class="icon-action view-tasks" type="button" (click)="openViewTasksModal(project)" title="Voir les tâches">
+
+                <!-- Voir les tâches — désactivé si clôturé -->
+                <button
+                  class="icon-action view-tasks"
+                  type="button"
+                  (click)="project.status !== 'CLOTURE' && openViewTasksModal(project)"
+                  title="Voir les tâches"
+                  [disabled]="project.status === 'CLOTURE'"
+                  [class.action-disabled]="project.status === 'CLOTURE'">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M9 11l3 3L22 4" />
                     <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4l2 2h9a2 2 0 0 1 2 2z" />
                   </svg>
                 </button>
+
+                <!-- Clôturer le projet — masqué si déjà clôturé -->
+                <button
+                  *ngIf="project.status !== 'CLOTURE'"
+                  class="icon-action cloture"
+                  type="button"
+                  (click)="openClotureModal(project)"
+                  title="Clôturer le projet">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M18 6L6 18M6 6l12 12"/>
+                  </svg>
+                </button>
+
+                <!-- Badge clôturé — affiché à la place du bouton quand clôturé -->
+                <span
+                  *ngIf="project.status === 'CLOTURE'"
+                  class="badge-cloture-icon"
+                  title="Projet clôturé">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M20 6L9 17l-5-5"/>
+                  </svg>
+                </span>
               </div>
             </td>
           </tr>
@@ -192,6 +235,48 @@
       <div class="modal-footer">
         <button class="btn-secondary" (click)="closeTeamModal()">Annuler</button>
         <button class="btn-primary" (click)="confirmAssignTeam()" [disabled]="!selectedTeamId">Assigner</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ✅ MODAL CLÔTURER PROJET -->
+  <div class="modal-backdrop" *ngIf="showClotureModal">
+    <div class="modal-card" style="max-width:480px; text-align:center; position:relative;">
+      <button class="icon-close" style="position:absolute;top:16px;right:16px;" (click)="closeClotureModal()">×</button>
+
+      <div class="modal-body" style="padding:40px 32px 24px;">
+        <!-- Icône cadenas -->
+        <div style="
+          width:64px; height:64px; border-radius:50%;
+          background:#FEF3C7; display:flex; align-items:center;
+          justify-content:center; margin:0 auto 20px;
+        ">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#D97706" stroke-width="2" width="28" height="28">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+            <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+          </svg>
+        </div>
+
+        <h2 style="font-size:18px; font-weight:700; color:#0f172a; margin:0 0 12px;">
+          Clôturer le projet
+        </h2>
+        <p style="font-size:14px; color:#64748b; line-height:1.6; margin:0;">
+          Êtes-vous sûr de vouloir clôturer le projet
+          <strong style="color:#0f172a;">{{ projectToCloture?.name }}</strong> ?<br/>
+          Cette action désactivera toutes les interactions sur ce projet.
+        </p>
+      </div>
+
+      <div style="display:flex; gap:12px; justify-content:center; padding:0 32px 32px;">
+        <button class="btn-secondary" style="min-width:120px;" (click)="closeClotureModal()">
+          Annuler
+        </button>
+        <button
+          style="min-width:120px; padding:10px 20px; background:#D97706; color:white;
+                 border:none; border-radius:10px; font-weight:600; cursor:pointer; font-size:14px;"
+          (click)="confirmCloture()">
+          Clôturer
+        </button>
       </div>
     </div>
   </div>
@@ -550,13 +635,12 @@
     </div>
   </div>
 
-  <!-- ✅ MODAL CONFIRMER SUPPRESSION TÂCHE -->
+  <!-- MODAL CONFIRMER SUPPRESSION TÂCHE -->
   <div class="modal-backdrop" *ngIf="showDeleteTaskModal">
     <div class="modal-card" style="max-width:480px; text-align:center; position:relative;">
       <button class="icon-close" style="position:absolute;top:16px;right:16px;" (click)="closeDeleteTaskModal()">×</button>
 
       <div class="modal-body" style="padding:40px 32px 24px;">
-        <!-- Icône poubelle rouge -->
         <div style="
           width:64px; height:64px; border-radius:50%;
           background:#FEE2E2; display:flex; align-items:center;
@@ -609,7 +693,7 @@
   </div>
 </div>
 
-<!-- MODAL DÉTAILS PROJET - PLACÉE ICI, EN DEHORS DE taches-page -->
+<!-- MODAL DÉTAILS PROJET -->
 <div class="modal-backdrop" *ngIf="showDetailModal && detailProject">
   <div class="modal-card" style="max-width:520px;">
     <div class="modal-header">

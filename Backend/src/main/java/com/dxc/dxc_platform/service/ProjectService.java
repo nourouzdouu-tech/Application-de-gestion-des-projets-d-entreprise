@@ -14,6 +14,7 @@ public interface ProjectService {
     ProjectDto updateProject(Long projectId, ProjectDto request);
 
     ProjectDto getProjectById(Long projectId);
+    void updateProjectStatus(Long id, ProjectStatus status);
 
     List<ProjectDto> getAllProjects(String query, ProjectStatus status);
 

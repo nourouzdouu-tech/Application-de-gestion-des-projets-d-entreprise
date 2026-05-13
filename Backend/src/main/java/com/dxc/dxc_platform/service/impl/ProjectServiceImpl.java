@@ -234,7 +234,6 @@ public class ProjectServiceImpl implements ProjectService {
                 .map(projectMapper::toDto)
                 .collect(Collectors.toList());
     }
-
     @Override
     public List<ProjectDto> getMyProjects(String query, ProjectStatus status) {
         User currentUser = getAuthenticatedUser();
@@ -248,11 +247,15 @@ public class ProjectServiceImpl implements ProjectService {
         if (status != null) {
             projects = projectRepository.findAllByChefProjetIdAndDeletedFalseAndStatus(currentUser.getId(), status);
         } else {
+            // ✅ AVANT : filtrait seulement PRE_VALIDE et EN_COURS → excluait CLOTURE
+            // ✅ APRÈS : inclut aussi CLOTURE
             projects = projectRepository.findAllByChefProjetIdAndDeletedFalse(currentUser.getId())
                     .stream()
                     .filter(project ->
                             project.getStatus() == ProjectStatus.PRE_VALIDE
-                                    || project.getStatus() == ProjectStatus.EN_COURS)
+                                    || project.getStatus() == ProjectStatus.EN_COURS
+                                    || project.getStatus() == ProjectStatus.CLOTURE
+                    )
                     .collect(Collectors.toList());
         }
 
@@ -270,7 +273,6 @@ public class ProjectServiceImpl implements ProjectService {
                 .map(projectMapper::toDto)
                 .collect(Collectors.toList());
     }
-
     @Override
     public ProjectDto setDeletedStatus(Long projectId, boolean deleted) {
         Project project = deleted
@@ -591,6 +593,7 @@ public class ProjectServiceImpl implements ProjectService {
         project.setChefProjet(chefProjet);
     }
 
+
     @Override
     public List<ProjectDto> getMyAssignedProjects(String query, ProjectStatus status) {
         User currentUser = getAuthenticatedUser();
@@ -613,13 +616,14 @@ public class ProjectServiceImpl implements ProjectService {
                     .filter(project ->
                             project.getStatus() == ProjectStatus.EN_COURS
                                     || project.getStatus() == ProjectStatus.PRE_VALIDE
-                                    || project.getStatus() == ProjectStatus.EN_VALIDATION)
+                                    || project.getStatus() == ProjectStatus.EN_VALIDATION
+                                    || project.getStatus() == ProjectStatus.CLOTURE  // ✅ AJOUT
+                    )
                     .toList();
         }
 
         if (query != null && !query.isBlank()) {
             String normalized = query.trim().toLowerCase();
-
             projects = projects.stream()
                     .filter(project ->
                             project.getName().toLowerCase().contains(normalized)
@@ -630,5 +634,11 @@ public class ProjectServiceImpl implements ProjectService {
         return projects.stream()
                 .map(projectMapper::toDto)
                 .toList();
+    }
+    public void updateProjectStatus(Long id, ProjectStatus status) {
+        Project project = projectRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Projet non trouvé"));
+        project.setStatus(status);
+        projectRepository.save(project);
     }
 }

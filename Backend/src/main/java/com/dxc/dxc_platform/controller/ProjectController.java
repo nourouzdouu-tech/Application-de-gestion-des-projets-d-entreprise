@@ -16,6 +16,8 @@ import com.dxc.dxc_platform.dto.ManagerProjectItemDto;
 import com.dxc.dxc_platform.dto.ManagerProjectReviewDto;
 import com.dxc.dxc_platform.dto.UserDto;
 import java.util.List;
+import java.util.Map;
+import com.dxc.dxc_platform.enums.ProjectStatus;
 
 @RestController
 @RequestMapping("/api/projects")
@@ -104,5 +106,14 @@ public class ProjectController {
             @RequestParam(required = false) String query,
             @RequestParam(required = false) ProjectStatus status) {
         return ResponseEntity.ok(projectService.getMyAssignedProjects(query, status));
+    }
+    @PatchMapping("/{id}/status")
+    public ResponseEntity<?> updateProjectStatus(
+            @PathVariable Long id,
+            @RequestBody Map<String, String> body) {
+
+        ProjectStatus status = ProjectStatus.valueOf(body.get("status"));
+        projectService.updateProjectStatus(id, status);
+        return ResponseEntity.ok().build();
     }
 }
