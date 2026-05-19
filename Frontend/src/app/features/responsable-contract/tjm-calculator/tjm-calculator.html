@@ -13,7 +13,7 @@
 
     <div class="header-actions">
       <button class="btn btn-light" type="button" (click)="goBack()">Retour</button>
-      <button class="btn btn-success" type="button" (click)="saveBilling()">Sauvegarder</button>
+      <button class="btn btn-success" type="button" (click)="saveBilling()" [disabled]="isProjectClosed">Sauvegarder</button>
       <button class="btn btn-primary" type="button" (click)="generatePdf()">Télécharger PDF</button>
     </div>
   </div>

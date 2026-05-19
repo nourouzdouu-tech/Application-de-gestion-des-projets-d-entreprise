@@ -1,0 +1,369 @@
+// notification-bell-membre.component.ts
+import { Component, OnInit, OnDestroy, HostListener } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { Subscription } from 'rxjs';
+import { NotificationApiService, Notification } from './notification-api.service';
+import { NotificationWebSocketService } from './notification-websocket.service';
+import { NotificationService as ToastService } from './notification.service';
+
+@Component({
+  selector: 'app-notification-bell-membre',
+  standalone: true,
+  imports: [CommonModule],
+  template: `
+    <div class="notification-container">
+      <button class="notification-btn" (click)="toggleDropdown()" [class.has-notifications]="unreadCount > 0">
+        🔔
+        @if (unreadCount > 0) {
+          <span class="badge">{{ unreadCount > 99 ? '99+' : unreadCount }}</span>
+        }
+      </button>
+      
+      @if (isOpen) {
+        <div class="dropdown">
+          <div class="dropdown-header">
+            <h3>Mes notifications</h3>
+            @if (unreadCount > 0) {
+              <button (click)="markAllAsRead($event)" class="mark-all-btn">
+                ✅ Tout lire
+              </button>
+            }
+          </div>
+          
+          <div class="dropdown-content">
+            @if (loading) {
+              <div class="loading">Chargement...</div>
+            }
+            
+            @if (!loading && notifications.length === 0) {
+              <div class="no-notifications">
+                🔔 Aucune notification
+              </div>
+            }
+            
+            @for (notif of notifications; track notif.id) {
+              <div class="notification-item" 
+                   [class.unread]="!notif.read"
+                   (click)="onNotificationClick(notif)">
+                <div class="notification-icon">{{ getIcon(notif.type) }}</div>
+                <div class="notification-content">
+                  <div class="notification-title">{{ notif.title }}</div>
+                  <div class="notification-message">{{ notif.content }}</div>
+                  <div class="notification-time">{{ getFormattedDate(notif.createdAt) }}</div>
+                </div>
+                @if (!notif.read) {
+                  <div class="notification-badge">Nouveau</div>
+                }
+              </div>
+            }
+          </div>
+          
+          @if (hasMore) {
+            <div class="dropdown-footer">
+              <button (click)="loadMore()" class="load-more-btn">Voir plus...</button>
+            </div>
+          }
+        </div>
+      }
+    </div>
+  `,
+  styles: [`
+    .notification-container {
+      position: relative;
+      display: inline-block;
+    }
+    .notification-btn {
+      position: relative;
+      background: none;
+      border: none;
+      font-size: 24px;
+      cursor: pointer;
+      padding: 8px;
+      border-radius: 50%;
+      transition: background 0.3s;
+    }
+    .notification-btn:hover {
+      background: rgba(0,0,0,0.1);
+    }
+    .badge {
+      position: absolute;
+      top: -5px;
+      right: -5px;
+      background: #f44336;
+      color: white;
+      border-radius: 50%;
+      padding: 2px 6px;
+      font-size: 11px;
+      min-width: 18px;
+      text-align: center;
+      font-weight: bold;
+    }
+    .dropdown {
+      position: absolute;
+      top: 100%;
+      right: 0;
+      width: 420px;
+      max-height: 520px;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+      z-index: 1000;
+      display: flex;
+      flex-direction: column;
+      animation: slideDown 0.2s ease;
+    }
+    @keyframes slideDown {
+      from {
+        opacity: 0;
+        transform: translateY(-10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    .dropdown-header {
+      padding: 12px 16px;
+      border-bottom: 1px solid #e0e0e0;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #fafafa;
+      border-radius: 12px 12px 0 0;
+    }
+    .dropdown-header h3 {
+      margin: 0;
+      font-size: 16px;
+      font-weight: 600;
+    }
+    .mark-all-btn {
+      background: none;
+      border: none;
+      color: #1976d2;
+      cursor: pointer;
+      font-size: 12px;
+    }
+    .dropdown-content {
+      flex: 1;
+      overflow-y: auto;
+      max-height: 420px;
+    }
+    .notification-item {
+      padding: 12px 16px;
+      border-bottom: 1px solid #f0f0f0;
+      display: flex;
+      gap: 12px;
+      cursor: pointer;
+      transition: background 0.2s;
+      position: relative;
+    }
+    .notification-item:hover {
+      background: #f5f5f5;
+    }
+    .notification-item.unread {
+      background: #e3f2fd;
+    }
+    .notification-icon {
+      font-size: 24px;
+    }
+    .notification-content {
+      flex: 1;
+    }
+    .notification-title {
+      font-weight: bold;
+      margin-bottom: 4px;
+      font-size: 14px;
+    }
+    .notification-message {
+      font-size: 13px;
+      color: #666;
+      margin-bottom: 4px;
+      line-height: 1.4;
+    }
+    .notification-time {
+      font-size: 11px;
+      color: #999;
+    }
+    .notification-badge {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      background: #1976d2;
+      color: white;
+      font-size: 10px;
+      padding: 2px 6px;
+      border-radius: 10px;
+    }
+    .no-notifications, .loading {
+      padding: 40px;
+      text-align: center;
+      color: #999;
+    }
+    .dropdown-footer {
+      padding: 10px;
+      border-top: 1px solid #e0e0e0;
+      text-align: center;
+    }
+    .load-more-btn {
+      background: none;
+      border: none;
+      color: #1976d2;
+      cursor: pointer;
+    }
+  `]
+})
+export class NotificationBellMembreComponent implements OnInit, OnDestroy {
+  isOpen = false;
+  notifications: Notification[] = [];
+  unreadCount = 0;
+  currentPage = 0;
+  hasMore = true;
+  loading = false;
+  
+  private subscriptions: Subscription[] = [];
+
+  constructor(
+    private notificationApi: NotificationApiService,
+    private notificationWS: NotificationWebSocketService,
+    private toastService: ToastService
+  ) {}
+
+  ngOnInit(): void {
+    console.log('=== NotificationBellMembreComponent INIT ===');
+    this.loadNotifications();
+    this.loadUnreadCount();
+    
+    this.subscriptions.push(
+      this.notificationWS.notifications$.subscribe((notification: Notification) => {
+        console.log('Nouvelle notification membre:', notification);
+        this.notifications = [notification, ...this.notifications];
+        this.unreadCount++;
+        this.toastService.showSuccess(notification.title);
+      })
+    );
+    
+    this.subscriptions.push(
+      this.notificationWS.unreadCount$.subscribe((count: number) => {
+        console.log('Nouveau compteur membre:', count);
+        this.unreadCount = count;
+      })
+    );
+  }
+  
+  ngOnDestroy(): void {
+    this.subscriptions.forEach(sub => sub.unsubscribe());
+  }
+  
+  loadNotifications(): void {
+    this.loading = true;
+    this.notificationApi.getNotifications(this.currentPage, 20).subscribe({
+      next: (response: any) => {
+        this.notifications = response.content || [];
+        this.hasMore = !response.last;
+        this.loading = false;
+      },
+      error: (error: any) => {
+        console.error('Erreur:', error);
+        this.loading = false;
+      }
+    });
+  }
+  
+  loadUnreadCount(): void {
+    this.notificationApi.getUnreadCount().subscribe({
+      next: (data: any) => this.unreadCount = data.count,
+      error: (error: any) => console.error('Erreur:', error)
+    });
+  }
+  
+  loadMore(): void {
+    if (!this.hasMore || this.loading) return;
+    this.currentPage++;
+    this.loading = true;
+    this.notificationApi.getNotifications(this.currentPage, 20).subscribe({
+      next: (response: any) => {
+        this.notifications = [...this.notifications, ...(response.content || [])];
+        this.hasMore = !response.last;
+        this.loading = false;
+      }
+    });
+  }
+  
+  toggleDropdown(): void {
+    this.isOpen = !this.isOpen;
+    if (this.isOpen) {
+      this.loadNotifications();
+      this.loadUnreadCount();
+    }
+  }
+  
+  @HostListener('document:click', ['$event'])
+  onClickOutside(event: Event): void {
+    const target = event.target as HTMLElement;
+    if (!target.closest('.notification-container')) {
+      this.isOpen = false;
+    }
+  }
+  
+  onNotificationClick(notification: Notification): void {
+    if (!notification.read) {
+      this.markAsRead(notification.id);
+    }
+    if (notification.actionUrl) {
+      window.location.href = notification.actionUrl;
+    }
+    this.isOpen = false;
+  }
+  
+  markAsRead(id: number): void {
+    this.notificationApi.markAsRead(id).subscribe({
+      next: () => {
+        const notif = this.notifications.find(n => n.id === id);
+        if (notif && !notif.read) {
+          notif.read = true;
+          this.unreadCount--;
+        }
+      }
+    });
+  }
+  
+  markAllAsRead(event: Event): void {
+    event.stopPropagation();
+    this.notificationApi.markAllAsRead().subscribe({
+      next: () => {
+        this.notifications.forEach(n => n.read = true);
+        this.unreadCount = 0;
+        this.toastService.showSuccess('Toutes les notifications ont été marquées comme lues');
+      }
+    });
+  }
+  
+  getFormattedDate(dateString: string): string {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffMins = Math.floor((now.getTime() - date.getTime()) / 60000);
+    const diffHours = Math.floor(diffMins / 60);
+    const diffDays = Math.floor(diffHours / 24);
+    
+    if (diffMins < 1) return 'À l\'instant';
+    if (diffMins < 60) return `Il y a ${diffMins} min`;
+    if (diffHours < 24) return `Il y a ${diffHours} h`;
+    if (diffDays === 1) return 'Hier';
+    if (diffDays < 7) return `Il y a ${diffDays} jours`;
+    return date.toLocaleDateString('fr-FR');
+  }
+  
+  getIcon(type: string): string {
+    const icons: {[key: string]: string} = {
+      'TASK_ASSIGNED': '📋',
+      'TASK_UPDATED': '✏️',
+      'TASK_DELETED': '🗑️',
+      'TASK_VALIDATED': '✅',
+      'TASK_REJECTED': '❌',
+      'NEW_MESSAGE': '💬',      // ✅ AJOUT
+        'NEW_FILE_RECEIVED': '📎'
+    };
+    return icons[type] || '🔔';
+  }
+}

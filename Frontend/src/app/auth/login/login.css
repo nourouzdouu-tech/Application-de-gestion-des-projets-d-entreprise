@@ -281,6 +281,8 @@
   box-sizing: border-box;
 }
 
+/* Biometric styles removed */
+
 .submit-button:hover:not(:disabled) {
   background-color: #111827;
   box-shadow: 0px 15px 20px -3px rgba(88, 28, 135, 0.3), 0px 6px 8px -4px rgba(88, 28, 135, 0.3);

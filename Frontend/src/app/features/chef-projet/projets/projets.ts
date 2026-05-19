@@ -118,10 +118,34 @@ export class Projets implements OnInit {
   // CLÔTURE PROJET
   // ══════════════════════════════════════════════════
 
+  canCloseProject(project: ProjectDto): boolean {
+    return project.status !== 'CLOTURE' && Number(project.progressPercentage ?? 0) === 100;
+  }
+
   openClotureModal(project: ProjectDto): void {
-    this.projectToCloture = project;
-    this.showClotureModal = true;
-    this.cdr.detectChanges();
+    if (project.status === 'CLOTURE') return;
+    if (!project.id) return;
+
+    this.taskService.getTasksByProject(project.id).subscribe({
+      next: (tasks) => this.ngZone.run(() => {
+        const total = tasks.length;
+        const done = tasks.filter(t => t.status === 'Terminé').length;
+        const progression = total > 0 ? Math.round((done / total) * 100) : 0;
+
+        if (progression === 100) {
+          this.projectToCloture = project;
+          this.showClotureModal = true;
+        } else {
+          this.showToast('🔒 La clôture est possible uniquement si la progression est à 100 %.', 'error');
+        }
+
+        this.cdr.detectChanges();
+      }),
+      error: () => this.ngZone.run(() => {
+        this.showToast('Erreur lors de la vérification des tâches du projet.', 'error');
+        this.cdr.detectChanges();
+      })
+    });
   }
 
   closeClotureModal(): void {

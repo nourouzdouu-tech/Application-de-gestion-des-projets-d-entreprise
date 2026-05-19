@@ -20,6 +20,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import com.dxc.dxc_platform.service.EmailService;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -40,6 +42,9 @@ public class UserAdminServiceImpl implements UserAdminService {
     private final UserMapper userMapper;
     private final AuditService auditService;
     private final EmailService emailService;
+
+    // ✅ Durée de validité du mot de passe temporaire (2 heures = 120 minutes)
+    private static final long TEMP_PASSWORD_VALIDITY_MINUTES = 120;
 
     public UserAdminServiceImpl(UserRepository userRepository,
                                 RoleRepository roleRepository,
@@ -91,6 +96,7 @@ public class UserAdminServiceImpl implements UserAdminService {
         user.setDeleted(false);
         user.setRoles(roles);
         user.setProfile(profile);
+        user.setTempPasswordExpiry(null); // ✅ Initialiser à null
 
         User saved = userRepository.save(user);
 
@@ -193,7 +199,7 @@ public class UserAdminServiceImpl implements UserAdminService {
                 "Compte déverrouillé de l'utilisateur " + user.getEmail(),
                 getCurrentUserEmail(), null);
     }
-
+    // Dans UserAdminServiceImpl.java - Version avec expiration
     @Override
     public UserDto.ResetPasswordResponse resetPassword(Long id, UserDto.ResetPasswordRequest req) {
         User user = userRepository.findByIdAndDeletedFalse(id)
@@ -203,37 +209,50 @@ public class UserAdminServiceImpl implements UserAdminService {
                 ? req.tempPassword()
                 : generateTempPassword();
 
+        LocalDateTime expiryTime = LocalDateTime.now().plusHours(2);
+        long validityMinutes = 120; // 2 heures en minutes
+
         user.setPasswordHash(passwordEncoder.encode(tempPassword));
         user.setFailedAttempts(0);
         user.setLocked(false);
         user.setMustChangePassword(true);
+        user.setTempPasswordExpiry(expiryTime);
         userRepository.save(user);
 
-        // Envoi du mot de passe temporaire à l'utilisateur
         emailService.notifyTemporaryPassword(user, tempPassword);
 
         auditService.log("RESET_PASSWORD", "USER", id,
-                "Réinitialisation du mot de passe pour " + user.getEmail(),
+                "Réinitialisation du mot de passe pour " + user.getEmail() + " (expire le " + expiryTime.format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss")) + ")",
                 getCurrentUserEmail(), null);
 
+        // Version avec expiration
         return new UserDto.ResetPasswordResponse(
                 user.getId(),
                 tempPassword,
-                user.isMustChangePassword()
+                user.isMustChangePassword(),
+                expiryTime,
+                validityMinutes
         );
     }
 
-    // ✅ NOUVELLE MÉTHODE : changement de mot de passe par l'utilisateur lui-même
+    // ✅ NOUVELLE MÉTHODE : changement de mot de passe par l'utilisateur lui-même avec vérification d'expiration
     @Override
     public void changePassword(Long id, String newPassword) {
         User user = userRepository.findByIdAndDeletedFalse(id)
                 .orElseThrow(() -> new NotFoundException("USER_NOT_FOUND", "Utilisateur introuvable: " + id));
 
+        // ✅ VÉRIFIER SI LE MOT DE PASSE TEMPORAIRE N'EST PAS EXPIRÉ
+        if (user.isMustChangePassword() && user.isTempPasswordExpired()) {
+            throw new RuntimeException("PASSWORD_EXPIRED",
+                    new Throwable("Votre mot de passe temporaire a expiré (valable 2h). Veuillez contacter l'administrateur."));
+        }
+
         user.setPasswordHash(passwordEncoder.encode(newPassword));
         user.setMustChangePassword(false); // Le flag est levé après changement réussi
+        user.setTempPasswordExpiry(null); // ✅ Effacer l'expiration
         userRepository.save(user);
 
-        // ✅ Notification de confirmation envoyée à l'utilisateur
+        // Notification de confirmation envoyée à l'utilisateur
         emailService.notifyPasswordChanged(user);
 
         auditService.log("CHANGE_PASSWORD", "USER", id,
@@ -254,8 +273,15 @@ public class UserAdminServiceImpl implements UserAdminService {
                 getCurrentUserEmail(), null);
     }
 
+    // ✅ Méthode améliorée pour générer un mot de passe temporaire plus sécurisé
     private String generateTempPassword() {
-        return "Temp@" + UUID.randomUUID().toString().substring(0, 8);
+        String chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%";
+        StringBuilder sb = new StringBuilder();
+        java.security.SecureRandom random = new java.security.SecureRandom();
+        for (int i = 0; i < 12; i++) {
+            sb.append(chars.charAt(random.nextInt(chars.length())));
+        }
+        return sb.toString();
     }
 
     @Override

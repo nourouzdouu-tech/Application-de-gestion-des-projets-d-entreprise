@@ -30,8 +30,8 @@ import { SharedCalendarComponent } from './shared/components/calendar/calendar';
 // ✅ NOUVEAU : Import du composant AUDIT partagé (plus les anciens imports supprimés)
 import { AuditComponent } from './shared/components/audit/audit';
 
-// Import du composant Reporting
-import { Reporting } from './shared/components/reporting/reporting';
+
+
 
 export const routes: Routes = [
   {
@@ -50,7 +50,7 @@ export const routes: Routes = [
     component: Admin,
     children: [
       { path: 'dashboard', component: Dashboard },
-      { path: 'reporting', component: Reporting },
+  
       { path: 'utilisateurs', component: Utilisateurs },
       { path: 'roles', component: Roles },
       { path: 'clients', component: Clients },
@@ -65,7 +65,7 @@ export const routes: Routes = [
     component: ChefProjet,
     children: [
       { path: 'dashboard', component: Dashboard },
-      { path: 'reporting', component: Reporting },
+  
       { path: 'projets', component: Projets },
       { path: 'taches', component: TachesComponent },
       { path: 'equipes', component: Equipes },
@@ -79,7 +79,7 @@ export const routes: Routes = [
     component: ResponsableContract,
     children: [
       { path: 'dashboard', component: Dashboard },
-      { path: 'reporting', component: Reporting },
+
       { path: 'projets', component: ResponsableProjets },
       { path: 'facturation/:projectId', component: TjmCalculatorComponent },
       { path: '', redirectTo: 'dashboard', pathMatch: 'full' }
@@ -90,7 +90,7 @@ export const routes: Routes = [
     component: ManagerLayoutComponent,
     children: [
       { path: 'dashboard', component: Dashboard },
-      { path: 'reporting', component: Reporting },
+
       { path: 'projets', component: ReviewProjetsComponent },
       { path: 'calendrier', component: SharedCalendarComponent },
       { path: 'messages', component: SharedMessagesComponent },
@@ -104,7 +104,7 @@ export const routes: Routes = [
     component: MembreEquipe,
     children: [
       { path: 'dashboard', component: Dashboard },
-      { path: 'reporting', component: Reporting },
+
       { path: 'projets', component: MembreEquipeProjets },
       { path: 'taches', component: MembreEquipeTaches },
       { path: 'calendrier', component: SharedCalendarComponent },

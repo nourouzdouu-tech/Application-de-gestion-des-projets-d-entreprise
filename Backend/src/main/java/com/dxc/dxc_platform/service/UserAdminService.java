@@ -21,7 +21,6 @@ public interface UserAdminService {
 
     UserDto.ResetPasswordResponse resetPassword(Long id, UserDto.ResetPasswordRequest req);
 
-    // ✅ NOUVEAU : changement de mot de passe par l'utilisateur
     void changePassword(Long id, String newPassword);
 
     void softDelete(Long id);

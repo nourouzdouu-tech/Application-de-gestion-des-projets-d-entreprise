@@ -28,7 +28,6 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
-
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -71,7 +70,6 @@ public class ProjectServiceImpl implements ProjectService {
         return auth != null ? auth.getName() : "system";
     }
 
-
     @Override
     public ProjectDto createProject(ProjectDto request) {
         String projectName = request.getName().trim();
@@ -95,7 +93,6 @@ public class ProjectServiceImpl implements ProjectService {
         project.setEndDate(request.getEndDate());
         project.setDeleted(false);
 
-        // ✅ AJOUT : on trace qui a créé le projet (RC ou chef de projet)
         project.setCreatedBy(currentUser);
 
         User assignedManager = null;
@@ -122,10 +119,10 @@ public class ProjectServiceImpl implements ProjectService {
 
         Project savedProject = projectRepository.save(project);
 
-        // ✅ Notification email au manager assigné par le RC
+        // ✅ Notification email + WebSocket au manager assigné par le RC
         if (assignedManager != null) {
             try {
-                emailService.notifyManagerAssignedToProject(savedProject, assignedManager, currentUser);
+                emailService.notifyManagerAssignedWithWS(savedProject, assignedManager, currentUser, null);
             } catch (Exception e) {
                 System.err.println("Erreur notification manager : " + e.getMessage());
             }
@@ -168,8 +165,6 @@ public class ProjectServiceImpl implements ProjectService {
             User manager = findValidManagerById(request.getManagerId());
             project.setManager(manager);
 
-            // ✅ Si le projet était rejeté et que le manager change,
-            // il repart en cours de validation + notification au nouveau manager
             if (project.getStatus() == ProjectStatus.REJETE
                     && (currentManagerId == null || !currentManagerId.equals(manager.getId()))) {
                 project.setStatus(ProjectStatus.EN_VALIDATION);
@@ -178,11 +173,10 @@ public class ProjectServiceImpl implements ProjectService {
                 project.setManagerComment(null);
                 project.setReviewedAt(null);
 
-                // ✅ Notification email au nouveau manager assigné
                 final User newManager = manager;
                 final Project projectSnapshot = project;
                 try {
-                    emailService.notifyManagerAssignedToProject(projectSnapshot, newManager, currentUser);
+                    emailService.notifyManagerAssignedWithWS(projectSnapshot, newManager, currentUser, null);
                 } catch (Exception e) {
                     System.err.println("Erreur notification manager (réassignation après rejet) : " + e.getMessage());
                 }
@@ -234,6 +228,7 @@ public class ProjectServiceImpl implements ProjectService {
                 .map(projectMapper::toDto)
                 .collect(Collectors.toList());
     }
+
     @Override
     public List<ProjectDto> getMyProjects(String query, ProjectStatus status) {
         User currentUser = getAuthenticatedUser();
@@ -247,8 +242,6 @@ public class ProjectServiceImpl implements ProjectService {
         if (status != null) {
             projects = projectRepository.findAllByChefProjetIdAndDeletedFalseAndStatus(currentUser.getId(), status);
         } else {
-            // ✅ AVANT : filtrait seulement PRE_VALIDE et EN_COURS → excluait CLOTURE
-            // ✅ APRÈS : inclut aussi CLOTURE
             projects = projectRepository.findAllByChefProjetIdAndDeletedFalse(currentUser.getId())
                     .stream()
                     .filter(project ->
@@ -273,6 +266,7 @@ public class ProjectServiceImpl implements ProjectService {
                 .map(projectMapper::toDto)
                 .collect(Collectors.toList());
     }
+
     @Override
     public ProjectDto setDeletedStatus(Long projectId, boolean deleted) {
         Project project = deleted
@@ -315,6 +309,7 @@ public class ProjectServiceImpl implements ProjectService {
                 .map(userMapper::toSummary)
                 .collect(Collectors.toList());
     }
+// Dans ProjectServiceImpl.java - MODIFIEZ reviewProjectByManager
 
     @Override
     public ProjectDto reviewProjectByManager(ManagerProjectReviewDto request) {
@@ -344,7 +339,6 @@ public class ProjectServiceImpl implements ProjectService {
         project.setManagerComment(request.getCommentaire().trim());
         project.setReviewedAt(java.time.LocalDateTime.now());
 
-        // ✅ RC créateur du projet (peut être null pour les anciens projets sans createdBy)
         User rc = project.getCreatedBy();
 
         if (request.getDecision() == ManagerProjectReviewDto.Decision.VALIDER) {
@@ -363,15 +357,15 @@ public class ProjectServiceImpl implements ProjectService {
 
             // ✅ Notification au Chef de Projet assigné
             try {
-                emailService.notifyChefProjetAssigned(saved, chefProjet, currentUser, request.getCommentaire());
+                emailService.notifyChefProjetProjectAssignedWithWS(saved, chefProjet, currentUser);
             } catch (Exception e) {
                 System.err.println("Erreur notification chef de projet : " + e.getMessage());
             }
 
-            // ✅ Notification au RC créateur du projet
+            // ✅ Notification au RC créateur du projet (VERSION AVEC WEBSOCKET)
             if (rc != null) {
                 try {
-                    emailService.notifyRcProjectValidatedByManager(saved, rc, currentUser, chefProjet, request.getCommentaire());
+                    emailService.notifyRCProjectValidatedWithWS(saved, rc, currentUser, chefProjet, request.getCommentaire());
                 } catch (Exception e) {
                     System.err.println("Erreur notification RC (validation) : " + e.getMessage());
                 }
@@ -392,10 +386,10 @@ public class ProjectServiceImpl implements ProjectService {
 
             Project saved = projectRepository.save(project);
 
-            // ✅ Notification au RC créateur du projet
+            // ✅ Notification au RC créateur du projet (VERSION AVEC WEBSOCKET)
             if (rc != null) {
                 try {
-                    emailService.notifyRcProjectRejectedByManager(saved, rc, currentUser, request.getCommentaire());
+                    emailService.notifyRCProjectRejectedWithWS(saved, rc, currentUser, request.getCommentaire());
                 } catch (Exception e) {
                     System.err.println("Erreur notification RC (rejet) : " + e.getMessage());
                 }
@@ -449,7 +443,7 @@ public class ProjectServiceImpl implements ProjectService {
                 getCurrentUserEmail(), null);
 
         try {
-            emailService.notifyTeamAssignedToProject(team, saved, currentUser);
+            emailService.notifyTeamAssignedToProjectWithWS(team, saved, currentUser);
         } catch (Exception e) {
             System.err.println("Erreur notification assignation projet : " + e.getMessage());
         }
@@ -593,7 +587,6 @@ public class ProjectServiceImpl implements ProjectService {
         project.setChefProjet(chefProjet);
     }
 
-
     @Override
     public List<ProjectDto> getMyAssignedProjects(String query, ProjectStatus status) {
         User currentUser = getAuthenticatedUser();
@@ -617,7 +610,7 @@ public class ProjectServiceImpl implements ProjectService {
                             project.getStatus() == ProjectStatus.EN_COURS
                                     || project.getStatus() == ProjectStatus.PRE_VALIDE
                                     || project.getStatus() == ProjectStatus.EN_VALIDATION
-                                    || project.getStatus() == ProjectStatus.CLOTURE  // ✅ AJOUT
+                                    || project.getStatus() == ProjectStatus.CLOTURE
                     )
                     .toList();
         }
@@ -635,6 +628,7 @@ public class ProjectServiceImpl implements ProjectService {
                 .map(projectMapper::toDto)
                 .toList();
     }
+
     public void updateProjectStatus(Long id, ProjectStatus status) {
         Project project = projectRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Projet non trouvé"));

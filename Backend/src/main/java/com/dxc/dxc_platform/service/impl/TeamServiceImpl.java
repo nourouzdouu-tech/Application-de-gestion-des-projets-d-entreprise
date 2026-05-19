@@ -50,10 +50,12 @@ public class TeamServiceImpl implements TeamService {
         this.auditService = auditService;
         this.emailService = emailService;
     }
+
     private String getCurrentUserEmail() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         return auth != null ? auth.getName() : "system";
     }
+
     @Override
     public TeamDto createTeam(TeamDto request) {
         String teamName = request.getName().trim();
@@ -61,7 +63,6 @@ public class TeamServiceImpl implements TeamService {
 
         validateProjectManagerRole(currentUser);
 
-        // Vérifier que le nom n'existe pas déjà pour CE manager
         if (teamRepository.existsByNameForManager(teamName, currentUser.getId())) {
             throw new ConflictException(
                     TEAM_ALREADY_EXISTS,
@@ -79,7 +80,7 @@ public class TeamServiceImpl implements TeamService {
 
         auditService.log("CREATE_TEAM", "TEAM", savedTeam.getId(),
                 "Création de l'équipe " + savedTeam.getName(),
-                getCurrentUserEmail(),  null);
+                getCurrentUserEmail(), null);
 
         return teamMapper.toDto(savedTeam);
     }
@@ -93,7 +94,6 @@ public class TeamServiceImpl implements TeamService {
         String oldName = team.getName();
         String newName = request.getName().trim();
 
-        // Vérifier si un autre team du même manager a ce nom
         List<Team> managerTeams = teamRepository.findByProjectManagerIdAndDeletedFalse(currentUser.getId());
         boolean nameExistsForAnotherTeam = managerTeams.stream()
                 .anyMatch(t -> t.getName().equalsIgnoreCase(newName) && !t.getId().equals(team.getId()));
@@ -111,7 +111,7 @@ public class TeamServiceImpl implements TeamService {
         Team updatedTeam = teamRepository.save(team);
         auditService.log("UPDATE_TEAM", "TEAM", teamId,
                 "Modification de l'équipe " + oldName + " → " + newName,
-                getCurrentUserEmail(),  null);
+                getCurrentUserEmail(), null);
         return teamMapper.toDto(updatedTeam);
     }
 
@@ -138,7 +138,6 @@ public class TeamServiceImpl implements TeamService {
 
         team.setDeleted(deleted);
 
-        // Si on supprime l'équipe, on désaffecte tous les membres
         if (deleted) {
             for (User member : team.getMembers()) {
                 member.setTeam(null);
@@ -150,13 +149,12 @@ public class TeamServiceImpl implements TeamService {
         String action = deleted ? "DELETE_TEAM" : "RESTORE_TEAM";
         auditService.log(action, "TEAM", teamId,
                 (deleted ? "Suppression" : "Restauration") + " de l'équipe " + team.getName(),
-                getCurrentUserEmail(),  null);
+                getCurrentUserEmail(), null);
         return teamMapper.toDto(savedTeam);
     }
 
     @Override
     public TeamDto getMyTeam() {
-        // Pour compatibilité, retourne la première équipe du chef de projet
         User currentUser = getAuthenticatedUser();
 
         List<Team> managerTeams = teamRepository.findByProjectManagerIdAndDeletedFalse(currentUser.getId());
@@ -190,7 +188,6 @@ public class TeamServiceImpl implements TeamService {
 
         return users.stream()
                 .filter(u -> {
-                    // Exclure les chefs de projet
                     boolean isChefProjet = u.getRoles().stream()
                             .map(Role::getNom)
                             .anyMatch(role -> role.equalsIgnoreCase("CHEF_PROJET"));
@@ -221,7 +218,6 @@ public class TeamServiceImpl implements TeamService {
                         "Utilisateur introuvable"
                 ));
 
-        // Vérifier qu'on ne retire pas le chef de projet (qui n'est pas membre de toute façon)
         if (team.getProjectManager() != null && team.getProjectManager().getId().equals(userId)) {
             throw new ForbiddenException(
                     FORBIDDEN,
@@ -240,8 +236,7 @@ public class TeamServiceImpl implements TeamService {
         userRepository.save(userToRemove);
         auditService.log("REMOVE_MEMBER_FROM_TEAM", "TEAM", teamId,
                 "Retrait de " + userToRemove.getEmail() + " de l'équipe " + team.getName(),
-                getCurrentUserEmail(),  null);
-
+                getCurrentUserEmail(), null);
 
         return teamMapper.toDto(team);
     }
@@ -260,7 +255,6 @@ public class TeamServiceImpl implements TeamService {
                         "Utilisateur introuvable"
                 ));
 
-        // Vérification 1: Ne pas assigner le chef de projet de CETTE équipe
         if (team.getProjectManager() != null && team.getProjectManager().getId().equals(userId)) {
             throw new ForbiddenException(
                     FORBIDDEN,
@@ -268,7 +262,6 @@ public class TeamServiceImpl implements TeamService {
             );
         }
 
-        // Vérification 2: Ne pas assigner un utilisateur qui a le rôle CHEF_PROJET
         boolean isChefProjet = user.getRoles().stream()
                 .map(Role::getNom)
                 .anyMatch(role -> role.equalsIgnoreCase("CHEF_PROJET"));
@@ -281,7 +274,6 @@ public class TeamServiceImpl implements TeamService {
             );
         }
 
-        // Vérification 3: Vérifier si l'utilisateur a déjà une équipe
         if (user.getTeam() != null) {
             String teamName = user.getTeam().getName();
             throw new ConflictException(
@@ -291,7 +283,6 @@ public class TeamServiceImpl implements TeamService {
             );
         }
 
-        // Vérification 4: Vérifier la limite d'un MANAGER par équipe
         boolean isManager = user.getRoles().stream()
                 .map(Role::getNom)
                 .anyMatch(role -> role.equalsIgnoreCase("MANAGER"));
@@ -318,17 +309,15 @@ public class TeamServiceImpl implements TeamService {
         userRepository.save(user);
 
         try {
-            // Notification par email au membre nouvellement affecté à l'équipe
-            emailService.notifyTeamAssigned(user, team, currentUser);
+            // ✅ VERSION AVEC WEBSOCKET
+            emailService.notifyTeamAssignedWithWS(user, team, currentUser);
         } catch (Exception e) {
-            // Si l'email échoue, on conserve l'assignation sans interrompre le processus
             log.error("Erreur lors de l'envoi de la notification d'assignation à l'équipe : {}", e.getMessage());
         }
 
         auditService.log("ASSIGN_MEMBER_TO_TEAM", "TEAM", teamId,
                 "Assignation de " + user.getEmail() + " à l'équipe " + team.getName(),
-                getCurrentUserEmail(),  null);
-
+                getCurrentUserEmail(), null);
 
         return teamMapper.toDto(team);
     }

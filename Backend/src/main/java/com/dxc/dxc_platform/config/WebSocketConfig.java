@@ -33,12 +33,6 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
         this.userDetailsService = userDetailsService;
     }
 
-    @Override
-    public void configureMessageBroker(MessageBrokerRegistry config) {
-        config.enableSimpleBroker("/topic", "/queue");
-        config.setApplicationDestinationPrefixes("/app");
-        config.setUserDestinationPrefix("/user");
-    }
 
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
@@ -105,4 +99,12 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
             builder.modules(new JavaTimeModule());
         };
     }
+    // Ajoutez cette méthode dans votre WebSocketConfig existant
+    @Override
+    public void configureMessageBroker(MessageBrokerRegistry config) {
+        config.enableSimpleBroker("/topic", "/queue", "/user");
+        config.setApplicationDestinationPrefixes("/app");
+        config.setUserDestinationPrefix("/user");
+    }
+
 }

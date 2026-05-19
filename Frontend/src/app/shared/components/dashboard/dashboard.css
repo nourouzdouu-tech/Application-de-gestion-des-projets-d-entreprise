@@ -1565,3 +1565,36 @@
     font-size: 20px;
   }
 }
+.header-with-notifications {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  width: 100%;
+}
+.hero-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  width: 100%;
+}
+
+.hero-title-section {
+  flex: 1;
+}
+
+.hero-notification {
+  margin-left: 20px;
+  flex-shrink: 0;
+}
+
+/* Si vous voulez centrer verticalement le bouton avec le titre */
+.hero-notification {
+  display: flex;
+  align-items: center;
+  min-height: 100%;
+}
+
+/* Optionnel: style pour le bouton de notification */
+.hero-notification app-notification-bell-manager {
+  display: inline-block;
+}

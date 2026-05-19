@@ -7,6 +7,7 @@ import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.Set;
 
 public class UserDto {
@@ -31,13 +32,16 @@ public class UserDto {
     ) {}
 
     public record ResetPasswordRequest(
+            Long userId,
             String tempPassword
     ) {}
 
     public record ResetPasswordResponse(
             Long userId,
             String tempPassword,
-            boolean mustChangePassword
+            boolean mustChangePassword,
+            LocalDateTime expiresAt,      // ✅ Date d'expiration
+            long expiresInMinutes
     ) {}
 
     // ✅ NOUVEAU : utilisé par l'endpoint PATCH /{id}/change-password

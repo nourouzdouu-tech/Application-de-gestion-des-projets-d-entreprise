@@ -5,21 +5,42 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="d6d90c51-4d5c-4da4-945a-1cea9d95d7af" name="Changes" comment="">
+      <change afterPath="$PROJECT_DIR$/Backend/src/main/java/com/dxc/dxc_platform/dto/NotificationDto.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Backend/src/main/java/com/dxc/dxc_platform/entity/Notification.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Backend/src/main/java/com/dxc/dxc_platform/repository/NotificationRepository.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Backend/src/main/java/com/dxc/dxc_platform/service/NotificationService.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Backend/src/main/java/com/dxc/dxc_platform/controller/ProjectController.java" beforeDir="false" afterPath="$PROJECT_DIR$/Backend/src/main/java/com/dxc/dxc_platform/controller/ProjectController.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Backend/src/main/java/com/dxc/dxc_platform/service/ProjectService.java" beforeDir="false" afterPath="$PROJECT_DIR$/Backend/src/main/java/com/dxc/dxc_platform/service/ProjectService.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Backend/pom.xml" beforeDir="false" afterPath="$PROJECT_DIR$/Backend/pom.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Backend/src/main/java/com/dxc/dxc_platform/config/WebSocketConfig.java" beforeDir="false" afterPath="$PROJECT_DIR$/Backend/src/main/java/com/dxc/dxc_platform/config/WebSocketConfig.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Backend/src/main/java/com/dxc/dxc_platform/controller/AuthController.java" beforeDir="false" afterPath="$PROJECT_DIR$/Backend/src/main/java/com/dxc/dxc_platform/controller/AuthController.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Backend/src/main/java/com/dxc/dxc_platform/controller/NotificationController.java" beforeDir="false" afterPath="$PROJECT_DIR$/Backend/src/main/java/com/dxc/dxc_platform/controller/NotificationController.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Backend/src/main/java/com/dxc/dxc_platform/dto/UserDto.java" beforeDir="false" afterPath="$PROJECT_DIR$/Backend/src/main/java/com/dxc/dxc_platform/dto/UserDto.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Backend/src/main/java/com/dxc/dxc_platform/entity/User.java" beforeDir="false" afterPath="$PROJECT_DIR$/Backend/src/main/java/com/dxc/dxc_platform/entity/User.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Backend/src/main/java/com/dxc/dxc_platform/service/AuthService.java" beforeDir="false" afterPath="$PROJECT_DIR$/Backend/src/main/java/com/dxc/dxc_platform/service/AuthService.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Backend/src/main/java/com/dxc/dxc_platform/service/EmailService.java" beforeDir="false" afterPath="$PROJECT_DIR$/Backend/src/main/java/com/dxc/dxc_platform/service/EmailService.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Backend/src/main/java/com/dxc/dxc_platform/service/UserAdminService.java" beforeDir="false" afterPath="$PROJECT_DIR$/Backend/src/main/java/com/dxc/dxc_platform/service/UserAdminService.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Backend/src/main/java/com/dxc/dxc_platform/service/impl/AuthServiceImpl.java" beforeDir="false" afterPath="$PROJECT_DIR$/Backend/src/main/java/com/dxc/dxc_platform/service/impl/AuthServiceImpl.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Backend/src/main/java/com/dxc/dxc_platform/service/impl/LoginAttemptService.java" beforeDir="false" afterPath="$PROJECT_DIR$/Backend/src/main/java/com/dxc/dxc_platform/service/impl/LoginAttemptService.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Backend/src/main/java/com/dxc/dxc_platform/service/impl/MessageServiceImpl.java" beforeDir="false" afterPath="$PROJECT_DIR$/Backend/src/main/java/com/dxc/dxc_platform/service/impl/MessageServiceImpl.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Backend/src/main/java/com/dxc/dxc_platform/service/impl/ProjectServiceImpl.java" beforeDir="false" afterPath="$PROJECT_DIR$/Backend/src/main/java/com/dxc/dxc_platform/service/impl/ProjectServiceImpl.java" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Backend/src/main/java/com/dxc/dxc_platform/service/impl/TaskServiceImpl.java" beforeDir="false" afterPath="$PROJECT_DIR$/Backend/src/main/java/com/dxc/dxc_platform/service/impl/TaskServiceImpl.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Frontend/src/app/core/services/project.service.ts" beforeDir="false" afterPath="$PROJECT_DIR$/Frontend/src/app/core/services/project.service.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Backend/src/main/java/com/dxc/dxc_platform/service/impl/TeamServiceImpl.java" beforeDir="false" afterPath="$PROJECT_DIR$/Backend/src/main/java/com/dxc/dxc_platform/service/impl/TeamServiceImpl.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Backend/src/main/java/com/dxc/dxc_platform/service/impl/UserAdminServiceImpl.java" beforeDir="false" afterPath="$PROJECT_DIR$/Backend/src/main/java/com/dxc/dxc_platform/service/impl/UserAdminServiceImpl.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Backend/src/main/resources/application.properties" beforeDir="false" afterPath="$PROJECT_DIR$/Backend/src/main/resources/application.properties" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Frontend/src/app/app.routes.ts" beforeDir="false" afterPath="$PROJECT_DIR$/Frontend/src/app/app.routes.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Frontend/src/app/auth/login/login.css" beforeDir="false" afterPath="$PROJECT_DIR$/Frontend/src/app/auth/login/login.css" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Frontend/src/app/auth/login/login.html" beforeDir="false" afterPath="$PROJECT_DIR$/Frontend/src/app/auth/login/login.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Frontend/src/app/auth/login/login.ts" beforeDir="false" afterPath="$PROJECT_DIR$/Frontend/src/app/auth/login/login.ts" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Frontend/src/app/features/chef-projet/projets/projets.css" beforeDir="false" afterPath="$PROJECT_DIR$/Frontend/src/app/features/chef-projet/projets/projets.css" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Frontend/src/app/features/chef-projet/projets/projets.html" beforeDir="false" afterPath="$PROJECT_DIR$/Frontend/src/app/features/chef-projet/projets/projets.html" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Frontend/src/app/features/chef-projet/projets/projets.ts" beforeDir="false" afterPath="$PROJECT_DIR$/Frontend/src/app/features/chef-projet/projets/projets.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Frontend/src/app/features/responsable-contract/projets/projets.html" beforeDir="false" afterPath="$PROJECT_DIR$/Frontend/src/app/features/responsable-contract/projets/projets.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Frontend/src/app/features/responsable-contract/projets/projets.ts" beforeDir="false" afterPath="$PROJECT_DIR$/Frontend/src/app/features/responsable-contract/projets/projets.ts" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Frontend/src/app/shared/components/reporting/reporting.css" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Frontend/src/app/shared/components/reporting/reporting.html" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Frontend/src/app/shared/components/reporting/reporting.spec.ts" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/Frontend/src/app/shared/components/reporting/reporting.ts" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/Frontend/src/app/features/responsable-contract/tjm-calculator/tjm-calculator.css" beforeDir="false" afterPath="$PROJECT_DIR$/Frontend/src/app/features/responsable-contract/tjm-calculator/tjm-calculator.css" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Frontend/src/app/features/responsable-contract/tjm-calculator/tjm-calculator.html" beforeDir="false" afterPath="$PROJECT_DIR$/Frontend/src/app/features/responsable-contract/tjm-calculator/tjm-calculator.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Frontend/src/app/features/responsable-contract/tjm-calculator/tjm-calculator.ts" beforeDir="false" afterPath="$PROJECT_DIR$/Frontend/src/app/features/responsable-contract/tjm-calculator/tjm-calculator.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Frontend/src/app/shared/components/audit/audit.ts" beforeDir="false" afterPath="$PROJECT_DIR$/Frontend/src/app/shared/components/audit/audit.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Frontend/src/app/shared/components/dashboard/dashboard.css" beforeDir="false" afterPath="$PROJECT_DIR$/Frontend/src/app/shared/components/dashboard/dashboard.css" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Frontend/src/app/shared/components/dashboard/dashboard.html" beforeDir="false" afterPath="$PROJECT_DIR$/Frontend/src/app/shared/components/dashboard/dashboard.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Frontend/src/app/shared/components/dashboard/dashboard.ts" beforeDir="false" afterPath="$PROJECT_DIR$/Frontend/src/app/shared/components/dashboard/dashboard.ts" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -126,8 +147,7 @@
   <component name="SharedIndexes">
     <attachedChunks>
       <set>
-        <option value="bundled-jdk-30f59d01ecdd-2fc7cc6b9a17-intellij.indexing.shared.core-IU-253.31033.145" />
-        <option value="bundled-js-predefined-d6986cc7102b-9b0f141eb926-JavaScript-IU-253.31033.145" />
+        <option value="bundled-jdk-30f59d01ecdd-2fc7cc6b9a17-intellij.indexing.shared.core-IU-253.30387.90" />
       </set>
     </attachedChunks>
   </component>
@@ -174,15 +194,6 @@
           <url>file://$PROJECT_DIR$/Backend/src/main/java/com/dxc/dxc_platform/controller/TeamController.java</url>
           <line>93</line>
           <option name="timeStamp" value="1" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" type="java-method">
-          <url>file://$PROJECT_DIR$/Backend/src/main/java/com/dxc/dxc_platform/service/impl/AuthServiceImpl.java</url>
-          <line>151</line>
-          <properties class="com.dxc.dxc_platform.service.impl.AuthServiceImpl" method="changePassword">
-            <option name="EMULATED" value="true" />
-            <option name="WATCH_EXIT" value="false" />
-          </properties>
-          <option name="timeStamp" value="3" />
         </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>

@@ -12,15 +12,21 @@
 @if (isAdmin()) {
   <div class="main-content">
     <div class="hero-section">
-      <div class="hero-left">
-        <span class="hero-badge">Dashboard Admin</span>
-        <h1 class="heading-title">Aperçu Analytique</h1>
-        <p class="title-description">
-          Visualisez rapidement l’activité des utilisateurs, les charges, les indicateurs clés
-          et les alertes du système.
-        </p>
+      <div class="hero-left" style="display: flex; justify-content: space-between; align-items: flex-start; width: 100%;">
+        <div style="flex: 1;">
+          <span class="hero-badge">Dashboard Admin</span>
+          <h1 class="heading-title">Aperçu Analytique</h1>
+          <p class="title-description">
+            Visualisez rapidement l'activité des utilisateurs, les charges, les indicateurs clés
+            et les alertes du système.
+          </p>
+        </div>
+        <div style="margin-top: 10px; flex-shrink: 0;">
+          <app-notification-bell></app-notification-bell>
+        </div>
       </div>
     </div>
+  
 
     <div class="kpi-grid">
       <div class="kpi-card" *ngFor="let kpi of kpiData()">
@@ -259,15 +265,21 @@
 @if (isChefProjet()) {
   <div class="main-content">
     <div class="hero-section">
-      <div class="hero-left">
-        <span class="hero-badge">Dashboard Chef de Projet</span>
-        <h1 class="heading-title">Vue Opérationnelle</h1>
-        <p class="title-description">
-          Suivez rapidement vos projets, les tâches critiques
-          et les validations en attente.
-        </p>
+      <div class="hero-left" style="display: flex; justify-content: space-between; align-items: flex-start; width: 100%;">
+        <div style="flex: 1;">
+          <span class="hero-badge">Dashboard Chef de Projet</span>
+          <h1 class="heading-title">Vue Opérationnelle</h1>
+          <p class="title-description">
+            Suivez rapidement vos projets, les tâches critiques
+            et les validations en attente.
+          </p>
+        </div>
+        <div style="margin-top: 10px; flex-shrink: 0;">
+          <app-notification-bell-chef></app-notification-bell-chef>
+        </div>
       </div>
     </div>
+  
 
     <!-- KPIs Chef Projet -->
     <div class="kpi-grid chef-kpis">
@@ -447,15 +459,19 @@
 @if (isManager()) {
   <div class="main-content">
     <div class="hero-section">
-      <div class="hero-left">
-        <span class="hero-badge">Dashboard Manager</span>
-        <h1 class="heading-title">Suivi des validations</h1>
-        <p class="title-description">
-          Visualisez rapidement les projets à examiner, les pré-validations
-          et l'état global des projets que vous pilotez.
-        </p>
+      <div class="hero-left" style="display: flex; justify-content: space-between; align-items: flex-start; width: 100%;">
+        <div style="flex: 1;">
+          <span class="hero-badge">Dashboard Manager</span>
+          <h1 class="heading-title">Suivi des validations</h1>
+          <p class="title-description">
+            Visualisez rapidement les projets à examiner, les pré-validations
+            et l'état global des projets que vous pilotez.
+          </p>
+        </div>
+        <div style="margin-top: 10px; flex-shrink: 0;">
+          <app-notification-bell-manager></app-notification-bell-manager>
+        </div>
       </div>
-      
     </div>
 
     <!-- KPIs Manager -->
@@ -624,16 +640,21 @@
 @if (isResponsableContract()) {
   <div class="main-content">
     <div class="hero-section">
-      <div class="hero-left">
-        <span class="hero-badge">Dashboard Responsable Contrat</span>
-        <h1 class="heading-title">Pilotage contractuel</h1>
-        <p class="title-description">
-          Suivez les projets créés, les validations en attente,
-          les clients actifs et les éléments de facturation.
-        </p>
+      <div class="hero-left" style="display: flex; justify-content: space-between; align-items: flex-start; width: 100%;">
+        <div style="flex: 1;">
+          <span class="hero-badge">Dashboard Responsable Contrat</span>
+          <h1 class="heading-title">Pilotage contractuel</h1>
+          <p class="title-description">
+            Suivez les projets créés, les validations en attente,
+            les clients actifs et les éléments de facturation.
+          </p>
+        </div>
+        <div style="margin-top: 10px; flex-shrink: 0;">
+          <app-notification-bell-rc></app-notification-bell-rc>
+        </div>
       </div>
-     
     </div>
+
 
     <!-- KPIs Responsable Contrat -->
     <div class="kpi-grid rc-kpis">
@@ -832,15 +853,20 @@
 @if (isMembreEquipe()) {
   <div class="main-content">
     <div class="hero-section">
-      <div class="hero-left">
-        <span class="hero-badge">Dashboard Membre d'Équipe</span>
-        <h1 class="heading-title">Mon espace de travail</h1>
-        <p class="title-description">
-          Suivez vos tâches, vos projets et vos échéances prioritaires.
-        </p>
+      <div class="hero-left" style="display: flex; justify-content: space-between; align-items: flex-start; width: 100%;">
+        <div style="flex: 1;">
+          <span class="hero-badge">Dashboard Membre d'Équipe</span>
+          <h1 class="heading-title">Mon espace de travail</h1>
+          <p class="title-description">
+            Suivez vos tâches, vos projets et vos échéances prioritaires.
+          </p>
+        </div>
+        <div style="margin-top: 10px; flex-shrink: 0;">
+          <app-notification-bell-membre></app-notification-bell-membre>
+        </div>
       </div>
-      
     </div>
+   
 
     <!-- KPIs Membre Équipe -->
     <div class="kpi-grid membre-kpis">
@@ -918,6 +944,7 @@
           <h2 class="section-title">Mes projets</h2>
           <p class="section-description">Projets auxquels vous participez</p>
         </div>
+        
         <a routerLink="/membre-equipe/projets" class="view-all-link">Voir tous →</a>
       </div>
 

@@ -1,6 +1,7 @@
 package com.dxc.dxc_platform.service.impl;
 
 import com.dxc.dxc_platform.dto.AuthDto;
+import com.dxc.dxc_platform.shared.exception.BusinessException;
 import com.dxc.dxc_platform.entity.User;
 import com.dxc.dxc_platform.mapper.AuthMapper;
 import com.dxc.dxc_platform.repository.UserRepository;
@@ -20,6 +21,8 @@ import org.springframework.transaction.annotation.Transactional;
 import com.dxc.dxc_platform.service.AuditService;
 import com.dxc.dxc_platform.service.EmailService;
 
+import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -34,6 +37,7 @@ public class AuthServiceImpl implements AuthService {
     private final AuthMapper authMapper;
     private final AuditService auditService;
     private final EmailService emailService;
+    
 
     public AuthServiceImpl(AuthenticationManager authenticationManager,
                            UserRepository userRepository,
@@ -54,11 +58,12 @@ public class AuthServiceImpl implements AuthService {
         this.auditService = auditService;
         this.emailService = emailService;
     }
+// Dans AuthServiceImpl.java - MODIFIEZ la méthode login
 
     @Override
     public AuthDto.Response login(AuthDto.LoginRequest request) {
         String email = request.email();
-        String ipAddress = getClientIp(); // À implémenter
+        String ipAddress = getClientIp();
 
         try {
             User user = userRepository.findByEmailAndDeletedFalse(email)
@@ -70,13 +75,23 @@ public class AuthServiceImpl implements AuthService {
                         "Compte verrouillé après 3 tentatives. Contactez l'administrateur.");
             }
 
+            // ✅ VÉRIFIER SI LE MOT DE PASSE TEMPORAIRE EST EXPIRÉ
+            if (user.isMustChangePassword() && user.isTempPasswordExpired()) {
+                user.setLocked(true);
+                user.setMustChangePassword(false);
+                user.setTempPasswordExpiry(null);
+                userRepository.save(user);
+
+                throw new LockedException(
+                        "Votre mot de passe temporaire a expiré (2h). Veuillez contacter l'administrateur pour en générer un nouveau.");
+            }
+
             try {
                 authenticationManager.authenticate(
                         new UsernamePasswordAuthenticationToken(email, request.password())
                 );
-            } // Dans la méthode login() de AuthServiceImpl, modifiez l'appel à registerFailedAttempt
-            catch (BadCredentialsException e) {
-                int remaining = loginAttemptService.registerFailedAttempt(email, ipAddress); // ← Ajoutez ipAddress
+            } catch (BadCredentialsException e) {
+                int remaining = loginAttemptService.registerFailedAttempt(email, ipAddress);
 
                 if (remaining <= 0) {
                     throw new LockedException(
@@ -91,6 +106,7 @@ public class AuthServiceImpl implements AuthService {
                         "Mot de passe incorrect. " + remaining
                                 + " tentative(s) restante(s) avant verrouillage.");
             }
+
             loginAttemptService.resetAttempts(email);
 
             UserDetails userDetails = userDetailsService.loadUserByUsername(email);
@@ -102,12 +118,14 @@ public class AuthServiceImpl implements AuthService {
                     .map(role -> role.getNom())
                     .collect(Collectors.toSet());
 
-            // ✅ Audit pour connexion réussie
             auditService.log("LOGIN_SUCCESS", "AUTH", user.getId(),
-                    "Connexion réussie pour " + email ,
+                    "Connexion réussie pour " + email,
                     email, ipAddress);
 
-            AuthDto.Response finalResponse = new AuthDto.Response(
+            // ✅ SI CONNEXION RÉUSSIE AVEC UN MOT DE PASSE TEMPORAIRE NON EXPIRÉ
+            boolean mustChangePassword = user.isMustChangePassword() && !user.isTempPasswordExpired();
+
+            return new AuthDto.Response(
                     token,
                     "Bearer",
                     user.getId(),
@@ -116,13 +134,10 @@ public class AuthServiceImpl implements AuthService {
                     user.getNom(),
                     roles,
                     redirectTo,
-                    user.isMustChangePassword()
+                    mustChangePassword
             );
 
-            return finalResponse;
-
         } catch (NotFoundException e) {
-            // ✅ Audit pour utilisateur inexistant
             auditService.log("LOGIN_FAILED", "AUTH", null,
                     "Tentative de connexion avec email inexistant: " + email,
                     email, ipAddress);
@@ -130,29 +145,22 @@ public class AuthServiceImpl implements AuthService {
         }
     }
 
-    // ✅ Méthode pour récupérer l'IP du client
-    private String getClientIp() {
-        try {
-            jakarta.servlet.http.HttpServletRequest request =
-                    ((org.springframework.web.context.request.ServletRequestAttributes)
-                            org.springframework.web.context.request.RequestContextHolder.currentRequestAttributes())
-                            .getRequest();
-            String ip = request.getHeader("X-Forwarded-For");
-            if (ip == null || ip.isEmpty()) {
-                ip = request.getRemoteAddr();
-            }
-            return ip;
-        } catch (Exception e) {
-            return "unknown";
-        }
-    }
 
+    
+
+    // MODIFIEZ la méthode changePassword
     @Override
     @Transactional
     public void changePassword(String email, AuthDto.ChangePasswordRequest request) {
         User user = userRepository.findByEmailAndDeletedFalse(email)
                 .orElseThrow(() -> new NotFoundException(
                         "USER_NOT_FOUND", "Utilisateur introuvable"));
+
+        // ✅ VÉRIFIER SI LE MOT DE PASSE TEMPORAIRE N'EST PAS EXPIRÉ
+        if (user.isMustChangePassword() && user.isTempPasswordExpired()) {
+            throw new BusinessException("PASSWORD_EXPIRED",
+                    "Votre mot de passe temporaire a expiré (2h). Veuillez contacter l'administrateur.");
+        }
 
         if (!passwordEncoder.matches(request.oldPassword(), user.getPasswordHash())) {
             throw new BadCredentialsException("Ancien mot de passe incorrect.");
@@ -172,16 +180,33 @@ public class AuthServiceImpl implements AuthService {
         user.setMustChangePassword(false);
         user.setLocked(false);
         user.setFailedAttempts(0);
+        user.setTempPasswordExpiry(null); // ✅ Effacer l'expiration
         userRepository.saveAndFlush(user);
 
-        // ✅ Notification de confirmation par email
         emailService.notifyPasswordChanged(user);
 
-        // ✅ Audit pour changement de mot de passe
-        auditService.log("RESET_PASSWORD", "USER", user.getId(),
+        auditService.log("CHANGE_PASSWORD", "USER", user.getId(),
                 "Changement de mot de passe pour " + email,
                 email, getClientIp());
     }
+
+    // ✅ Méthode pour récupérer l'IP du client
+    private String getClientIp() {
+        try {
+            jakarta.servlet.http.HttpServletRequest request =
+                    ((org.springframework.web.context.request.ServletRequestAttributes)
+                            org.springframework.web.context.request.RequestContextHolder.currentRequestAttributes())
+                            .getRequest();
+            String ip = request.getHeader("X-Forwarded-For");
+            if (ip == null || ip.isEmpty()) {
+                ip = request.getRemoteAddr();
+            }
+            return ip;
+        } catch (Exception e) {
+            return "unknown";
+        }
+    }
+
 
     private String buildRedirectFromDb(User user) {
         return user.getRoles().stream()

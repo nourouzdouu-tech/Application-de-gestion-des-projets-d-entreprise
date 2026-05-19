@@ -35,11 +35,17 @@ export class Login {
       email: ['', [Validators.required, Validators.email]],
       password: ['', [Validators.required, Validators.minLength(8)]],
     });
+
+    // biometric support removed
   }
 
   togglePasswordVisibility(): void {
     this.showPassword.update(value => !value);
   }
+
+  
+
+  
 
   onSubmit(): void {
     if (!this.loginForm.valid) {
@@ -70,21 +76,21 @@ export class Login {
         console.log('Roles utilisateur :', roles);
 
         if (roles.includes('CHEF_PROJET') || roles.includes('ROLE_CHEF_PROJET')) {
-          this.router.navigateByUrl('/chef-projet');
+          this.router.navigateByUrl('/chef-projet/dashboard');
         } else if (
           roles.includes('RESPONSABLE_CONTRAT') ||
           roles.includes('ROLE_RESPONSABLE_CONTRAT')
         ) {
-          this.router.navigateByUrl('/responsable-contrat/projets');
+          this.router.navigateByUrl('/responsable-contrat/dashboard');
         } else if (roles.includes('ADMIN') || roles.includes('ROLE_ADMIN')) {
-          this.router.navigateByUrl('/admin');
+          this.router.navigateByUrl('/admin/dashboard');
         } else if (roles.includes('MANAGER') || roles.includes('ROLE_MANAGER')) {
-          this.router.navigateByUrl('/manager');
+          this.router.navigateByUrl('/manager/dashboard');
         } else if (
           roles.includes('MEMBRE_EQUIPE') ||
           roles.includes('ROLE_MEMBRE_EQUIPE')
         ) {
-          this.router.navigateByUrl('/membre-equipe');
+          this.router.navigateByUrl('/membre-equipe/dashboard');
         } else {
           this.router.navigateByUrl('/login');
         }

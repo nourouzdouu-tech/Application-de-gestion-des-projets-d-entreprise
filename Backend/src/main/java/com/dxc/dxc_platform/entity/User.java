@@ -24,7 +24,7 @@ public class User {
     @Column
     private String nom;
 
-    @Column(name = "password_hash", nullable = false, unique = true)
+    @Column(name = "password_hash", nullable = false)
     private String passwordHash;
 
     @Column(nullable = false)
@@ -41,6 +41,10 @@ public class User {
 
     @Column(nullable = false)
     private boolean deleted = false;
+
+    // ✅ NOUVEAU - Date d'expiration du mot de passe temporaire
+    @Column(name = "temp_password_expiry")
+    private LocalDateTime tempPasswordExpiry;
 
     @Convert(converter = Genre.GenreConverter.class)
     @Column(nullable = false)
@@ -62,6 +66,7 @@ public class User {
     @JoinColumn(name = "profile_id")
     private Profile profile;
 
+
     public User() {
     }
 
@@ -81,6 +86,24 @@ public class User {
         }
     }
 
+    // ✅ Getter et Setter pour tempPasswordExpiry
+    public LocalDateTime getTempPasswordExpiry() {
+        return tempPasswordExpiry;
+    }
+
+    public void setTempPasswordExpiry(LocalDateTime tempPasswordExpiry) {
+        this.tempPasswordExpiry = tempPasswordExpiry;
+    }
+
+    // ✅ Méthode pour vérifier si le mot de passe temporaire est expiré
+    public boolean isTempPasswordExpired() {
+        if (tempPasswordExpiry == null) {
+            return false;
+        }
+        return LocalDateTime.now().isAfter(tempPasswordExpiry);
+    }
+
+    // Getters et Setters existants
     public Long getId() {
         return id;
     }
@@ -189,11 +212,11 @@ public class User {
         this.profile = profile;
     }
 
-    // Dans User.java, ajoutez cette méthode
     public String getFullName() {
         return (prenom != null ? prenom : "") + " " + (nom != null ? nom : "");
     }
-    // Dans User.java, ajoutez cette méthode (ou utilisez le champ existant)
+
     public boolean isEnabled() {
         return !isLocked() && !isDeleted();
-    }}
+    }
+}

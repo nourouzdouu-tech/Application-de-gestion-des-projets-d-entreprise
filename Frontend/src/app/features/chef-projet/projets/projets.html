@@ -137,7 +137,9 @@
                   class="icon-action cloture"
                   type="button"
                   (click)="openClotureModal(project)"
-                  title="Clôturer le projet">
+                  [title]="canCloseProject(project)
+                    ? 'Clôturer le projet'
+                    : 'Clôture possible uniquement si progression = 100 %'">
                   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M18 6L6 18M6 6l12 12"/>
                   </svg>
@@ -495,57 +497,66 @@
 
   <!-- MODAL MODIFIER TÂCHE -->
   <div class="modal-backdrop" *ngIf="taskFormModal && editingTask">
-    <div class="modal-card" style="max-width:550px;">
+    <div class="modal-card" style="max-width:600px;">
       <div class="modal-header">
-        <h2>Modifier la tâche</h2>
+        <div class="modal-title-wrap">
+          <div class="modal-icon edit">✎</div>
+          <div>
+            <h2>Modifier la tâche</h2>
+            <p class="modal-subtitle">Ajustez les détails et la charge de la tâche sans perdre le contexte.</p>
+          </div>
+        </div>
         <button class="icon-close" (click)="closeTaskFormModal()">×</button>
       </div>
       <div class="modal-body">
         <div class="form-group">
           <label>Titre *</label>
-          <input type="text" [(ngModel)]="editingTask.title">
+          <input type="text" [(ngModel)]="editingTask.title" placeholder="Ex: Développer l'API">
         </div>
         <div class="form-group">
           <label>Description</label>
-          <textarea [(ngModel)]="editingTask.description" rows="3"></textarea>
+          <textarea [(ngModel)]="editingTask.description" rows="3" placeholder="Ajoutez les précisions nécessaires..."></textarea>
         </div>
-        <div class="form-row">
+        <div class="form-grid">
           <div class="form-group">
             <label>Date début *</label>
-            <input type="date" [(ngModel)]="editingTask.startDate" (change)="calculateEditEndDate()" (input)="calculateEditEndDate()">
+            <input type="date" [(ngModel)]="taskForm.startDate" (change)="calculateEndDate()" (input)="calculateEndDate()">
           </div>
           <div class="form-group">
-            <label>Date fin estimée</label>
-            <input type="date" [(ngModel)]="editingTask.estimatedEndDate" disabled class="form-control-disabled">
+            <label>Criticité *</label>
+            <select [(ngModel)]="taskForm.criticite" (change)="calculateEndDate()">
+              <option [ngValue]="1">1 (Très faible - 1 jour)</option>
+              <option [ngValue]="2">2 (Faible - 2 jours)</option>
+              <option [ngValue]="3">3 (Moyenne - 3 jours)</option>
+              <option [ngValue]="5">5 (Haute - 5 jours)</option>
+              <option [ngValue]="8">8 (Très haute - 8 jours)</option>
+              <option [ngValue]="13">13 (Critique - 13 jours)</option>
+            </select>
           </div>
         </div>
-        <div class="form-group">
-          <label>Criticité *</label>
-          <select [(ngModel)]="editingTask.criticite" (change)="calculateEditEndDate()">
-            <option [ngValue]="1">1 (Très faible - 1 jour)</option>
-            <option [ngValue]="2">2 (Faible - 2 jours)</option>
-            <option [ngValue]="3">3 (Moyenne - 3 jours)</option>
-            <option [ngValue]="5">5 (Haute - 5 jours)</option>
-            <option [ngValue]="8">8 (Très haute - 8 jours)</option>
-            <option [ngValue]="13">13 (Critique - 13 jours)</option>
-          </select>
+        <div class="form-group form-group-full">
+          <label>Date fin estimée</label>
+          <input type="date" [(ngModel)]="taskForm.estimatedEndDate" disabled class="form-control-disabled">
+          
         </div>
-        <div class="form-group">
-          <label>Priorité</label>
-          <select [(ngModel)]="editingTask.priority" (change)="calculateEditEndDate()">
-            <option value="BASSE">Basse (plus lent)</option>
-            <option value="MOYENNE">Moyenne</option>
-            <option value="HAUTE">Haute (plus rapide)</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label>Assigné à *</label>
-          <select [(ngModel)]="editingTask.assignedToId">
-            <option [ngValue]="null" disabled>-- Choisissez un membre --</option>
-            <option *ngFor="let member of teamMembers" [ngValue]="member.id">
-              {{ member.fullName || (member.prenom + ' ' + member.nom) }}
-            </option>
-          </select>
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Priorité</label>
+            <select [(ngModel)]="editingTask.priority" (change)="calculateEditEndDate()">
+              <option value="BASSE">Basse (plus lent)</option>
+              <option value="MOYENNE">Moyenne</option>
+              <option value="HAUTE">Haute (plus rapide)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Assigné à *</label>
+            <select [(ngModel)]="editingTask.assignedToId">
+              <option [ngValue]="null" disabled>-- Choisissez un membre --</option>
+              <option *ngFor="let member of teamMembers" [ngValue]="member.id">
+                {{ member.fullName || (member.prenom + ' ' + member.nom) }}
+              </option>
+            </select>
+          </div>
         </div>
       </div>
       <div class="modal-footer">
@@ -575,9 +586,15 @@
 
   <!-- MODAL CRÉER TÂCHE -->
   <div class="modal-backdrop" *ngIf="showTaskModal">
-    <div class="modal-card" style="max-width:550px;">
+    <div class="modal-card" style="max-width:600px;">
       <div class="modal-header">
-        <h2>Nouvelle tâche pour "{{ currentProjectForTask?.name }}"</h2>
+        <div class="modal-title-wrap">
+          <div class="modal-icon create">+</div>
+          <div>
+            <h2>Nouvelle tâche</h2>
+            <p class="modal-subtitle">Créez une tâche claire et assignez-la rapidement à un membre de l’équipe.</p>
+          </div>
+        </div>
         <button class="icon-close" (click)="closeTaskModal()">×</button>
       </div>
       <div class="modal-body">
@@ -587,45 +604,48 @@
         </div>
         <div class="form-group">
           <label>Description</label>
-          <textarea [(ngModel)]="taskForm.description" rows="3"></textarea>
+          <textarea [(ngModel)]="taskForm.description" rows="3" placeholder="Décrivez brièvement la tâche..."></textarea>
         </div>
-        <div class="form-row">
+        <div class="form-grid">
           <div class="form-group">
             <label>Date début *</label>
             <input type="date" [(ngModel)]="taskForm.startDate" (change)="calculateEndDate()" (input)="calculateEndDate()">
           </div>
           <div class="form-group">
-            <label>Date fin estimée</label>
-            <input type="date" [(ngModel)]="taskForm.estimatedEndDate" disabled class="form-control-disabled">
+            <label>Criticité *</label>
+            <select [(ngModel)]="taskForm.criticite" (change)="calculateEndDate()">
+              <option [ngValue]="1">1 (Très faible - 1 jour)</option>
+              <option [ngValue]="2">2 (Faible - 2 jours)</option>
+              <option [ngValue]="3">3 (Moyenne - 3 jours)</option>
+              <option [ngValue]="5">5 (Haute - 5 jours)</option>
+              <option [ngValue]="8">8 (Très haute - 8 jours)</option>
+              <option [ngValue]="13">13 (Critique - 13 jours)</option>
+            </select>
           </div>
         </div>
-        <div class="form-group">
-          <label>Criticité *</label>
-          <select [(ngModel)]="taskForm.criticite" (change)="calculateEndDate()">
-            <option [ngValue]="1">1 (Très faible - 1 jour)</option>
-            <option [ngValue]="2">2 (Faible - 2 jours)</option>
-            <option [ngValue]="3">3 (Moyenne - 3 jours)</option>
-            <option [ngValue]="5">5 (Haute - 5 jours)</option>
-            <option [ngValue]="8">8 (Très haute - 8 jours)</option>
-            <option [ngValue]="13">13 (Critique - 13 jours)</option>
-          </select>
+        <div class="form-group form-group-full">
+          <label>Date fin estimée</label>
+          <input type="date" [(ngModel)]="taskForm.estimatedEndDate" disabled class="form-control-disabled">
+          <span class="form-note">Calcul automatique en fonction de la date de début et de la criticité.</span>
         </div>
-        <div class="form-group">
-          <label>Priorité</label>
-          <select [(ngModel)]="taskForm.priority" (change)="calculateEndDate()">
-            <option value="BASSE">Basse (plus lent)</option>
-            <option value="MOYENNE">Moyenne</option>
-            <option value="HAUTE">Haute (plus rapide)</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label>Assigner à *</label>
-          <select [(ngModel)]="taskForm.assignedToId">
-            <option [ngValue]="null" disabled>-- Choisissez un membre --</option>
-            <option *ngFor="let member of teamMembers" [ngValue]="member.id">
-              {{ member.fullName || member.prenom + ' ' + member.nom }}
-            </option>
-          </select>
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Priorité</label>
+            <select [(ngModel)]="taskForm.priority" (change)="calculateEndDate()">
+              <option value="BASSE">Basse (plus lent)</option>
+              <option value="MOYENNE">Moyenne</option>
+              <option value="HAUTE">Haute (plus rapide)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Assigner à *</label>
+            <select [(ngModel)]="taskForm.assignedToId">
+              <option [ngValue]="null" disabled>-- Choisissez un membre --</option>
+              <option *ngFor="let member of teamMembers" [ngValue]="member.id">
+                {{ member.fullName || member.prenom + ' ' + member.nom }}
+              </option>
+            </select>
+          </div>
         </div>
       </div>
       <div class="modal-footer">

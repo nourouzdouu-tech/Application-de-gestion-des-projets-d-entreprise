@@ -683,18 +683,31 @@ ngOnInit(): void {
   getActionLabel(action: string): string {
     const m: Record<string, string> = {
       LOGIN_SUCCESS: 'Connexion réussie', LOGIN_FAILED: 'Connexion échouée',
-      CREATE_USER: 'Utilisateur créé', UPDATE_USER: 'Utilisateur modifié',
-      DELETE_USER: 'Utilisateur supprimé', ACCOUNT_LOCKED: 'Compte verrouillé',
-      ACCOUNT_UNLOCKED: 'Compte déverrouillé'
+      LOGOUT: 'Déconnexion', CREATE_USER: 'Utilisateur créé',
+      UPDATE_USER: 'Utilisateur modifié', DELETE_USER: 'Utilisateur supprimé',
+      ACCOUNT_LOCKED: 'Compte verrouillé', ACCOUNT_UNLOCKED: 'Compte déverrouillé',
+      RESET_PASSWORD: 'Mot de passe réinitialisé', CHANGE_PASSWORD: 'Mot de passe changé',
+      USER_NOT_FOUND: 'Utilisateur introuvable', ENABLE_USER: 'Utilisateur activé',
+      DISABLE_USER: 'Utilisateur désactivé', CREATE_ROLE: 'Rôle créé',
+      UPDATE_ROLE: 'Rôle modifié', ACTIVATE_ROLE: 'Rôle activé',
+      DEACTIVATE_ROLE: 'Rôle désactivé', DELETE_ROLE: 'Rôle supprimé'
     };
     return m[action] ?? action;
   }
 
   getWorkflowActionLabel(action: string): string {
     const m: Record<string, string> = {
-      CREATE_PROJECT: 'Projet créé', VALIDATE_PROJECT: 'Projet validé',
-      REJECT_PROJECT: 'Projet rejeté', ASSIGN_CHEF: 'Chef assigné',
-      CREATE_TASK: 'Tâche créée', VALIDATE_TASK: 'Tâche validée'
+      CREATE_PROJECT: 'Projet créé', UPDATE_PROJECT: 'Projet modifié',
+      VALIDATE_PROJECT: 'Projet validé', REJECT_PROJECT: 'Projet rejeté',
+      ASSIGN_CHEF: 'Chef assigné', CREATE_TEAM: 'Équipe créée',
+      UPDATE_TEAM: 'Équipe modifiée', DELETE_TEAM: 'Équipe supprimée',
+      ASSIGN_MEMBER_TO_TEAM: 'Membre ajouté à l\'équipe',
+      REMOVE_MEMBER_FROM_TEAM: 'Membre retiré de l\'équipe',
+      ASSIGN_TEAM_TO_PROJECT: 'Équipe assignée au projet',
+      CREATE_TASK: 'Tâche créée', UPDATE_TASK: 'Tâche modifiée',
+      DELETE_TASK: 'Tâche supprimée', VALIDATE_TASK: 'Tâche validée',
+      REJECT_TASK: 'Tâche rejetée', UPDATE_TASK_STATUS: 'Statut de tâche mis à jour',
+      SUBMIT_TASK: 'Tâche soumise'
     };
     return m[action] ?? action;
   }
@@ -792,7 +805,7 @@ ngOnInit(): void {
     let rows: any[][];
 
     if (this.currentAuditType === 'security') {
-      headers = ['Date', 'Heure', 'Utilisateur', 'Email', 'Action', 'Détails', 'IP', 'Niveau', 'Statut'];
+      headers = ['Date', 'Heure', 'Utilisateur', 'Email', 'Action', 'Détails',  'Niveau', 'Statut'];
       rows = this.filteredLogs.map(l => [
         new Date(l.timestamp).toLocaleDateString('fr-FR'),
         new Date(l.timestamp).toLocaleTimeString('fr-FR'),
@@ -800,7 +813,7 @@ ngOnInit(): void {
         l.userEmail,
         this.getActionLabel(l.action),
         l.details,
-        l.ipAddress,
+        
         l.level,
         l.success ? 'Succès' : 'Échec'
       ]);

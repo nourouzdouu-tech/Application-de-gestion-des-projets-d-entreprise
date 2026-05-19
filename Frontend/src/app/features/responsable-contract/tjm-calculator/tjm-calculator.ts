@@ -52,6 +52,10 @@ export class TjmCalculatorComponent implements OnInit {
   billingLines: BillingLine[] = [];
 
   totalGeneral = 0;
+
+  get isProjectClosed(): boolean {
+    return (this.project?.status || '').toUpperCase() === 'CLOTURE';
+  }
   tvaRate = 0.2;
   tvaAmount = 0;
   totalTTC = 0;
@@ -286,13 +290,12 @@ export class TjmCalculatorComponent implements OnInit {
     }
   }
 
-generatePdf(): void {
+async generatePdf(): Promise<void> {
   const doc = new jsPDF('p', 'mm', 'a4');
   const pageWidth = doc.internal.pageSize.getWidth();
   const margin = 14;
   const contentWidth = pageWidth - margin * 2;
 
-  const projectName = this.project?.name || 'Projet';
   const description = this.project?.description || 'Aucune description disponible.';
   const client = this.project?.client || '-';
   const manager = (this.project as any)?.managerName || '-';
@@ -319,17 +322,24 @@ generatePdf(): void {
   doc.setTextColor(...WHITE);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(16);
-  doc.text('FACTURE PROJET', margin, 13);
 
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(8);
-  doc.setTextColor(209, 196, 255); // mauve clair
-  doc.text(`Générée le ${generatedAt}`, margin, 21);
+  try {
+    const logoDataUrl = await this.loadImageAsDataURL('/assets/DXC_logo.png');
+    if (logoDataUrl) {
+      doc.addImage(logoDataUrl, 'PNG', margin, 6, 32, 12);
+    }
+  } catch (error) {
+    // Fallback text if logo cannot être chargé
+    doc.text('DXC', margin, 13);
+  }
 
   doc.setFont('helvetica', 'bold');
-  doc.setFontSize(12);
-  doc.setTextColor(...WHITE);
-  doc.text(projectName, pageWidth - margin, 13, { align: 'right' });
+  doc.setFontSize(14);
+  doc.text('FACTURE DU PROJET', pageWidth - margin, 11, { align: 'right' });
+
+  doc.setFontSize(8);
+  doc.setTextColor(209, 196, 255); // mauve clair
+  doc.text(`Générée le ${generatedAt}`, pageWidth - margin, 18, { align: 'right' });
 
   // ── CARTE INFOS PROJET (2 colonnes) ───────────────────────────────────────
   const cardY = 36;
@@ -480,6 +490,27 @@ generatePdf(): void {
 
   doc.save(this.buildPdfFileName());
 }
+
+  private loadImageAsDataURL(url: string): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        canvas.width = img.width;
+        canvas.height = img.height;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          reject(new Error('Impossible de récupérer le contexte du canvas pour le logo.'));
+          return;
+        }
+        ctx.drawImage(img, 0, 0);
+        resolve(canvas.toDataURL('image/png'));
+      };
+      img.onerror = (err) => reject(err);
+      img.src = url;
+    });
+  }
 
   buildPdfFileName(): string {
     const safeName = (this.project?.name || 'projet')

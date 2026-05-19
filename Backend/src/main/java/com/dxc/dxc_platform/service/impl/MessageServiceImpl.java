@@ -22,11 +22,14 @@ import org.springframework.web.multipart.MultipartFile;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import com.dxc.dxc_platform.service.EmailService;
+
 @Service
 public class MessageServiceImpl implements MessageService {
 
@@ -38,6 +41,7 @@ public class MessageServiceImpl implements MessageService {
     private final FileStorageService fileStorageService;
     private final ObjectMapper objectMapper;
     private final EmailService emailService;
+
     @Value("${app.base-url}")
     private String baseUrl;
 
@@ -46,7 +50,7 @@ public class MessageServiceImpl implements MessageService {
                               UserRepository userRepository,
                               FileStorageService fileStorageService,
                               ObjectMapper objectMapper,
-                              EmailService emailService) {  // ← AJOUTER CE PARAMÈTRE
+                              EmailService emailService) {
         this.conversationRepository = conversationRepository;
         this.messageRepository = messageRepository;
         this.userRepository = userRepository;
@@ -129,10 +133,18 @@ public class MessageServiceImpl implements MessageService {
 
         msg = messageRepository.save(msg);
 
-        // ✅ Envoyer une notification email au destinataire pour le fichier
+        // ✅ NOTIFICATION WEBSOCKET + EMAIL pour le fichier
         try {
             if (!sender.getId().equals(receiver.getId())) {
+                // Email existant
                 emailService.notifyNewFileReceived(sender, receiver, file.getOriginalFilename());
+
+                // ✅ NOUVEAU: Notification WebSocket pour le fichier
+                notifyMessageReceived(sender, receiver, "📎 Fichier reçu",
+                        String.format("%s vous a envoyé un fichier: %s",
+                                sender.getPrenom() + " " + sender.getNom(),
+                                file.getOriginalFilename()),
+                        conv.getId(), msg.getId());
             }
         } catch (Exception e) {
             log.error("Erreur lors de l'envoi de la notification de fichier: {}", e.getMessage());
@@ -140,6 +152,7 @@ public class MessageServiceImpl implements MessageService {
 
         return toMessageDto(msg);
     }
+
     @Override
     @Transactional(readOnly = true)
     public List<ConversationDto> getUserConversations() {
@@ -187,7 +200,27 @@ public class MessageServiceImpl implements MessageService {
     @Override
     @Transactional
     public Message saveWebSocketMessage(User sender, User receiver, String content, String clientTempId, Long replyToMessageId) {
-        return buildAndSaveMessage(sender, receiver, content, clientTempId, replyToMessageId);
+        Message saved = buildAndSaveMessage(sender, receiver, content, clientTempId, replyToMessageId);
+
+        // ✅ NOTIFICATION WEBSOCKET pour le message WebSocket
+        try {
+            if (!sender.getId().equals(receiver.getId())) {
+                String messagePreview = content != null ? content : "";
+                if (messagePreview.length() > 100) {
+                    messagePreview = messagePreview.substring(0, 100) + "...";
+                }
+
+                notifyMessageReceived(sender, receiver, "💬 Nouveau message",
+                        String.format("%s: %s",
+                                sender.getPrenom() + " " + sender.getNom(),
+                                messagePreview),
+                        saved.getConversation().getId(), saved.getId());
+            }
+        } catch (Exception e) {
+            log.error("Erreur lors de l'envoi de la notification WebSocket: {}", e.getMessage());
+        }
+
+        return saved;
     }
 
     @Override
@@ -256,6 +289,8 @@ public class MessageServiceImpl implements MessageService {
         }
     }
 
+    // ==================== MÉTHODES PRIVÉES ====================
+
     private Conversation findOrCreateConversation(User sender, User receiver) {
         Conversation conv = conversationRepository.findByUser1IdAndUser2Id(sender.getId(), receiver.getId())
                 .orElseGet(() -> conversationRepository.findByUser2IdAndUser1Id(sender.getId(), receiver.getId())
@@ -297,9 +332,7 @@ public class MessageServiceImpl implements MessageService {
 
         // ✅ Envoyer une notification email au destinataire
         try {
-            // Ne pas envoyer d'email si l'expéditeur est le destinataire (auto-envoi)
             if (!sender.getId().equals(receiver.getId())) {
-                // Vérifier si le destinataire veut recevoir des notifications (optionnel)
                 emailService.notifyNewMessageReceived(sender, receiver);
             }
         } catch (Exception e) {
@@ -307,6 +340,27 @@ public class MessageServiceImpl implements MessageService {
         }
 
         return saved;
+    }
+
+    /**
+     * ✅ NOUVELLE MÉTHODE: Envoie une notification WebSocket au destinataire
+     */
+    private void notifyMessageReceived(User sender, User receiver, String title, String content, Long conversationId, Long messageId) {
+        try {
+            Map<String, Object> metadata = new HashMap<>();
+            metadata.put("messageId", messageId);
+            metadata.put("senderId", sender.getId());
+            metadata.put("senderName", sender.getPrenom() + " " + sender.getNom());
+            metadata.put("conversationId", conversationId);
+            metadata.put("content", content);
+
+            // Utiliser la méthode générique de notification pour les membres
+            emailService.notifyMessageReceivedWithWS(sender, receiver, title, content, metadata);
+
+            log.info("Notification WebSocket envoyée à {} pour un nouveau message", receiver.getEmail());
+        } catch (Exception e) {
+            log.error("Erreur lors de l'envoi de la notification WebSocket: {}", e.getMessage());
+        }
     }
 
     private ConversationDto toConversationDto(Conversation conv, Long currentUserId) {
@@ -379,7 +433,6 @@ public class MessageServiceImpl implements MessageService {
             if (msg.getReactionsJson() == null || msg.getReactionsJson().isBlank()) {
                 return new ArrayList<>();
             }
-            // ✅ Log pour vérifier ce qui est stocké en base
             System.out.println("=== reactionsJson for msg " + msg.getId() + " : " + msg.getReactionsJson());
 
             return objectMapper.readValue(

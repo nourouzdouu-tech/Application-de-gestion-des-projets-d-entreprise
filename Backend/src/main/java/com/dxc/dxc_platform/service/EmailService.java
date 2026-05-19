@@ -4,6 +4,7 @@ import com.dxc.dxc_platform.entity.Project;
 import com.dxc.dxc_platform.entity.Task;
 import com.dxc.dxc_platform.entity.Team;
 import com.dxc.dxc_platform.entity.User;
+import java.util.HashMap;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
@@ -20,6 +21,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.time.LocalDate;
+import java.util.Map;
 
 @Service
 public class EmailService {
@@ -28,10 +30,12 @@ public class EmailService {
 
     private final JavaMailSender mailSender;
     private final TemplateEngine templateEngine;
+    private final NotificationService notificationService;
 
-    public EmailService(JavaMailSender mailSender, TemplateEngine templateEngine) {
+    public EmailService(JavaMailSender mailSender, TemplateEngine templateEngine, NotificationService notificationService) {
         this.mailSender = mailSender;
         this.templateEngine = templateEngine;
+        this.notificationService = notificationService;
     }
 
     @Value("${spring.mail.username}")
@@ -53,6 +57,7 @@ public class EmailService {
             log.error("Erreur lors de l'envoi d'email à {}: {}", to, e.getMessage());
         }
     }
+
 
     /**
      * Envoyer un email HTML
@@ -409,36 +414,56 @@ public class EmailService {
 
     /**
      * Notification de mot de passe temporaire (envoyée par l'admin)
+     */    // ================= NOTIFICATIONS MOT DE PASSE =================
+
+
+    // ================= NOTIFICATIONS MOT DE PASSE =================
+
+    /**
+     * Notification de mot de passe temporaire avec expiration 2h
      */
     public void notifyTemporaryPassword(User user, String tempPassword) {
-        String subject = "Réinitialisation du mot de passe - DXC Platform";
+        String subject = "🔑 Réinitialisation du mot de passe - DXC Platform";
+
+        LocalDateTime expiryTime = LocalDateTime.now().plusHours(2);
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss");
+        String expiryTimeStr = expiryTime.format(formatter);
 
         String content = String.format("""
             Bonjour %s,
-
-            Votre mot de passe temporaire est :
-
-            %s
-
-            Email de connexion : %s
-
-            Connectez-vous avec ce mot de passe temporaire, puis changez-le dans votre profil.
-
+            
+            Un nouveau mot de passe temporaire a été généré pour votre compte.
+            
+            ═══════════════════════════════════════════════════════
+            
+            🔑 Votre mot de passe temporaire : %s
+            
+            ⏰ Ce mot de passe expire le : %s
+            ⏳ Validité : 2 heures
+            
+            ═══════════════════════════════════════════════════════
+            
+            📧 Email de connexion : %s
+            
+            🔐 Instructions :
+            1. Connectez-vous avec ce mot de passe temporaire
+            2. Vous serez invité à changer votre mot de passe immédiatement
+            3. Après expiration, vous devrez contacter l'administrateur
+            
+            ⚠️ Pour des raisons de sécurité, ne partagez jamais ce mot de passe.
+            
             ---
             Cet email a été envoyé automatiquement.
-            DXC Platform
+            © DXC Technology - Plateforme de gestion de projets
             """,
                 user.getPrenom(),
                 tempPassword,
+                expiryTimeStr,
                 user.getEmail()
         );
 
         sendSimpleEmail(user.getEmail(), subject, content);
     }
-
-    /**
-     * Notification de confirmation après changement de mot de passe réussi par l'utilisateur
-     */
     public void notifyPasswordChanged(User user) {
         String subject = "🔑 Votre mot de passe a été modifié - DXC Platform";
 
@@ -855,4 +880,550 @@ public class EmailService {
         sendSimpleEmail(rc.getEmail(), subject, content);
         log.info("Notification de rejet de projet envoyée au RC : {}", rc.getEmail());
     }
+    // Dans EmailService.java - Ajoutez ces méthodes
+
+    /**
+     * Notification quand une tâche est soumise pour validation (au chef de projet) - avec notification WebSocket
+     */
+    public void notifyTaskSubmittedForValidationWithWS(Task task, User member, User chefProjet) {
+        // Email existant
+        notifyTaskSubmittedForValidation(task, member, chefProjet);
+
+        // Notification WebSocket
+        String title = "📋 Tâche à valider";
+        String content = String.format("La tâche \"%s\" du projet \"%s\" a été soumise pour validation par %s.",
+                task.getTitle(),
+                task.getProject() != null ? task.getProject().getName() : "N/A",
+                member.getFullName()
+        );
+
+        Map<String, Object> metadata = new HashMap<>();
+        metadata.put("taskId", task.getId());
+        metadata.put("taskTitle", task.getTitle());
+        metadata.put("projectId", task.getProject() != null ? task.getProject().getId() : null);
+        metadata.put("submittedBy", member.getId());
+        metadata.put("submittedByName", member.getFullName());
+
+        notificationService.notifyChefProjet(
+                chefProjet,
+                title,
+                content,
+                "TASK_PENDING_VALIDATION",
+                member,
+                "/chef-projet/tasks/" + task.getId(),
+                metadata
+        );
+    }
+
+    /**
+     * Notification quand une tâche est validée (au membre) - avec notification WebSocket pour le chef
+     */
+    public void notifyTaskValidatedWithWS(Task task, User member, User chefProjet, String commentaire) {
+        // Email existant
+        notifyTaskValidated(task, member, commentaire);
+
+        // Notification WebSocket pour le chef (optionnel)
+        String title = "✅ Tâche validée";
+        String content = String.format("La tâche \"%s\" a été validée par %s.",
+                task.getTitle(),
+                chefProjet.getFullName()
+        );
+
+        Map<String, Object> metadata = new HashMap<>();
+        metadata.put("taskId", task.getId());
+        metadata.put("taskTitle", task.getTitle());
+
+        notificationService.createNotification(
+                member,
+                title,
+                content,
+                "TASK_VALIDATED",
+                chefProjet,
+                "/tasks/" + task.getId(),
+                metadata
+        );
+    }
+
+    /**
+     * Notification quand une tâche est rejetée (au membre) - avec notification WebSocket
+     */
+    public void notifyTaskRejectedWithWS(Task task, User member, User chefProjet, String commentaire) {
+        // Email existant
+        notifyTaskRejected(task, member, commentaire);
+
+        // Notification WebSocket
+        String title = "❌ Tâche rejetée";
+        String content = String.format("La tâche \"%s\" a été rejetée par %s. Motif: %s",
+                task.getTitle(),
+                chefProjet.getFullName(),
+                commentaire != null ? commentaire : "Non spécifié"
+        );
+
+        Map<String, Object> metadata = new HashMap<>();
+        metadata.put("taskId", task.getId());
+        metadata.put("taskTitle", task.getTitle());
+        metadata.put("rejectionReason", commentaire);
+
+        notificationService.createNotification(
+                member,
+                title,
+                content,
+                "TASK_REJECTED",
+                chefProjet,
+                "/tasks/" + task.getId(),
+                metadata
+        );
+    }
+
+    /**
+     * Notification quand un nouveau projet est assigné au chef de projet
+     */
+    public void notifyChefProjetProjectAssignedWithWS(Project project, User chefProjet, User assignedBy) {
+        // Email existant
+        notifyChefProjetAssigned(project, chefProjet, assignedBy, null);
+
+        // Notification WebSocket
+        String title = "📁 Nouveau projet assigné";
+        String content = String.format("Le projet \"%s\" vous a été assigné en tant que Chef de Projet.",
+                project.getName()
+        );
+
+        Map<String, Object> metadata = new HashMap<>();
+        metadata.put("projectId", project.getId());
+        metadata.put("projectName", project.getName());
+        metadata.put("client", project.getClient());
+
+        notificationService.notifyChefProjet(
+                chefProjet,
+                title,
+                content,
+                "PROJECT_ASSIGNED",
+                assignedBy,
+                "/chef-projet/projects/" + project.getId(),
+                metadata
+        );
+    }
+
+    /**
+     * Notification quand une tâche est assignée à un membre (pour le chef de projet)
+     */
+    public void notifyChefProjetTaskAssigned(Task task, User assignedTo, User chefProjet) {
+        String title = "📋 Nouvelle tâche assignée";
+        String content = String.format("Une nouvelle tâche \"%s\" a été assignée à %s dans le projet \"%s\".",
+                task.getTitle(),
+                assignedTo.getFullName(),
+                task.getProject() != null ? task.getProject().getName() : "N/A"
+        );
+
+        Map<String, Object> metadata = new HashMap<>();
+        metadata.put("taskId", task.getId());
+        metadata.put("taskTitle", task.getTitle());
+        metadata.put("assignedToId", assignedTo.getId());
+        metadata.put("assignedToName", assignedTo.getFullName());
+
+        notificationService.notifyChefProjet(
+                chefProjet,
+                title,
+                content,
+                "TASK_ASSIGNED_TO_MEMBER",
+                assignedTo,
+                "/chef-projet/tasks/" + task.getId(),
+                metadata
+        );
+    }
+    // Dans EmailService.java - AJOUTEZ CES METHODES
+
+    /**
+     * Notification quand une tâche est assignée à un membre
+     */
+    public void notifyTaskAssignedWithWS(Task task, User assignedTo, User assignedBy) {
+        // Email existant
+        notifyTaskAssigned(task, assignedTo, assignedBy);
+
+        // Notification WebSocket pour le membre
+        String title = "📋 Nouvelle tâche assignée";
+        String content = String.format("La tâche \"%s\" du projet \"%s\" vous a été assignée par %s.",
+                task.getTitle(),
+                task.getProject() != null ? task.getProject().getName() : "N/A",
+                assignedBy.getFullName()
+        );
+
+        Map<String, Object> metadata = new HashMap<>();
+        metadata.put("taskId", task.getId());
+        metadata.put("taskTitle", task.getTitle());
+        metadata.put("projectId", task.getProject() != null ? task.getProject().getId() : null);
+        metadata.put("assignedBy", assignedBy.getId());
+        metadata.put("assignedByName", assignedBy.getFullName());
+        metadata.put("priority", task.getPriority() != null ? task.getPriority().name() : "MOYENNE");
+        metadata.put("estimatedEndDate", task.getEstimatedEndDate() != null ? task.getEstimatedEndDate().toString() : null);
+
+        notificationService.notifyMembre(
+                assignedTo,
+                title,
+                content,
+                "TASK_ASSIGNED",
+                assignedBy,
+                "/membre-equipe/tasks/" + task.getId(),
+                metadata
+        );
+    }
+
+    /**
+     * Notification quand une tâche est modifiée (pour le membre)
+     */
+    public void notifyTaskUpdatedWithWS(Task task, User updatedBy, User assignedTo) {
+        // Email existant
+        notifyTaskUpdated(task, updatedBy, assignedTo);
+
+        // Notification WebSocket pour le membre
+        String title = "✏️ Tâche modifiée";
+        String content = String.format("La tâche \"%s\" a été modifiée par %s.",
+                task.getTitle(),
+                updatedBy.getFullName()
+        );
+
+        Map<String, Object> metadata = new HashMap<>();
+        metadata.put("taskId", task.getId());
+        metadata.put("taskTitle", task.getTitle());
+        metadata.put("updatedBy", updatedBy.getId());
+        metadata.put("updatedByName", updatedBy.getFullName());
+        metadata.put("newStatus", task.getStatus() != null ? task.getStatus().name() : null);
+
+        notificationService.notifyMembre(
+                assignedTo,
+                title,
+                content,
+                "TASK_UPDATED",
+                updatedBy,
+                "/membre-equipe/tasks/" + task.getId(),
+                metadata
+        );
+    }
+
+    /**
+     * Notification quand une tâche est supprimée (pour le membre)
+     */
+    public void notifyTaskDeletedWithWS(Task task, User deletedBy, User assignedTo) {
+        // Email existant
+        notifyTaskDeleted(task, deletedBy, assignedTo);
+
+        // Notification WebSocket pour le membre
+        String title = "🗑️ Tâche supprimée";
+        String content = String.format("La tâche \"%s\" du projet \"%s\" a été supprimée par %s.",
+                task.getTitle(),
+                task.getProject() != null ? task.getProject().getName() : "N/A",
+                deletedBy.getFullName()
+        );
+
+        Map<String, Object> metadata = new HashMap<>();
+        metadata.put("taskId", task.getId());
+        metadata.put("taskTitle", task.getTitle());
+        metadata.put("deletedBy", deletedBy.getId());
+        metadata.put("deletedByName", deletedBy.getFullName());
+
+        notificationService.notifyMembre(
+                assignedTo,
+                title,
+                content,
+                "TASK_DELETED",
+                deletedBy,
+                "/membre-equipe/tasks",
+                metadata
+        );
+    }
+    // Dans EmailService.java - AJOUTEZ CES METHODES
+
+    /**
+     * Notification quand un membre est assigné à une équipe - avec WebSocket
+     */
+    public void notifyTeamAssignedWithWS(User member, Team team, User assignedBy) {
+        // Email existant
+        notifyTeamAssigned(member, team, assignedBy);
+
+        String title = "👥 Vous avez été ajouté à une équipe";
+        String content = String.format("Vous avez été ajouté à l'équipe \"%s\" par %s.",
+                team.getName(),
+                assignedBy.getFullName()
+        );
+
+        Map<String, Object> metadata = new HashMap<>();
+        metadata.put("teamId", team.getId());
+        metadata.put("teamName", team.getName());
+        metadata.put("assignedBy", assignedBy.getId());
+        metadata.put("assignedByName", assignedBy.getFullName());
+
+        notificationService.notifyMembre(
+                member,
+                title,
+                content,
+                "TEAM_ASSIGNED",
+                assignedBy,
+                "/membre-equipe/equipe",
+                metadata
+        );
+    }
+
+    /**
+     * Notification quand une équipe est assignée à un projet - avec WebSocket pour chaque membre
+     */
+    public void notifyTeamAssignedToProjectWithWS(Team team, Project project, User assignedBy) {
+        if (team.getMembers() == null || team.getMembers().isEmpty()) {
+            return;
+        }
+
+        // Email existant
+        notifyTeamAssignedToProject(team, project, assignedBy);
+
+        String title = "🧩 Nouveau projet assigné à votre équipe";
+        String content = String.format("Votre équipe \"%s\" a été affectée au projet \"%s\".",
+                team.getName(),
+                project.getName()
+        );
+
+        Map<String, Object> metadata = new HashMap<>();
+        metadata.put("projectId", project.getId());
+        metadata.put("projectName", project.getName());
+        metadata.put("teamId", team.getId());
+        metadata.put("teamName", team.getName());
+        metadata.put("client", project.getClient());
+        metadata.put("assignedBy", assignedBy.getId());
+        metadata.put("assignedByName", assignedBy.getFullName());
+
+        for (User member : team.getMembers()) {
+            notificationService.notifyMembre(
+                    member,
+                    title,
+                    content,
+                    "PROJECT_ASSIGNED_TO_TEAM",
+                    assignedBy,
+                    "/membre-equipe/projets/" + project.getId(),
+                    metadata
+            );
+        }
+    }
+    // Dans EmailService.java - AJOUTEZ CETTE METHODE
+    /**
+     * Notification quand un message est reçu - avec WebSocket
+     */
+    public void notifyMessageReceivedWithWS(User sender, User receiver, String title, String content, Map<String, Object> metadata) {
+        // Email existant (déjà appelé ailleurs)
+        // Notification WebSocket pour le receveur
+        String notificationTitle = title != null ? title : "💬 Nouveau message";
+        String notificationContent = content != null ? content :
+                String.format("%s %s vous a envoyé un message.",
+                        sender.getPrenom(), sender.getNom());
+
+        notificationService.notifyMembre(
+                receiver,
+                notificationTitle,
+                notificationContent,
+                "NEW_MESSAGE",
+                sender,
+                "/messages/conversation/" + metadata.get("conversationId"),
+                metadata
+        );
+    }
+    // Dans EmailService.java - AJOUTEZ CES METHODES
+
+    /**
+     * Notification quand un manager est assigné à un projet
+     */
+    public void notifyManagerAssignedWithWS(Project project, User manager, User assignedBy, String commentaire) {
+        // Email existant
+        notifyManagerAssignedToProject(project, manager, assignedBy);
+
+        // Notification WebSocket
+        String title = "📁 Nouveau projet assigné";
+        String content = String.format("Le projet \"%s\" vous a été assigné en tant que Manager par %s.",
+                project.getName(),
+                assignedBy.getFullName()
+        );
+
+        Map<String, Object> metadata = new HashMap<>();
+        metadata.put("projectId", project.getId());
+        metadata.put("projectName", project.getName());
+        metadata.put("client", project.getClient());
+        metadata.put("assignedBy", assignedBy.getId());
+        metadata.put("assignedByName", assignedBy.getFullName());
+        metadata.put("commentaire", commentaire);
+
+        notificationService.notifyManager(
+                manager,
+                title,
+                content,
+                "PROJECT_ASSIGNED_TO_MANAGER",
+                assignedBy,
+                "/manager/projects/" + project.getId(),
+                metadata
+        );
+    }
+
+    /**
+     * Notification quand un projet est soumis pour validation au manager
+     */
+    public void notifyManagerProjectPendingValidation(Project project, User manager, User rc, String commentaire) {
+        String title = "📋 Projet à valider";
+        String content = String.format("Le projet \"%s\" créé par %s est en attente de votre validation.",
+                project.getName(),
+                rc.getFullName()
+        );
+
+        Map<String, Object> metadata = new HashMap<>();
+        metadata.put("projectId", project.getId());
+        metadata.put("projectName", project.getName());
+        metadata.put("client", project.getClient());
+        metadata.put("rcId", rc.getId());
+        metadata.put("rcName", rc.getFullName());
+        metadata.put("commentaire", commentaire);
+
+        notificationService.notifyManager(
+                manager,
+                title,
+                content,
+                "PROJECT_PENDING_VALIDATION",
+                rc,
+                "/manager/projects/" + project.getId() + "/review",
+                metadata
+        );
+    }
+
+    /**
+     * Notification quand un projet est validé par le manager (au RC)
+     */
+    public void notifyManagerValidatedProjectWithWS(Project project, User rc, User manager,
+                                                    User chefProjet, String commentaire) {
+        // Email existant
+        notifyRcProjectValidatedByManager(project, rc, manager, chefProjet, commentaire);
+
+        // Notification WebSocket pour le RC
+        String title = "✅ Projet validé";
+        String content = String.format("Le projet \"%s\" a été validé par le manager %s. Chef de projet assigné: %s",
+                project.getName(),
+                manager.getFullName(),
+                chefProjet != null ? chefProjet.getFullName() : "Non assigné"
+        );
+
+        Map<String, Object> metadata = new HashMap<>();
+        metadata.put("projectId", project.getId());
+        metadata.put("projectName", project.getName());
+        metadata.put("managerId", manager.getId());
+        metadata.put("managerName", manager.getFullName());
+        metadata.put("chefProjetId", chefProjet != null ? chefProjet.getId() : null);
+        metadata.put("chefProjetName", chefProjet != null ? chefProjet.getFullName() : null);
+        metadata.put("commentaire", commentaire);
+
+        notificationService.notifyMembre(
+                rc,
+                title,
+                content,
+                "PROJECT_VALIDATED_BY_MANAGER",
+                manager,
+                "/responsable-contrat/projects/" + project.getId(),
+                metadata
+        );
+    }
+
+    /**
+     * Notification quand un projet est rejeté par le manager (au RC)
+     */
+    public void notifyManagerRejectedProjectWithWS(Project project, User rc, User manager, String commentaire) {
+        // Email existant
+        notifyRcProjectRejectedByManager(project, rc, manager, commentaire);
+
+        // Notification WebSocket pour le RC
+        String title = "❌ Projet rejeté";
+        String content = String.format("Le projet \"%s\" a été rejeté par le manager %s. Motif: %s",
+                project.getName(),
+                manager.getFullName(),
+                commentaire != null ? commentaire : "Non spécifié"
+        );
+
+        Map<String, Object> metadata = new HashMap<>();
+        metadata.put("projectId", project.getId());
+        metadata.put("projectName", project.getName());
+        metadata.put("managerId", manager.getId());
+        metadata.put("managerName", manager.getFullName());
+        metadata.put("commentaire", commentaire);
+
+        notificationService.notifyMembre(
+                rc,
+                title,
+                content,
+                "PROJECT_REJECTED_BY_MANAGER",
+                manager,
+                "/responsable-contrat/projects/" + project.getId(),
+                metadata
+        );
+    }
+    // Dans EmailService.java - AJOUTEZ CES METHODES
+
+    /**
+     * Notification quand un projet est validé par le manager (au RC) - avec WebSocket
+     */
+    public void notifyRCProjectValidatedWithWS(Project project, User rc, User manager,
+                                               User chefProjet, String commentaire) {
+        // Email existant
+        notifyRcProjectValidatedByManager(project, rc, manager, chefProjet, commentaire);
+
+        // Notification WebSocket pour le RC
+        String title = "✅ Projet validé par le manager";
+        String content = String.format("Le projet \"%s\" a été validé par le manager %s. Chef de projet assigné: %s",
+                project.getName(),
+                manager.getFullName(),
+                chefProjet != null ? chefProjet.getFullName() : "Non assigné"
+        );
+
+        Map<String, Object> metadata = new HashMap<>();
+        metadata.put("projectId", project.getId());
+        metadata.put("projectName", project.getName());
+        metadata.put("managerId", manager.getId());
+        metadata.put("managerName", manager.getFullName());
+        metadata.put("chefProjetId", chefProjet != null ? chefProjet.getId() : null);
+        metadata.put("chefProjetName", chefProjet != null ? chefProjet.getFullName() : null);
+        metadata.put("commentaire", commentaire);
+
+        notificationService.notifyResponsableContrat(
+                rc,
+                title,
+                content,
+                "PROJECT_VALIDATED_BY_MANAGER",
+                manager,
+                "/responsable-contrat/projects/" + project.getId(),
+                metadata
+        );
+    }
+
+    /**
+     * Notification quand un projet est rejeté par le manager (au RC) - avec WebSocket
+     */
+    public void notifyRCProjectRejectedWithWS(Project project, User rc, User manager, String commentaire) {
+        // Email existant
+        notifyRcProjectRejectedByManager(project, rc, manager, commentaire);
+
+        // Notification WebSocket pour le RC
+        String title = "❌ Projet rejeté par le manager";
+        String content = String.format("Le projet \"%s\" a été rejeté par le manager %s. Motif: %s",
+                project.getName(),
+                manager.getFullName(),
+                commentaire != null ? commentaire : "Non spécifié"
+        );
+
+        Map<String, Object> metadata = new HashMap<>();
+        metadata.put("projectId", project.getId());
+        metadata.put("projectName", project.getName());
+        metadata.put("managerId", manager.getId());
+        metadata.put("managerName", manager.getFullName());
+        metadata.put("commentaire", commentaire);
+
+        notificationService.notifyResponsableContrat(
+                rc,
+                title,
+                content,
+                "PROJECT_REJECTED_BY_MANAGER",
+                manager,
+                "/responsable-contrat/projects/" + project.getId(),
+                metadata
+        );
+    }
+
 }

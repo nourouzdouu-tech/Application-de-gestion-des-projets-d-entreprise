@@ -4,33 +4,43 @@ import com.dxc.dxc_platform.entity.User;
 import com.dxc.dxc_platform.repository.UserRepository;
 import com.dxc.dxc_platform.service.AuditService;
 import com.dxc.dxc_platform.service.EmailService;
+import com.dxc.dxc_platform.service.NotificationService;
 import com.dxc.dxc_platform.shared.exception.NotFoundException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.HashMap;
 import java.util.List;
-import java.util.UUID;
+import java.util.Map;
 
 @Service
 public class LoginAttemptService {
 
+    private static final Logger log = LoggerFactory.getLogger(LoginAttemptService.class);
     private static final int MAX_FAILED_ATTEMPTS = 3;
 
     private final UserRepository userRepository;
     private final AuditService auditService;
     private final EmailService emailService;
     private final PasswordEncoder passwordEncoder;
+    private final NotificationService notificationService;
 
     public LoginAttemptService(UserRepository userRepository,
                                AuditService auditService,
                                EmailService emailService,
-                               PasswordEncoder passwordEncoder) {
+                               PasswordEncoder passwordEncoder,
+                               NotificationService notificationService) {
         this.userRepository = userRepository;
         this.auditService = auditService;
         this.emailService = emailService;
         this.passwordEncoder = passwordEncoder;
+        this.notificationService = notificationService;
     }
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
@@ -47,10 +57,10 @@ public class LoginAttemptService {
         if (attempts == MAX_FAILED_ATTEMPTS) {
             // Verrouiller le compte
             user.setLocked(true);
-            user.setMustChangePassword(true); // Forcer changement de mot de passe
+            user.setMustChangePassword(true);
             userRepository.save(user);
 
-            // ✅ Envoyer email aux admins (SANS le mot de passe)
+            // Envoyer notifications aux admins
             notifyAdminsAccountLocked(user, ipAddress);
 
             // Audit
@@ -66,13 +76,37 @@ public class LoginAttemptService {
         try {
             List<User> admins = userRepository.findAllAdmins();
 
-            if (admins.isEmpty()) {
+            if (admins == null || admins.isEmpty()) {
+                log.warn("Aucun admin trouvé pour la notification");
                 return;
             }
 
-            String subject = "🔐 ALERTE SECURITE - Compte verrouillé - " + lockedUser.getEmail();
+            // 1. Envoyer les notifications WebSocket en temps réel
+            String title = "🔐 Compte verrouillé";
+            String content = String.format("Le compte de %s %s (%s) a été verrouillé après 3 tentatives de connexion échouées.",
+                    lockedUser.getPrenom(), lockedUser.getNom(), lockedUser.getEmail());
 
-            String content = String.format("""
+            Map<String, Object> metadata = new HashMap<>();
+            metadata.put("userId", lockedUser.getId());
+            metadata.put("ipAddress", ipAddress);
+            metadata.put("lockedAt", LocalDateTime.now().toString());
+
+            for (User admin : admins) {
+                notificationService.createNotification(
+                        admin,
+                        title,
+                        content,
+                        "ACCOUNT_LOCKED",
+                        null,
+                        "/admin/users/" + lockedUser.getId(),
+                        metadata
+                );
+                log.info("Notification WebSocket envoyée à l'admin: {}", admin.getEmail());
+            }
+
+            // 2. Envoyer les emails aux admins
+            String subject = "🔐 ALERTE SECURITE - Compte verrouillé - " + lockedUser.getEmail();
+            String emailContent = String.format("""
             ⚠️ ALERTE DE SÉCURITÉ ⚠️
             
             Bonjour Admin,
@@ -82,6 +116,7 @@ public class LoginAttemptService {
             ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
             📧 Email : %s
             👤 Nom   : %s %s
+            🌐 IP    : %s
             🔒 Statut : VERROUILLÉ
             ⏰ Date   : %s
             ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -101,22 +136,22 @@ public class LoginAttemptService {
                     lockedUser.getPrenom() != null ? lockedUser.getPrenom() : "",
                     lockedUser.getNom() != null ? lockedUser.getNom() : "",
                     ipAddress,
-                    java.time.LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss"))
+                    LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss"))
             );
 
             for (User admin : admins) {
-                emailService.sendSimpleEmail(admin.getEmail(), subject, content);
-                System.out.println("Email de verrouillage envoyé à l'admin: " + admin.getEmail());
+                emailService.sendSimpleEmail(admin.getEmail(), subject, emailContent);
+                log.info("Email de verrouillage envoyé à l'admin: {}", admin.getEmail());
             }
 
         } catch (Exception e) {
-            System.err.println("Erreur envoi email aux admins: " + e.getMessage());
+            log.error("Erreur envoi notification aux admins: {}", e.getMessage(), e);
         }
     }
 
     @Transactional(propagation = Propagation.REQUIRES_NEW)
     public void resetAttempts(String email) {
         userRepository.resetFailedAttempts(email);
-        System.out.println(">>> resetAttempts() TERMINÉ pour " + email);
+        log.info("resetAttempts() terminé pour {}", email);
     }
 }

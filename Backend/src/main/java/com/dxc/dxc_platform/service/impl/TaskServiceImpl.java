@@ -142,14 +142,16 @@ public class TaskServiceImpl implements TaskService {
 
         Task saved = taskRepository.save(task);
 
-        // === NOTIFICATIONS EMAIL ===
+        // === NOTIFICATIONS AVEC WEBSOCKET ===
         try {
-            // Notifier le membre assigné
-            emailService.notifyTaskAssigned(saved, assignedUser, currentUser);
-            // Confirmation au chef de projet
-            emailService.notifyTaskCreated(saved, currentUser);
+            // ✅ VERSION AVEC WEBSOCKET pour le membre assigné
+            emailService.notifyTaskAssignedWithWS(saved, assignedUser, currentUser);
+
+            // Notifier le chef de projet
+            emailService.notifyChefProjetTaskAssigned(saved, assignedUser, currentUser);
+
         } catch (Exception e) {
-            log.error("Erreur lors de l'envoi des emails: {}", e.getMessage());
+            log.error("Erreur lors de l'envoi des notifications: {}", e.getMessage());
         }
 
         auditService.log("CREATE_TASK", "TASK", saved.getId(),
@@ -158,6 +160,7 @@ public class TaskServiceImpl implements TaskService {
 
         return toDto(saved);
     }
+
     @Override
     public TaskDto updateTask(Long id, TaskDto dto) {
         Task task = taskRepository.findById(id)
@@ -212,7 +215,7 @@ public class TaskServiceImpl implements TaskService {
             try {
                 emailService.notifyTaskAssigned(task, newAssignedUser, currentUser);
             } catch (Exception e) {
-                log.error("Erreur envoi email au nouveau membre: {}", e.getMessage());
+                log.error("Erreur envoi notification au nouveau membre: {}", e.getMessage());
             }
         }
 
@@ -238,20 +241,22 @@ public class TaskServiceImpl implements TaskService {
 
         Task updated = taskRepository.save(task);
 
-        // === NOTIFICATION EMAIL APPROPRIÉE ===
+        // === NOTIFICATIONS AVEC WEBSOCKET ===
         try {
             if (isValidation) {
-                // C'est une validation de tâche
-                emailService.notifyTaskValidated(updated, assignedUser, rejectionComment);
+                // C'est une validation de tâche - NOTIFICATION AU MEMBRE
+                User chefProjet = currentUser;
+                emailService.notifyTaskValidatedWithWS(updated, assignedUser, chefProjet, rejectionComment);
             } else if (isRejection) {
-                // C'est un rejet de tâche
-                emailService.notifyTaskRejected(updated, assignedUser, rejectionComment);
+                // C'est un rejet de tâche - NOTIFICATION AU MEMBRE
+                User chefProjet = currentUser;
+                emailService.notifyTaskRejectedWithWS(updated, assignedUser, chefProjet, rejectionComment);
             } else {
-                // C'est une modification simple
-                emailService.notifyTaskUpdated(updated, currentUser, assignedUser);
+                // C'est une modification simple - ✅ VERSION AVEC WEBSOCKET
+                emailService.notifyTaskUpdatedWithWS(updated, currentUser, assignedUser);
             }
         } catch (Exception e) {
-            log.error("Erreur lors de l'envoi de l'email: {}", e.getMessage());
+            log.error("Erreur lors de l'envoi des notifications: {}", e.getMessage());
         }
 
         auditService.log("UPDATE_TASK", "TASK", id,
@@ -272,7 +277,6 @@ public class TaskServiceImpl implements TaskService {
     public List<TaskDto> getTasksByProject(Long projectId) {
         User currentUser = getCurrentUser();
 
-        // ✅ Récupère le projet même clôturé (findById au lieu de findByIdAndDeletedFalse)
         Project project = projectRepository.findById(projectId)
                 .orElseThrow(() -> new NotFoundException("PROJECT_NOT_FOUND", "Projet introuvable"));
 
@@ -289,7 +293,6 @@ public class TaskServiceImpl implements TaskService {
             throw new ForbiddenException("FORBIDDEN", "Accès non autorisé");
         }
 
-        // ✅ Chef de projet : vérifie qu'il est bien le chef de ce projet
         if (isChef) {
             if (project.getTeam() == null || project.getTeam().getProjectManager() == null) {
                 throw new ForbiddenException("FORBIDDEN", "Aucune équipe n'est assignée à ce projet");
@@ -391,14 +394,15 @@ public class TaskServiceImpl implements TaskService {
 
         Task updated = taskRepository.save(task);
 
-        // === NOTIFICATION EMAIL SI SOUMISSION ===
+        // === NOTIFICATION AVEC WEBSOCKET AU CHEF DE PROJET ===
         if (status == Status.Validation && task.getProject() != null &&
                 task.getProject().getTeam() != null && task.getProject().getTeam().getProjectManager() != null) {
             try {
                 User chefProjet = task.getProject().getTeam().getProjectManager();
-                emailService.notifyTaskSubmittedForValidation(updated, currentUser, chefProjet);
+                // Version avec WebSocket
+                emailService.notifyTaskSubmittedForValidationWithWS(updated, currentUser, chefProjet);
             } catch (Exception e) {
-                log.error("Erreur envoi email notification chef: {}", e.getMessage());
+                log.error("Erreur envoi notification chef: {}", e.getMessage());
             }
         }
 
@@ -442,14 +446,15 @@ public class TaskServiceImpl implements TaskService {
 
         Task updated = taskRepository.save(task);
 
-        // === NOTIFICATION EMAIL AU CHEF DE PROJET ===
+        // === NOTIFICATION AVEC WEBSOCKET AU CHEF DE PROJET ===
         if (task.getProject() != null && task.getProject().getTeam() != null &&
                 task.getProject().getTeam().getProjectManager() != null) {
             try {
                 User chefProjet = task.getProject().getTeam().getProjectManager();
-                emailService.notifyTaskSubmittedForValidation(updated, currentUser, chefProjet);
+                // Version avec WebSocket
+                emailService.notifyTaskSubmittedForValidationWithWS(updated, currentUser, chefProjet);
             } catch (Exception e) {
-                log.error("Erreur envoi email: {}", e.getMessage());
+                log.error("Erreur envoi notification: {}", e.getMessage());
             }
         }
 
@@ -492,12 +497,15 @@ public class TaskServiceImpl implements TaskService {
 
         Task updated = taskRepository.save(task);
 
-        // === NOTIFICATION EMAIL AU MEMBRE ===
+        // === NOTIFICATION AVEC WEBSOCKET AU MEMBRE ===
         if (task.getAssignedTo() != null) {
             try {
-                emailService.notifyTaskValidated(updated, task.getAssignedTo(), commentaire);
+                User chefProjet = currentUser;
+                User member = task.getAssignedTo();
+                // Version avec WebSocket
+                emailService.notifyTaskValidatedWithWS(updated, member, chefProjet, commentaire);
             } catch (Exception e) {
-                log.error("Erreur envoi email: {}", e.getMessage());
+                log.error("Erreur envoi notification: {}", e.getMessage());
             }
         }
 
@@ -540,12 +548,15 @@ public class TaskServiceImpl implements TaskService {
 
         Task updated = taskRepository.save(task);
 
-        // === NOTIFICATION EMAIL AU MEMBRE ===
+        // === NOTIFICATION AVEC WEBSOCKET AU MEMBRE ===
         if (task.getAssignedTo() != null) {
             try {
-                emailService.notifyTaskRejected(updated, task.getAssignedTo(), commentaire);
+                User chefProjet = currentUser;
+                User member = task.getAssignedTo();
+                // Version avec WebSocket
+                emailService.notifyTaskRejectedWithWS(updated, member, chefProjet, commentaire);
             } catch (Exception e) {
-                log.error("Erreur envoi email: {}", e.getMessage());
+                log.error("Erreur envoi notification: {}", e.getMessage());
             }
         }
 
@@ -556,6 +567,7 @@ public class TaskServiceImpl implements TaskService {
 
         return toDto(updated);
     }
+
     @Override
     public void deleteTask(Long id) {
         Task task = taskRepository.findById(id)
@@ -573,12 +585,13 @@ public class TaskServiceImpl implements TaskService {
         String taskTitle = task.getTitle();
         User assignedUser = task.getAssignedTo();
 
-        // === NOTIFICATION EMAIL DE SUPPRESSION (avant suppression) ===
+        // === NOTIFICATION DE SUPPRESSION ===
         if (assignedUser != null) {
             try {
-                emailService.notifyTaskDeleted(task, currentUser, assignedUser);
+                // ✅ VERSION AVEC WEBSOCKET
+                emailService.notifyTaskDeletedWithWS(task, currentUser, assignedUser);
             } catch (Exception e) {
-                log.error("Erreur lors de l'envoi de l'email de suppression: {}", e.getMessage());
+                log.error("Erreur lors de l'envoi de la notification de suppression: {}", e.getMessage());
             }
         }
 
@@ -590,6 +603,7 @@ public class TaskServiceImpl implements TaskService {
 
         taskRepository.save(task);
     }
+
     private TaskDto toDto(Task task) {
         TaskDto dto = new TaskDto();
         dto.setId(task.getId());

@@ -10,6 +10,11 @@ import { ProjectService, ProjectDto } from '../../../core/services/project.servi
 import { TaskService, TaskDto } from '../../../core/services/task.service';
 import { RouterModule } from '@angular/router';
 import { ManagerService, ManagerProjectItemDto } from '../../../core/services/manager.service';
+import { NotificationBellComponent } from '../../../core/services/notification-bell.component';
+import { NotificationBellChefComponent } from '../../../core/services/notification-bell-chef.component';
+import { NotificationBellMembreComponent } from '../../../core/services/notification-bell-membre.component';
+import { NotificationBellManagerComponent } from '../../../core/services/notification-bell-manager.component';
+import { NotificationBellRcComponent } from '../../../core/services/notification-bell-rc.component';
 
 interface TeamMemberInfo {
   id: number;
@@ -70,7 +75,7 @@ interface DashboardProject {
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [CommonModule, RouterModule],
+  imports: [CommonModule, RouterModule, NotificationBellComponent,NotificationBellChefComponent, NotificationBellMembreComponent,NotificationBellManagerComponent, NotificationBellRcComponent ],
   templateUrl: './dashboard.html',
   styleUrl: './dashboard.css'
 })

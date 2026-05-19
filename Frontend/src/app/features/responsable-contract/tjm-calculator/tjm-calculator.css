@@ -96,8 +96,20 @@
   color: white;
 }
 
-.btn-success:hover {
+..btn-success:hover {
   background: #15803d;
+}
+
+.btn:disabled,
+.btn[disabled] {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-success:disabled,
+.btn-success[disabled] {
+  background: #94a3b8;
+  color: #f8fafc;
 }
 
 /* Alert */

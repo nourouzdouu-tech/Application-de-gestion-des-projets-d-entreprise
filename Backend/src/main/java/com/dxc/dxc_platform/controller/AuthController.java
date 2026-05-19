@@ -1,9 +1,9 @@
 package com.dxc.dxc_platform.controller;
 
 import com.dxc.dxc_platform.dto.AuthDto;
-import com.dxc.dxc_platform.repository.UserRepository;
 import com.dxc.dxc_platform.service.AuditService;
 import com.dxc.dxc_platform.service.AuthService;
+import com.dxc.dxc_platform.shared.exception.NotFoundException;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -14,6 +14,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -54,6 +55,8 @@ public class AuthController {
             ));
         }
     }
+
+    
 
     @PostMapping("/logout")
     public ResponseEntity<Void> logout() {
