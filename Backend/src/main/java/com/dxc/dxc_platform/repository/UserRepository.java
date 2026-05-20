@@ -20,6 +20,9 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     boolean existsByEmailAndDeletedFalse(String email);
 
+    // ✅ CORRIGÉ : findByLockedTrue (pas findByIsLockedTrue)
+    List<User> findByLockedTrue();
+
     @Modifying(clearAutomatically = true, flushAutomatically = true)
     @Query("UPDATE User u SET u.failedAttempts = u.failedAttempts + 1 WHERE u.email = :email")
     void incrementFailedAttempts(@Param("email") String email);
@@ -70,16 +73,16 @@ public interface UserRepository extends JpaRepository<User, Long> {
         ORDER BY u.prenom ASC, u.nom ASC
     """)
     List<User> findAllActiveManagers();
-   //Pour recuperer les CP
+
     @Query("""
-    SELECT DISTINCT u
-    FROM User u
-    JOIN u.roles r
-    WHERE u.deleted = false
-      AND u.locked = false
-      AND LOWER(r.nom) = 'chef_projet'
-    ORDER BY u.prenom ASC, u.nom ASC
-""")
+        SELECT DISTINCT u
+        FROM User u
+        JOIN u.roles r
+        WHERE u.deleted = false
+          AND u.locked = false
+          AND LOWER(r.nom) = 'chef_projet'
+        ORDER BY u.prenom ASC, u.nom ASC
+    """)
     List<User> findAllActiveChefsProjet();
 
     @Query("SELECT COUNT(u) FROM User u WHERE u.deleted = false")
@@ -93,9 +96,8 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     List<User> findTop5ByDeletedFalseOrderByCreatedAtDesc();
 
-
-
     Optional<User> findByEmail(String email);
+
     @Query("SELECT COUNT(u) FROM User u WHERE u.locked = false AND u.deleted = false")
     long countActiveUsers();
 
@@ -107,6 +109,4 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     @Query("SELECT u FROM User u WHERE u.deleted = false AND EXISTS (SELECT r FROM u.roles r WHERE r.nom = 'ADMIN')")
     List<User> findAllAdmins();
-
 }
-

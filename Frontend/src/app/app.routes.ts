@@ -26,10 +26,7 @@ import { MembreEquipeTaches } from './features/membre-equipe/taches/taches';
 
 import { SharedMessagesComponent } from './shared/components/messages/messages';
 import { SharedCalendarComponent } from './shared/components/calendar/calendar';
-
-// ✅ NOUVEAU : Import du composant AUDIT partagé (plus les anciens imports supprimés)
 import { AuditComponent } from './shared/components/audit/audit';
-
 
 
 
@@ -51,11 +48,15 @@ export const routes: Routes = [
     children: [
       { path: 'dashboard', component: Dashboard },
   
+      // ✅ CORRIGÉ : Utilise loadComponent
+      { 
+        path: 'reporting', 
+        loadComponent: () => import('./shared/components/reporting/reporting').then(m => m.ReportingComponent)
+      },
       { path: 'utilisateurs', component: Utilisateurs },
       { path: 'roles', component: Roles },
       { path: 'clients', component: Clients },
       { path: 'profile', component: Profiles },
-      // ✅ MODIFIÉ : utilise le composant partagé avec viewType 'security'
       { path: 'audit', component: AuditComponent, data: { viewType: 'security' } },
       { path: '', redirectTo: 'dashboard', pathMatch: 'full' }
     ]
@@ -66,6 +67,11 @@ export const routes: Routes = [
     children: [
       { path: 'dashboard', component: Dashboard },
   
+      // ✅ CORRIGÉ : Utilise loadComponent
+      { 
+        path: 'reporting', 
+        loadComponent: () => import('./shared/components/reporting/reporting').then(m => m.ReportingComponent)
+      },
       { path: 'projets', component: Projets },
       { path: 'taches', component: TachesComponent },
       { path: 'equipes', component: Equipes },
@@ -80,6 +86,11 @@ export const routes: Routes = [
     children: [
       { path: 'dashboard', component: Dashboard },
 
+      // ✅ CORRIGÉ : Utilise loadComponent
+      { 
+        path: 'reporting', 
+        loadComponent: () => import('./shared/components/reporting/reporting').then(m => m.ReportingComponent)
+      },
       { path: 'projets', component: ResponsableProjets },
       { path: 'facturation/:projectId', component: TjmCalculatorComponent },
       { path: '', redirectTo: 'dashboard', pathMatch: 'full' }
@@ -91,10 +102,14 @@ export const routes: Routes = [
     children: [
       { path: 'dashboard', component: Dashboard },
 
+      // ✅ CORRIGÉ : Utilise loadComponent
+      { 
+        path: 'reporting', 
+        loadComponent: () => import('./shared/components/reporting/reporting').then(m => m.ReportingComponent)
+      },
       { path: 'projets', component: ReviewProjetsComponent },
       { path: 'calendrier', component: SharedCalendarComponent },
       { path: 'messages', component: SharedMessagesComponent },
-      // ✅ MODIFIÉ : utilise le composant partagé avec viewType 'workflow'
       { path: 'audit', component: AuditComponent, data: { viewType: 'workflow' } },
       { path: '', redirectTo: 'dashboard', pathMatch: 'full' }
     ]
@@ -104,6 +119,12 @@ export const routes: Routes = [
     component: MembreEquipe,
     children: [
       { path: 'dashboard', component: Dashboard },
+
+      // ✅ CORRIGÉ : Utilise loadComponent
+      { 
+        path: 'reporting', 
+        loadComponent: () => import('./shared/components/reporting/reporting').then(m => m.ReportingComponent)
+      },
 
       { path: 'projets', component: MembreEquipeProjets },
       { path: 'taches', component: MembreEquipeTaches },

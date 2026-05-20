@@ -4,6 +4,7 @@ import com.dxc.dxc_platform.enums.Genre;
 import jakarta.persistence.*;
 
 import java.time.LocalDateTime;
+import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -216,7 +217,14 @@ public class User {
         return (prenom != null ? prenom : "") + " " + (nom != null ? nom : "");
     }
 
+
     public boolean isEnabled() {
         return !isLocked() && !isDeleted();
+    }
+    
+
+
+    public Collection<Object> getAuthorities() {
+        return java.util.List.of();
     }
 }

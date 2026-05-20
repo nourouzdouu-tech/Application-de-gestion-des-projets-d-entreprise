@@ -1,0 +1,495 @@
+<!-- ══════════════════════════════════════════════════════
+     REPORTING COMPONENT
+     ══════════════════════════════════════════════════════ -->
+<div class="reporting-wrapper">
+
+  <!-- ── Header ────────────────────────────────────────── -->
+  <div class="report-header">
+    <div class="header-left">
+      <button *ngIf="activeReport" class="btn-back" (click)="back()">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M19 12H5M12 19l-7-7 7-7"/>
+        </svg>
+        Retour
+      </button>
+      <h1 class="page-title">
+        <span class="title-icon">📊</span>
+        {{ activeReport ? getReportTitle(activeReport) : 'Rapports' }}
+      </h1>
+    </div>
+
+    <!-- Boutons d'export -->
+    <div class="report-actions" *ngIf="activeReport">
+      <select class="export-select" (change)="onExportTypeChange($event)">
+        <option value="">📄 Format d'export...</option>
+        <option value="excel">📊 Excel (.xlsx)</option>
+        <option value="pdf">📑 PDF</option>
+      </select>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════
+       MENU DES RAPPORTS
+       ══════════════════════════════════════════════════════ -->
+  <div *ngIf="!activeReport" class="reports-menu">
+    <div class="menu-grid">
+
+      <!-- Projets globaux -->
+      <div class="report-card" (click)="openReport('projects-global')">
+        <div class="card-icon" style="background: linear-gradient(135deg, #667eea, #764ba2)">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8">
+            <rect x="3" y="3" width="18" height="18" rx="2"/>
+            <path d="M9 9h6M9 12h6M9 15h4"/>
+          </svg>
+        </div>
+        <div class="card-content">
+          <h3>Liste globale des projets</h3>
+          <p>Filtrer par année, statut et équipe</p>
+        </div>
+        <div class="card-arrow">›</div>
+      </div>
+
+      <!-- Projets en retard -->
+      <div class="report-card" (click)="openReport('projects-overdue')">
+        <div class="card-icon" style="background: linear-gradient(135deg, #f093fb, #f5576c)">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8">
+            <circle cx="12" cy="12" r="10"/>
+            <path d="M12 6v6l4 2"/>
+          </svg>
+        </div>
+        <div class="card-content">
+          <h3>Projets hors délai</h3>
+          <p>Projets dépassant la date estimée de fin</p>
+        </div>
+        <div class="card-arrow">›</div>
+      </div>
+
+      <!-- Tâches en retard -->
+      <div class="report-card" (click)="openReport('tasks-overdue')">
+        <div class="card-icon" style="background: linear-gradient(135deg, #fa709a, #fee140)">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8">
+            <path d="M9 11l3 3L22 4"/>
+            <path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/>
+          </svg>
+        </div>
+        <div class="card-content">
+          <h3>Tâches en retard</h3>
+          <p>Filtrer par projet, voir les tâches échues</p>
+        </div>
+        <div class="card-arrow">›</div>
+      </div>
+
+      <!-- Utilisateurs sans profil -->
+      <div class="report-card" (click)="openReport('users-no-profile')">
+        <div class="card-icon" style="background: linear-gradient(135deg, #4facfe, #00f2fe)">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8">
+            <path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/>
+            <circle cx="12" cy="7" r="4"/>
+            <line x1="18" y1="8" x2="23" y2="13"/>
+            <line x1="23" y1="8" x2="18" y2="13"/>
+          </svg>
+        </div>
+        <div class="card-content">
+          <h3>Utilisateurs sans profil</h3>
+          <p>Utilisateurs n'ayant pas de profil défini</p>
+        </div>
+        <div class="card-arrow">›</div>
+      </div>
+
+      <!-- Utilisateurs par statut -->
+      <div class="report-card" (click)="openReport('users-by-status')">
+        <div class="card-icon" style="background: linear-gradient(135deg, #43e97b, #38f9d7)">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8">
+            <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/>
+            <circle cx="9" cy="7" r="4"/>
+            <path d="M23 21v-2a4 4 0 00-3-3.87"/>
+            <path d="M16 3.13a4 4 0 010 7.75"/>
+          </svg>
+        </div>
+        <div class="card-content">
+          <h3>Utilisateurs par statut</h3>
+          <p>Actifs / inactifs + top réinitialisateurs mdp</p>
+        </div>
+        <div class="card-arrow">›</div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════
+       RAPPORT : PROJETS GLOBAUX
+       ══════════════════════════════════════════════════════ -->
+  <div *ngIf="activeReport === 'projects-global'" class="report-content">
+    <!-- Filters -->
+    <div class="filters-bar">
+      <select class="filter-select" [(ngModel)]="filterYear" (change)="applyFilters()">
+        <option [ngValue]="undefined">Toutes les années</option>
+        <option *ngFor="let y of years" [ngValue]="y">{{ y }}</option>
+      </select>
+      <select class="filter-select" [(ngModel)]="filterStatus" (change)="applyFilters()">
+        <option [ngValue]="undefined">Tous les statuts</option>
+        <option *ngFor="let s of projectStatuses" [value]="s.value">{{ s.label }}</option>
+      </select>
+      <select class="filter-select" [(ngModel)]="filterTeamId" (change)="applyFilters()">
+        <option [ngValue]="undefined">Toutes les équipes</option>
+        <option *ngFor="let t of teams" [ngValue]="t.id">{{ t.nom }}</option>
+      </select>
+      <span class="results-count">{{ projectsData.length }} résultat(s)</span>
+    </div>
+
+    <!-- Loading -->
+    <div *ngIf="loading" class="loading-state">
+      <div class="spinner"></div>
+      <p>Chargement...</p>
+    </div>
+
+    <!-- Table -->
+    <div *ngIf="!loading" class="table-wrapper">
+      <table class="report-table" *ngIf="projectsData.length > 0; else emptyState">
+        <thead>
+          <tr>
+            <th>Projet</th>
+            <th>Statut</th>
+            <th>Équipe</th>
+            <th>Chef de projet</th>
+            <th>Date début</th>
+            <th>Fin estimée</th>
+            <th>Retard</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let p of paginatedProjectsData" [class.row-overdue]="p.overdue">
+            <td>
+              <div class="project-name">{{ p.nom }}</div>
+              <div class="project-desc">{{ p.description }}</div>
+            </td>
+            <td><span class="badge" [ngClass]="getStatusClass(p.status)">{{ getStatusLabel(p.status) }}</span></td>
+            <td>{{ p.teamNom || '—' }}</td>
+            <td>{{ p.chefProjetPrenom }} {{ p.chefProjetNom }}</td>
+            <td>{{ p.dateDebut | date:'dd/MM/yyyy' }}</td>
+            <td>{{ p.dateFinEstimee | date:'dd/MM/yyyy' }}</td>
+            <td>
+              <span *ngIf="p.overdue" class="retard-badge">
+                {{ p.joursRetard }}j
+              </span>
+              <span *ngIf="!p.overdue" class="text-muted">—</span>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- Pagination -->
+      <div class="pagination-container" *ngIf="projectsData.length > itemsPerPage">
+        <div class="pagination">
+          <button (click)="changePage(currentPage - 1)" [disabled]="currentPage === 1">‹</button>
+          <span>Page {{ currentPage }} / {{ totalPages }}</span>
+          <button (click)="changePage(currentPage + 1)" [disabled]="currentPage === totalPages">›</button>
+        </div>
+      </div>
+
+      <ng-template #emptyState>
+        <div class="empty-state">
+          <p>Aucun projet trouvé pour ces critères.</p>
+        </div>
+      </ng-template>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════
+       RAPPORT : PROJETS HORS DÉLAI
+       ══════════════════════════════════════════════════════ -->
+  <div *ngIf="activeReport === 'projects-overdue'" class="report-content">
+    <div *ngIf="loading" class="loading-state">
+      <div class="spinner"></div>
+      <p>Chargement...</p>
+    </div>
+
+    <div *ngIf="!loading" class="table-wrapper">
+      <div class="overdue-banner" *ngIf="overdueProjectsData.length > 0">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z"/>
+        </svg>
+        {{ overdueProjectsData.length }} projet(s) dépassent leur date estimée de fin
+      </div>
+
+      <table class="report-table" *ngIf="overdueProjectsData.length > 0; else emptyOverdue">
+        <thead>
+          <tr>
+            <th>Projet</th>
+            <th>Statut</th>
+            <th>Équipe</th>
+            <th>Chef de projet</th>
+            <th>Fin estimée</th>
+            <th>Jours de retard</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let p of paginatedOverdueProjectsData" class="row-overdue">
+            <td>
+              <div class="project-name">{{ p.nom }}</div>
+            </td>
+            <td><span class="badge" [ngClass]="getStatusClass(p.status)">{{ getStatusLabel(p.status) }}</span></td>
+            <td>{{ p.teamNom || '—' }}</td>
+            <td>{{ p.chefProjetPrenom }} {{ p.chefProjetNom }}</td>
+            <td>{{ p.dateFinEstimee | date:'dd/MM/yyyy' }}</td>
+            <td><span class="retard-badge large">{{ p.joursRetard }} jours</span></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- Pagination -->
+      <div class="pagination-container" *ngIf="overdueProjectsData.length > itemsPerPage">
+        <div class="pagination">
+          <button (click)="changePage(currentPage - 1)" [disabled]="currentPage === 1">‹</button>
+          <span>Page {{ currentPage }} / {{ totalPages }}</span>
+          <button (click)="changePage(currentPage + 1)" [disabled]="currentPage === totalPages">›</button>
+        </div>
+      </div>
+
+      <ng-template #emptyOverdue>
+        <div class="empty-state success">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#27ae60" stroke-width="1.5">
+            <path d="M22 11.08V12a10 10 0 11-5.93-9.14"/>
+            <polyline points="22 4 12 14.01 9 11.01"/>
+          </svg>
+          <p>Aucun projet en retard ! Tout est dans les délais.</p>
+        </div>
+      </ng-template>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════
+       RAPPORT : TÂCHES EN RETARD
+       ══════════════════════════════════════════════════════ -->
+  <div *ngIf="activeReport === 'tasks-overdue'" class="report-content">
+    <div class="filters-bar">
+      <select class="filter-select" [(ngModel)]="filterProjectId" (change)="applyFilters()">
+        <option [ngValue]="undefined">Tous les projets</option>
+        <option *ngFor="let p of projects" [ngValue]="p.id">{{ p.nom }}</option>
+      </select>
+      <span class="results-count">{{ overdueTasksData.length }} tâche(s) en retard</span>
+    </div>
+
+    <div *ngIf="loading" class="loading-state">
+      <div class="spinner"></div>
+      <p>Chargement...</p>
+    </div>
+
+    <div *ngIf="!loading" class="table-wrapper">
+      <table class="report-table" *ngIf="overdueTasksData.length > 0; else emptyTasks">
+        <thead>
+          <tr>
+            <th>Tâche</th>
+            <th>Projet</th>
+            <th>Priorité</th>
+            <th>Statut</th>
+            <th>Assignée à</th>
+            <th>Date échéance</th>
+            <th>Retard</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let t of paginatedOverdueTasksData" class="row-overdue">
+            <td>
+              <div class="project-name">{{ t.titre }}</div>
+              <div class="project-desc">{{ t.description }}</div>
+            </td>
+            <td>{{ t.projectNom || '—' }}</td>
+            <td><span class="badge" [ngClass]="getPriorityClass(t.priority)">{{ t.priority }}</span></td>
+            <td><span class="badge badge-secondary">{{ getTaskStatusLabel(t.status) }}</span></td>
+            <td>{{ t.assignePrenom }} {{ t.assigneNom }}</td>
+            <td>{{ t.dateEcheance | date:'dd/MM/yyyy' }}</td>
+            <td><span class="retard-badge">{{ t.joursRetard }}j</span></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- Pagination -->
+      <div class="pagination-container" *ngIf="overdueTasksData.length > itemsPerPage">
+        <div class="pagination">
+          <button (click)="changePage(currentPage - 1)" [disabled]="currentPage === 1">‹</button>
+          <span>Page {{ currentPage }} / {{ totalPages }}</span>
+          <button (click)="changePage(currentPage + 1)" [disabled]="currentPage === totalPages">›</button>
+        </div>
+      </div>
+
+      <ng-template #emptyTasks>
+        <div class="empty-state success">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#27ae60" stroke-width="1.5">
+            <path d="M22 11.08V12a10 10 0 11-5.93-9.14"/>
+            <polyline points="22 4 12 14.01 9 11.01"/>
+          </svg>
+          <p>Aucune tâche en retard.</p>
+        </div>
+      </ng-template>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════
+       RAPPORT : UTILISATEURS SANS PROFIL
+       ══════════════════════════════════════════════════════ -->
+  <div *ngIf="activeReport === 'users-no-profile'" class="report-content">
+    <div *ngIf="loading" class="loading-state">
+      <div class="spinner"></div>
+      <p>Chargement...</p>
+    </div>
+
+    <div *ngIf="!loading">
+      <div class="overdue-banner info" *ngIf="usersNoProfileData.length > 0">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/>
+        </svg>
+        {{ usersNoProfileData.length }} utilisateur(s) sans profil défini
+      </div>
+
+      <div class="table-wrapper">
+        <table class="report-table" *ngIf="usersNoProfileData.length > 0; else emptyUsers">
+          <thead>
+            <tr>
+              <th>Nom</th>
+              <th>Email</th>
+              <th>Profil</th>
+              <th>Statut</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let u of paginatedUsersNoProfileData">
+              <td>{{ u.prenom }} {{ u.nom }}</td>
+              <td>{{ u.email }}</td>
+              <td>{{ getRoleLabel(u.role) }}</td>
+              <td>
+                <span class="badge" [ngClass]="u.active ? 'badge-success' : 'badge-secondary'">
+                  {{ u.active ? 'Actif' : 'Inactif' }}
+                </span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+        <!-- Pagination -->
+        <div class="pagination-container" *ngIf="usersNoProfileData.length > itemsPerPage">
+          <div class="pagination">
+            <button (click)="changePage(currentPage - 1)" [disabled]="currentPage === 1">‹</button>
+            <span>Page {{ currentPage }} / {{ totalPages }}</span>
+            <button (click)="changePage(currentPage + 1)" [disabled]="currentPage === totalPages">›</button>
+          </div>
+        </div>
+
+        <ng-template #emptyUsers>
+          <div class="empty-state success">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#27ae60" stroke-width="1.5">
+              <path d="M22 11.08V12a10 10 0 11-5.93-9.14"/>
+              <polyline points="22 4 12 14.01 9 11.01"/>
+            </svg>
+            <p>Tous les utilisateurs ont un profil défini.</p>
+          </div>
+        </ng-template>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════
+       RAPPORT : UTILISATEURS PAR STATUT
+       ══════════════════════════════════════════════════════ -->
+  <div *ngIf="activeReport === 'users-by-status'" class="report-content">
+    <div class="filters-bar">
+      <select class="filter-select" [(ngModel)]="filterUserStatus" (change)="applyFilters()">
+        <option [ngValue]="undefined">Tous</option>
+        <option [ngValue]="true">Actifs uniquement</option>
+        <option [ngValue]="false">Inactifs uniquement</option>
+      </select>
+      <span class="results-count" *ngIf="userStatusData">
+        {{ userStatusData.users.length }} résultat(s)
+      </span>
+    </div>
+
+    <div *ngIf="loading" class="loading-state">
+      <div class="spinner"></div>
+      <p>Chargement...</p>
+    </div>
+
+    <div *ngIf="!loading && userStatusData">
+      <!-- Stat cards -->
+      <div class="stats-row">
+        <div class="stat-card green">
+          <div class="stat-value">{{ userStatusData.totalActive }}</div>
+          <div class="stat-label">Actifs</div>
+        </div>
+        <div class="stat-card red">
+          <div class="stat-value">{{ userStatusData.totalInactive }}</div>
+          <div class="stat-label">Inactifs</div>
+        </div>
+        <div class="stat-card orange">
+          <div class="stat-value">{{ userStatusData.totalLocked }}</div>
+          <div class="stat-label">Verrouillés</div>
+        </div>
+        <div class="stat-card purple" *ngIf="userStatusData.topPasswordResetter">
+          <div class="stat-icon">🔑</div>
+          <div class="stat-top-name">
+            {{ userStatusData.topPasswordResetter.prenom }}
+            {{ userStatusData.topPasswordResetter.nom }}
+          </div>
+          <div class="stat-label">
+            Top réinitialisateur · {{ userStatusData.maxPasswordResetCount }} tentatives échouées
+          </div>
+        </div>
+      </div>
+
+      <!-- Table -->
+      <div class="table-wrapper">
+        <table class="report-table" *ngIf="userStatusData.users.length > 0; else emptyStatus">
+          <thead>
+            <tr>
+              <th>Nom</th>
+              <th>Email</th>
+              <th>Rôle</th>
+              <th>Profil</th>
+              <th>Statut</th>
+              <th>Verrouillé</th>
+              <th>Tentatives échouées</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let u of paginatedUserStatusUsers" [class.row-locked]="u.locked">
+              <td>{{ u.prenom }} {{ u.nom }}</td>
+              <td>{{ u.email }}</td>
+              <td>{{ getRoleLabel(u.role) }}</td>
+              <td>{{ u.profileLibelle || '—' }}</td>
+              <td>
+                <span class="badge" [ngClass]="u.active ? 'badge-success' : 'badge-secondary'">
+                  {{ u.active ? 'Actif' : 'Inactif' }}
+                </span>
+              </td>
+              <td>
+                <span class="badge" [ngClass]="u.locked ? 'badge-danger' : 'badge-success'">
+                  {{ u.locked ? 'Oui' : 'Non' }}
+                </span>
+              </td>
+              <td>
+                <span class="attempts-count" [class.high]="u.failedAttempts >= 3">
+                  {{ u.failedAttempts }}
+                </span>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+
+        <!-- Pagination -->
+        <div class="pagination-container" *ngIf="userStatusData.users.length > itemsPerPage">
+          <div class="pagination">
+            <button (click)="changePage(currentPage - 1)" [disabled]="currentPage === 1">‹</button>
+            <span>Page {{ currentPage }} / {{ totalPages }}</span>
+            <button (click)="changePage(currentPage + 1)" [disabled]="currentPage === totalPages">›</button>
+          </div>
+        </div>
+
+        <ng-template #emptyStatus>
+          <div class="empty-state">
+            <p>Aucun utilisateur trouvé.</p>
+          </div>
+        </ng-template>
+      </div>
+    </div>
+  </div>
+
+</div>
