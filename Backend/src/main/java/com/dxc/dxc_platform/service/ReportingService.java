@@ -18,4 +18,5 @@ public interface ReportingService {
     List<com.dxc.dxc_platform.dto.reporting.ProjectSelectDto> getProjectsForSelect();
 
     List<com.dxc.dxc_platform.dto.reporting.TeamSelectDto> getTeamsForSelect();
+    List<ManagerProjectDto> getProjectsByManager();
 }

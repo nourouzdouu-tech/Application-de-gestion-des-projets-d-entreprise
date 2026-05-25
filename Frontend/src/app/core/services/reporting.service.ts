@@ -2,6 +2,34 @@ import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
 
+
+
+// Interface pour les membres des projets par manager
+export interface ManagerProjectMemberDto {
+  id: number;
+  fullName: string;
+  email: string;
+  profile: string;
+  tjm: number;
+  role: string;
+}
+
+// Interface pour les projets par manager
+export interface ManagerProjectDto {
+  id: number;
+  name: string;
+  client: string;
+  status: string;
+  description: string;
+  startDate: string;
+  endDate: string;
+  teamName?: string;
+  chefProjetName?: string;
+  managerName?: string;
+  factured: boolean;
+  members: ManagerProjectMemberDto[];
+}
+
 export interface ProjectReportDto {
   id: number;
   nom: string;
@@ -192,4 +220,7 @@ export class ReportingService {
       responseType: 'blob'
     });
   }
+  getProjectsByManager(): Observable<ManagerProjectDto[]> {
+  return this.http.get<ManagerProjectDto[]>(`${this.base}/projects/by-manager`);
+}
 }

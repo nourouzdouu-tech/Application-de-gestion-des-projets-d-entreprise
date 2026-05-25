@@ -113,6 +113,21 @@
         <div class="card-arrow">›</div>
       </div>
 
+      <!-- Projets par Manager -->
+      <div class="report-card" (click)="openReport('projects-by-manager')">
+        <div class="card-icon" style="background: linear-gradient(135deg, #f97316, #ea580c)">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.8">
+            <path d="M12 4v16M4 12h16"/>
+            <rect x="2" y="2" width="20" height="20" rx="2"/>
+          </svg>
+        </div>
+        <div class="card-content">
+          <h3>Projets par Manager</h3>
+          <p>Filtrer par facturation, voir les équipes</p>
+        </div>
+        <div class="card-arrow">›</div>
+      </div>
+
     </div>
   </div>
 
@@ -120,7 +135,6 @@
        RAPPORT : PROJETS GLOBAUX
        ══════════════════════════════════════════════════════ -->
   <div *ngIf="activeReport === 'projects-global'" class="report-content">
-    <!-- Filters -->
     <div class="filters-bar">
       <select class="filter-select" [(ngModel)]="filterYear" (change)="applyFilters()">
         <option [ngValue]="undefined">Toutes les années</option>
@@ -137,15 +151,13 @@
       <span class="results-count">{{ projectsData.length }} résultat(s)</span>
     </div>
 
-    <!-- Loading -->
     <div *ngIf="loading" class="loading-state">
       <div class="spinner"></div>
       <p>Chargement...</p>
     </div>
 
-    <!-- Table -->
     <div *ngIf="!loading" class="table-wrapper">
-      <table class="report-table" *ngIf="projectsData.length > 0; else emptyState">
+      <table class="report-table" *ngIf="projectsData.length > 0; else emptyProjectsState">
         <thead>
           <tr>
             <th>Projet</th>
@@ -169,16 +181,13 @@
             <td>{{ p.dateDebut | date:'dd/MM/yyyy' }}</td>
             <td>{{ p.dateFinEstimee | date:'dd/MM/yyyy' }}</td>
             <td>
-              <span *ngIf="p.overdue" class="retard-badge">
-                {{ p.joursRetard }}j
-              </span>
+              <span *ngIf="p.overdue" class="retard-badge">{{ p.joursRetard }}j</span>
               <span *ngIf="!p.overdue" class="text-muted">—</span>
             </td>
           </tr>
         </tbody>
       </table>
 
-      <!-- Pagination -->
       <div class="pagination-container" *ngIf="projectsData.length > itemsPerPage">
         <div class="pagination">
           <button (click)="changePage(currentPage - 1)" [disabled]="currentPage === 1">‹</button>
@@ -187,7 +196,7 @@
         </div>
       </div>
 
-      <ng-template #emptyState>
+      <ng-template #emptyProjectsState>
         <div class="empty-state">
           <p>Aucun projet trouvé pour ces critères.</p>
         </div>
@@ -212,7 +221,7 @@
         {{ overdueProjectsData.length }} projet(s) dépassent leur date estimée de fin
       </div>
 
-      <table class="report-table" *ngIf="overdueProjectsData.length > 0; else emptyOverdue">
+      <table class="report-table" *ngIf="overdueProjectsData.length > 0; else emptyOverdueState">
         <thead>
           <tr>
             <th>Projet</th>
@@ -221,13 +230,11 @@
             <th>Chef de projet</th>
             <th>Fin estimée</th>
             <th>Jours de retard</th>
-          </tr>
+          <tr>
         </thead>
         <tbody>
           <tr *ngFor="let p of paginatedOverdueProjectsData" class="row-overdue">
-            <td>
-              <div class="project-name">{{ p.nom }}</div>
-            </td>
+            <td><div class="project-name">{{ p.nom }}</div></td>
             <td><span class="badge" [ngClass]="getStatusClass(p.status)">{{ getStatusLabel(p.status) }}</span></td>
             <td>{{ p.teamNom || '—' }}</td>
             <td>{{ p.chefProjetPrenom }} {{ p.chefProjetNom }}</td>
@@ -237,7 +244,6 @@
         </tbody>
       </table>
 
-      <!-- Pagination -->
       <div class="pagination-container" *ngIf="overdueProjectsData.length > itemsPerPage">
         <div class="pagination">
           <button (click)="changePage(currentPage - 1)" [disabled]="currentPage === 1">‹</button>
@@ -246,13 +252,13 @@
         </div>
       </div>
 
-      <ng-template #emptyOverdue>
+      <ng-template #emptyOverdueState>
         <div class="empty-state success">
           <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#27ae60" stroke-width="1.5">
             <path d="M22 11.08V12a10 10 0 11-5.93-9.14"/>
             <polyline points="22 4 12 14.01 9 11.01"/>
           </svg>
-          <p>Aucun projet en retard ! Tout est dans les délais.</p>
+          <p>Aucun projet en retard !</p>
         </div>
       </ng-template>
     </div>
@@ -276,7 +282,7 @@
     </div>
 
     <div *ngIf="!loading" class="table-wrapper">
-      <table class="report-table" *ngIf="overdueTasksData.length > 0; else emptyTasks">
+      <table class="report-table" *ngIf="overdueTasksData.length > 0; else emptyTasksState">
         <thead>
           <tr>
             <th>Tâche</th>
@@ -304,7 +310,6 @@
         </tbody>
       </table>
 
-      <!-- Pagination -->
       <div class="pagination-container" *ngIf="overdueTasksData.length > itemsPerPage">
         <div class="pagination">
           <button (click)="changePage(currentPage - 1)" [disabled]="currentPage === 1">‹</button>
@@ -313,12 +318,8 @@
         </div>
       </div>
 
-      <ng-template #emptyTasks>
+      <ng-template #emptyTasksState>
         <div class="empty-state success">
-          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#27ae60" stroke-width="1.5">
-            <path d="M22 11.08V12a10 10 0 11-5.93-9.14"/>
-            <polyline points="22 4 12 14.01 9 11.01"/>
-          </svg>
           <p>Aucune tâche en retard.</p>
         </div>
       </ng-template>
@@ -343,12 +344,12 @@
       </div>
 
       <div class="table-wrapper">
-        <table class="report-table" *ngIf="usersNoProfileData.length > 0; else emptyUsers">
+        <table class="report-table" *ngIf="usersNoProfileData.length > 0; else emptyUsersState">
           <thead>
             <tr>
               <th>Nom</th>
               <th>Email</th>
-              <th>Profil</th>
+              <th>Rôle</th>
               <th>Statut</th>
             </tr>
           </thead>
@@ -366,7 +367,6 @@
           </tbody>
         </table>
 
-        <!-- Pagination -->
         <div class="pagination-container" *ngIf="usersNoProfileData.length > itemsPerPage">
           <div class="pagination">
             <button (click)="changePage(currentPage - 1)" [disabled]="currentPage === 1">‹</button>
@@ -375,12 +375,8 @@
           </div>
         </div>
 
-        <ng-template #emptyUsers>
+        <ng-template #emptyUsersState>
           <div class="empty-state success">
-            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#27ae60" stroke-width="1.5">
-              <path d="M22 11.08V12a10 10 0 11-5.93-9.14"/>
-              <polyline points="22 4 12 14.01 9 11.01"/>
-            </svg>
             <p>Tous les utilisateurs ont un profil défini.</p>
           </div>
         </ng-template>
@@ -409,7 +405,6 @@
     </div>
 
     <div *ngIf="!loading && userStatusData">
-      <!-- Stat cards -->
       <div class="stats-row">
         <div class="stat-card green">
           <div class="stat-value">{{ userStatusData.totalActive }}</div>
@@ -430,14 +425,13 @@
             {{ userStatusData.topPasswordResetter.nom }}
           </div>
           <div class="stat-label">
-            Top réinitialisateur · {{ userStatusData.maxPasswordResetCount }} tentatives échouées
+            Top réinitialisateur · {{ userStatusData.maxPasswordResetCount }} tentatives
           </div>
         </div>
       </div>
 
-      <!-- Table -->
       <div class="table-wrapper">
-        <table class="report-table" *ngIf="userStatusData.users.length > 0; else emptyStatus">
+        <table class="report-table" *ngIf="userStatusData.users.length > 0; else emptyStatusState">
           <thead>
             <tr>
               <th>Nom</th>
@@ -446,7 +440,7 @@
               <th>Profil</th>
               <th>Statut</th>
               <th>Verrouillé</th>
-              <th>Tentatives échouées</th>
+              <th>Tentatives</th>
             </tr>
           </thead>
           <tbody>
@@ -474,7 +468,6 @@
           </tbody>
         </table>
 
-        <!-- Pagination -->
         <div class="pagination-container" *ngIf="userStatusData.users.length > itemsPerPage">
           <div class="pagination">
             <button (click)="changePage(currentPage - 1)" [disabled]="currentPage === 1">‹</button>
@@ -483,12 +476,93 @@
           </div>
         </div>
 
-        <ng-template #emptyStatus>
+        <ng-template #emptyStatusState>
           <div class="empty-state">
             <p>Aucun utilisateur trouvé.</p>
           </div>
         </ng-template>
       </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════
+       RAPPORT : PROJETS PAR MANAGER
+       ══════════════════════════════════════════════════════ -->
+  <div *ngIf="activeReport === 'projects-by-manager'" class="report-content">
+    <div class="filters-bar">
+      <select class="filter-select" [(ngModel)]="filterFacture" (change)="applyFilters()">
+        <option value="all">💰 Tous</option>
+        <option value="factured">💳 Facturés</option>
+        <option value="not-factured">📄 Non facturés</option>
+      </select>
+      
+      <select class="filter-select" [(ngModel)]="selectedManager" (change)="applyFilters()">
+        <option value="all">👔 Tous les managers</option>
+        <option *ngFor="let m of managersList" [value]="m">{{ m }}</option>
+      </select>
+      
+      <span class="results-count">{{ filteredProjectsByManager.length }} projet(s)</span>
+    </div>
+
+    <div *ngIf="loading" class="loading-state">
+      <div class="spinner"></div>
+      <p>Chargement...</p>
+    </div>
+
+    <div *ngIf="!loading" class="table-wrapper">
+      <table class="report-table" *ngIf="filteredProjectsByManager.length > 0; else emptyManagerState">
+        <thead>
+          <tr>
+            <th>Projet</th>
+            <th>Client</th>
+            <th>Manager</th>
+            <th>Chef de projet</th>
+            <th>Équipe</th>
+            <th>Période</th>
+            <th>Facturé</th>
+            <th>Membres</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let project of paginatedProjectsByManager">
+            <td class="project-name">{{ project.name }}</td>
+            <td>{{ project.client }}</td>
+            <td>{{ project.managerName || '—' }}</td>
+            <td>{{ project.chefProjetName || '—' }}</td>
+            <td>{{ project.teamName || '—' }}</td>
+            <td>{{ project.startDate | date:'dd/MM/yyyy' }} → {{ project.endDate | date:'dd/MM/yyyy' }}</td>
+            <td>
+              <span class="badge" [ngClass]="project.factured ? 'badge-success' : 'badge-secondary'">
+                {{ project.factured ? 'Facturé' : 'Non facturé' }}
+              </span>
+            </td>
+            <td>
+              <div class="members-tooltip">
+                <span class="members-count-badge">{{ project.members.length }} membre(s)</span>
+                <div class="members-tooltip-content">
+                  <div *ngFor="let member of project.members" class="tooltip-member">
+                    <strong>{{ member.fullName }}</strong> - {{ member.profile }}
+                  </div>
+                </div>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="pagination-container" *ngIf="filteredProjectsByManager.length > itemsPerPage">
+        <div class="pagination">
+          <button (click)="changePage(currentPage - 1)" [disabled]="currentPage === 1">‹</button>
+          <span>Page {{ currentPage }} / {{ totalPages }}</span>
+          <button (click)="changePage(currentPage + 1)" [disabled]="currentPage === totalPages">›</button>
+        </div>
+      </div>
+
+      <ng-template #emptyManagerState>
+        <div class="empty-state">
+          <p>Aucun projet trouvé pour ces critères.</p>
+        </div>
+      </ng-template>
     </div>
   </div>
 
