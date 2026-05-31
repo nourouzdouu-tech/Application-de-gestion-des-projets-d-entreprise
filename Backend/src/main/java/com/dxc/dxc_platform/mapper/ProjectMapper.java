@@ -17,7 +17,9 @@ public interface ProjectMapper {
     @Mapping(source = "deleted", target = "deleted")
     @Mapping(source = "chefProjet.id", target = "chefProjetId")
     @Mapping(expression = "java(getChefProjetFullName(project))", target = "chefProjetName")
-
+    @Mapping(source = "riskScore", target = "riskScore")
+    @Mapping(source = "riskReason", target = "riskReason")
+    @Mapping(source = "riskUpdatedAt", target = "riskUpdatedAt")
     ProjectDto toDto(Project project);
 
     default String getManagerFullName(Project project) {

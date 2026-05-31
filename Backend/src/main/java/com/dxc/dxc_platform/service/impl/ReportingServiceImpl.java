@@ -251,7 +251,7 @@ public class ReportingServiceImpl implements ReportingService {
                 u.getEmail(),
                 u.getNom(),
                 u.getPrenom(),
-                roles,                        // Maintenant contient tous les rôles
+                roles,
                 u.isEnabled(),
                 u.isLocked(),
                 u.getFailedAttempts(),

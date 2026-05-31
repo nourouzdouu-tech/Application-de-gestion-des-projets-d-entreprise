@@ -15,6 +15,7 @@ import { NotificationBellChefComponent } from '../../../core/services/notificati
 import { NotificationBellMembreComponent } from '../../../core/services/notification-bell-membre.component';
 import { NotificationBellManagerComponent } from '../../../core/services/notification-bell-manager.component';
 import { NotificationBellRcComponent } from '../../../core/services/notification-bell-rc.component';
+import { PredictionService, RiskPredictionResult, TeamRecommendationResult } from '../../../core/services/prediction.service';
 
 interface TeamMemberInfo {
   id: number;
@@ -88,12 +89,17 @@ export class Dashboard implements OnInit {
   private taskService = inject(TaskService);
   private managerService = inject(ManagerService);
   private http = inject(HttpClient);
+  private predictionService = inject(PredictionService);
 
   private readonly teamsApiUrl = 'http://localhost:8080/api/teams';
 
   currentUser = signal<any>(null);
   roles = signal<string[]>([]);
   loading = signal(false);
+  // ================= AI PREDICTION =================
+projectRisks = signal<Map<number, RiskPredictionResult>>(new Map());
+projectRecommendations = signal<Map<number, TeamRecommendationResult>>(new Map());
+riskLoading = signal<Map<number, boolean>>(new Map());
 
   // ================= ADMIN =================
   users = signal<UserResponse[]>([]);
@@ -642,8 +648,10 @@ chefTeamPerformanceItemsPerPage = 5;
       )
       .subscribe({
         next: (tasks) => {
-          this.tasks.set(tasks ?? []);
-          this.loading.set(false);
+         // APRÈS
+this.tasks.set(tasks ?? []);
+this.loading.set(false);
+setTimeout(() => this.loadAllChefProjectRisks(), 1500);
         },
         error: (err) => {
           console.error('Erreur dashboard chef projet:', err);
@@ -1755,4 +1763,157 @@ exportManagerToPdf(): void {
     if (isNaN(date.getTime())) return 'Non définie';
     return date.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' });
   }
+
+
+// ================= AI PREDICTION METHODS =================
+
+private analysisQueue: number[] = [];
+private isAnalysing = false;
+
+// "Actualiser" → lit le cache pour tous les projets (rapide, pas de 429)
+loadAllChefProjectRisks(): void {
+  const enCoursProjects = this.chefProjects.filter(p => p.status === 'EN_COURS');
+  enCoursProjects.forEach((project, index) => {
+    // Délai léger juste pour ne pas saturer l'UI
+    setTimeout(() => this.loadRiskForProject(project.id), index * 300);
+  });
+}
+
+// Bouton "Analyser" sur un projet → force le refresh IA
+forceRefreshProject(projectId: number): void {
+  if (this.isRiskLoading(projectId)) return;
+  this.riskLoading.set(new Map([...this.riskLoading(), [projectId, true]]));
+
+  this.predictionService.forceRefreshRisk(projectId).subscribe({
+    next: (result) => {
+      this.projectRisks.set(new Map([...this.projectRisks(), [projectId, result]]));
+      this.riskLoading.set(new Map([...this.riskLoading(), [projectId, false]]));
+      if (result.level === 'ELEVE') {
+        this.loadRecommendationForProject(projectId);
+      }
+    },
+    error: (err) => {
+      console.error('Erreur force refresh:', err);
+      this.riskLoading.set(new Map([...this.riskLoading(), [projectId, false]]));
+    }
+  });
+}
+
+private processNextInQueue(): void {
+  if (this.isAnalysing || this.analysisQueue.length === 0) return;
+
+  const projectId = this.analysisQueue.shift()!;
+  this.isAnalysing = true;
+  this.analyseOneProject(projectId);
+}
+
+private analyseOneProject(projectId: number): void {
+  this.riskLoading.set(new Map([...this.riskLoading(), [projectId, true]]));
+
+  this.predictionService.getProjectRisk(projectId).subscribe({
+    next: (result) => {
+      this.projectRisks.set(new Map([...this.projectRisks(), [projectId, result]]));
+      this.riskLoading.set(new Map([...this.riskLoading(), [projectId, false]]));
+
+      // ✅ NE PAS charger les recommandations automatiquement
+      // Elles seront chargées à la demande (bouton "Voir recommandations")
+
+      this.isAnalysing = false;
+      setTimeout(() => this.processNextInQueue(), 4000);
+    },
+    error: (err) => {
+      console.error(`Erreur prédiction projet ${projectId}:`, err);
+      this.riskLoading.set(new Map([...this.riskLoading(), [projectId, false]]));
+      this.isAnalysing = false;
+
+      if (err.status === 503 || err.status === 429) {
+        this.analysisQueue.unshift(projectId);
+        setTimeout(() => this.processNextInQueue(), 10000);
+      } else {
+        setTimeout(() => this.processNextInQueue(), 2000);
+      }
+    }
+  });
+}
+
+// Bouton "Analyser" d'un seul projet
+loadRiskForProject(projectId: number): void {
+  if (this.riskLoading().get(projectId)) return;
+
+  // Si déjà une analyse en cours, mettre en queue
+  if (this.isAnalysing) {
+    if (!this.analysisQueue.includes(projectId)) {
+      this.analysisQueue.push(projectId);
+      console.log(`📋 Projet ${projectId} mis en file d'attente`);
+    }
+    return;
+  }
+
+  this.isAnalysing = true;
+  this.analyseOneProject(projectId);
+}
+
+recommendationLoading = signal<Map<number, boolean>>(new Map());
+
+loadRecommendationForProject(projectId: number): void {
+  if (this.recommendationLoading().get(projectId)) return;
+
+  this.recommendationLoading.set(
+    new Map([...this.recommendationLoading(), [projectId, true]]));
+
+  this.predictionService.getTeamRecommendation(projectId).subscribe({
+    next: (result) => {
+      this.projectRecommendations.set(
+        new Map([...this.projectRecommendations(), [projectId, result]]));
+      this.recommendationLoading.set(
+        new Map([...this.recommendationLoading(), [projectId, false]]));
+    },
+    error: (err) => {
+      console.error(`Erreur recommandation projet ${projectId}:`, err);
+      this.recommendationLoading.set(
+        new Map([...this.recommendationLoading(), [projectId, false]]));
+    }
+  });
+}
+
+isRecommendationLoading(projectId: number): boolean {
+  return this.recommendationLoading().get(projectId) ?? false;
+}
+
+getRiskForProject(projectId: number): RiskPredictionResult | null {
+  return this.projectRisks().get(projectId) ?? null;
+}
+
+getRecommendationForProject(projectId: number): TeamRecommendationResult | null {
+  return this.projectRecommendations().get(projectId) ?? null;
+}
+
+isRiskLoading(projectId: number): boolean {
+  return this.riskLoading().get(projectId) ?? false;
+}
+
+getRiskLevelLabel(level: string): string {
+  return { 'FAIBLE': 'Faible', 'MOYEN': 'Moyen', 'ELEVE': 'Élevé' }[level] ?? level;
+}
+
+getRiskLevelClass(level: string): string {
+  return { 'FAIBLE': 'risk-faible', 'MOYEN': 'risk-moyen', 'ELEVE': 'risk-eleve' }[level] ?? '';
+}
+
+getRiskScorePercent(score: number): number {
+  return Math.round(score * 100);
+}
+
+// la déclaration de projectRisks signal
+chefHighRiskProjectsCount = computed(() => {
+  let count = 0;
+  this.projectRisks().forEach(r => { if (r.level === 'ELEVE') count++; });
+  return count;
+});
+
+chefMediumRiskProjectsCount = computed(() => {
+  let count = 0;
+  this.projectRisks().forEach(r => { if (r.level === 'MOYEN') count++; });
+  return count;
+});
 }

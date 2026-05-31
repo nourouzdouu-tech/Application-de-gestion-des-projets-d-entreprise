@@ -11,7 +11,6 @@ import java.util.List;
 
 public interface TaskRepository extends JpaRepository<Task, Long> {
 
-    // ========== FIND ALL ==========
     List<Task> findAllByProjectIdAndDeletedFalse(Long projectId);
 
     List<Task> findAllByProjectIdInAndDeletedFalse(List<Long> projectIds);
@@ -24,13 +23,21 @@ public interface TaskRepository extends JpaRepository<Task, Long> {
 
     List<Task> findAllByAssignedToIdAndDeletedFalseAndCreatedAtBetween(Long memberId, LocalDateTime start, LocalDateTime end);
 
-    // ========== FIND BY ID ==========
     List<Task> findByProjectId(Long projectId);
 
-    // ✅ CORRIGÉ : Un seul paramètre
     List<Task> findByAssignedToId(Long memberId);
 
-    // ========== FIND BY CHEF PROJET ==========
+
+    // Pour récupérer les tâches d'un projet (utilisé par PredictionService)
+    List<Task> findByProjectIdAndDeletedFalse(Long projectId);
+
+    // Pour récupérer les tâches d'un membre sur un projet (utilisé par WorkloadAnalysisService)
+    @Query("SELECT t FROM Task t WHERE t.assignedTo.id = :userId " +
+            "AND t.project.id = :projectId AND t.deleted = false")
+    List<Task> findByAssignedToIdAndProjectIdAndDeletedFalse(
+            @Param("userId") Long userId,
+            @Param("projectId") Long projectId
+    );
     @Query("SELECT t FROM Task t WHERE t.project.chefProjet.id = :chefProjetId")
     List<Task> findByProjectChefDeProjetId(@Param("chefProjetId") Long chefProjetId);
 

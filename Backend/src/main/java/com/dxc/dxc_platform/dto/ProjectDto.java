@@ -57,6 +57,10 @@ public class ProjectDto {
     private Boolean deleted;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+    private Double riskScore;
+    private String riskReason;
+    private LocalDateTime riskUpdatedAt;
+
 
     public ProjectDto() {
     }
@@ -199,5 +203,12 @@ public class ProjectDto {
     public String getChefProjetName() { return chefProjetName; }
     public void setChefProjetName(String chefProjetName) { this.chefProjetName = chefProjetName; }
 
+    public Double getRiskScore() { return riskScore; }
+    public void setRiskScore(Double riskScore) { this.riskScore = riskScore; }
 
+    public String getRiskReason() { return riskReason; }
+    public void setRiskReason(String riskReason) { this.riskReason = riskReason; }
+
+    public LocalDateTime getRiskUpdatedAt() { return riskUpdatedAt; }
+    public void setRiskUpdatedAt(LocalDateTime riskUpdatedAt) { this.riskUpdatedAt = riskUpdatedAt; }
 }

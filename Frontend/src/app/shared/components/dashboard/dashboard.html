@@ -207,6 +207,15 @@
           <span class="kpi-manager-value">{{ chefLateTasks }}</span>
         </div>
       </div>
+      <!-- KPI AI Risk -->
+<div class="kpi-manager-card" style="border-left-color: #7c3aed;">
+  <div class="kpi-manager-icon" style="background:#f3e8ff;">🤖</div>
+  <div class="kpi-manager-info">
+    <span class="kpi-manager-label">Risques IA détectés</span>
+    <span class="kpi-manager-value">{{ chefHighRiskProjectsCount() }}</span>
+<span class="kpi-manager-trend">{{ chefMediumRiskProjectsCount() }} risques moyens</span>
+  </div>
+</div>
     </div>
 
     <!-- Graphiques : distribution projets + barres tâches -->
@@ -372,6 +381,146 @@
         </div>
       }
     </div>
+    <!-- ================= IA : RISQUES & RECOMMANDATIONS ================= -->
+<div class="performance-section" style="margin-top: 28px;">
+  <div class="section-header">
+    <div class="section-title-wrapper">
+      <span class="section-icon">🤖</span>
+      <h2>Analyse IA — Risques de retard</h2>
+    </div>
+    <button class="btn-refresh" (click)="loadAllChefProjectRisks()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M23 4v6h-6M1 20v-6h6"/>
+        <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+      </svg>
+      Actualiser
+    </button>
+  </div>
+
+  <!-- Message si aucun projet EN_COURS -->
+@if ((chefProjects).length > 0 && chefProjects.every(p => p.status !== 'EN_COURS')) {
+  <div class="empty-cell" style="padding: 40px; text-align: center; color: #9ca3af;">
+    Aucun projet EN COURS — l'analyse IA ne s'applique qu'aux projets actifs.
+  </div>
+}
+
+  <div style="display: flex; flex-direction: column; gap: 16px; padding: 20px 24px;">
+    @for (project of chefProjects; track project.id) {
+      @if (project.status === 'EN_COURS') {
+
+        <!-- Carte risque par projet -->
+        <div class="ai-risk-card"
+             [class.ai-risk-eleve]="getRiskForProject(project.id)?.level === 'ELEVE'"
+             [class.ai-risk-moyen]="getRiskForProject(project.id)?.level === 'MOYEN'"
+             [class.ai-risk-faible]="getRiskForProject(project.id)?.level === 'FAIBLE'">
+
+          <!-- En-tête de la carte -->
+          <div class="ai-risk-header">
+            <div class="ai-risk-project-info">
+              <div class="project-avatar-manager"
+                   [style.background]="getProfileColor(project.name)">
+                {{ project.name.substring(0, 2).toUpperCase() }}
+              </div>
+              <div>
+                <strong class="ai-risk-project-name">{{ project.name }}</strong>
+                <span class="ai-risk-client">{{ project.client }} · Échéance : {{ project.endDate | date:'dd/MM/yyyy' }}</span>
+              </div>
+            </div>
+
+            <!-- Badge risque -->
+            @if (isRiskLoading(project.id)) {
+              <span class="ai-risk-badge ai-risk-loading">
+                <span class="ai-spinner"></span> Analyse...
+              </span>
+            } @else if (getRiskForProject(project.id); as risk) {
+              <span class="ai-risk-badge" [ngClass]="getRiskLevelClass(risk.level)">
+                {{ risk.level === 'FAIBLE' ? '✅' : risk.level === 'MOYEN' ? '⚠️' : '🔴' }}
+                {{ getRiskLevelLabel(risk.level) }}
+                ({{ getRiskScorePercent(risk.score) }}%)
+              </span>
+            } @else {
+              <button class="btn-refresh" style="font-size:12px; padding: 6px 12px;"
+        (click)="forceRefreshProject(project.id)">
+  Analyser
+</button>
+            }
+          </div>
+
+          <!-- Résultat IA -->
+          @if (getRiskForProject(project.id); as risk) {
+            <div class="ai-risk-body">
+
+              <!-- Barre de score -->
+              <div class="ai-score-bar-wrapper">
+                <div class="ai-score-bar-track">
+                  <div class="ai-score-bar-fill"
+                       [class.fill-faible]="risk.level === 'FAIBLE'"
+                       [class.fill-moyen]="risk.level === 'MOYEN'"
+                       [class.fill-eleve]="risk.level === 'ELEVE'"
+                       [style.width.%]="getRiskScorePercent(risk.score)">
+                  </div>
+                </div>
+                <span class="ai-score-label">{{ getRiskScorePercent(risk.score) }}% de risque</span>
+              </div>
+
+              <!-- Raison IA -->
+              <p class="ai-risk-reason">
+                <span style="font-weight:600;">Analyse :</span> {{ risk.reason }}
+              </p>
+
+              <!-- Recommandations membres (si risque ELEVE) -->
+              @if (risk.level === 'ELEVE') {
+
+  @if (getRecommendationForProject(project.id); as rec) {
+    <!-- Recommandations déjà chargées → afficher -->
+    <div class="ai-recommendation-block">
+      <div class="ai-rec-header">
+        <span>👥 Membres recommandés pour renforcer l'équipe</span>
+        <span class="chart-badge">{{ rec.recommendedMembers.length }} suggestions</span>
+      </div>
+      <p class="ai-rec-summary">{{ rec.aiJustification }}</p>
+      <div class="ai-members-list">
+        @for (member of rec.recommendedMembers; track member.userId; let i = $index) {
+          <div class="ai-member-item">
+            <div class="ai-member-rank">{{ i + 1 }}</div>
+            <div class="ai-member-info">
+              <strong>{{ member.fullName }}</strong>
+              <span class="ai-member-tasks">{{ member.activeTasks }} tâches actives</span>
+              <p class="ai-member-reason">{{ member.reason }}</p>
+            </div>
+          </div>
+        }
+      </div>
+    </div>
+
+  } @else {
+    <!-- Recommandations pas encore chargées → bouton à la demande -->
+    <div style="margin-top: 12px;">
+      @if (isRecommendationLoading(project.id)) {
+        <div class="ai-rec-loading">
+          <span class="ai-spinner"></span>
+          Analyse des membres disponibles...
+        </div>
+      } @else {
+        <button class="btn-load-recommendations"
+                (click)="loadRecommendationForProject(project.id)">
+          👥 Voir les recommandations de renfort
+        </button>
+      }
+    </div>
+  }
+
+}
+
+            </div>
+          }
+
+        </div>
+
+      }
+    }
+  </div>
+</div>
   </div>
 }<!-- ================= MANAGER ================= -->
 @if (isManager()) {

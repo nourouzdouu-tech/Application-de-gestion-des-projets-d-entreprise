@@ -3,6 +3,7 @@ package com.dxc.dxc_platform.shared.handler;
 import com.dxc.dxc_platform.shared.dto.ApiErrorResponse;
 import com.dxc.dxc_platform.shared.exception.*;
 import jakarta.servlet.http.HttpServletRequest;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -55,5 +56,22 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ApiErrorResponse> handleGeneric(Exception ex, HttpServletRequest req) {
         return ResponseEntity.internalServerError()
                 .body(ApiErrorResponse.of(500, "INTERNAL_SERVER_ERROR", ex.getMessage(), req.getRequestURI(), null));
+    }
+
+    @ExceptionHandler(RuntimeException.class)
+    public ResponseEntity<ApiErrorResponse> handleRuntimeException(RuntimeException ex) {
+        String message = ex.getMessage();
+
+        // Détecter spécifiquement les erreurs rate limit
+        if (message != null && message.contains("429")) {
+            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE)
+                    .body(new ApiErrorResponse(
+                            "RATE_LIMIT_EXCEEDED",
+                            "Limite API dépassée. Réessayez dans quelques secondes."
+                    ));
+        }
+
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body(new ApiErrorResponse("INTERNAL_ERROR", message));
     }
 }
