@@ -1,148 +1,246 @@
 package com.dxc.dxc_platform.controller;
-
-import com.dxc.dxc_platform.dto.ReportingDataDto;
-import com.dxc.dxc_platform.entity.User;
-import com.dxc.dxc_platform.repository.UserRepository;
-import com.dxc.dxc_platform.service.ExportPdfService;
+import com.dxc.dxc_platform.dto.ManagerProjectDto;
+import com.dxc.dxc_platform.dto.reporting.TaskReportDto;
+import com.dxc.dxc_platform.dto.ProjectReportDto;
+import com.dxc.dxc_platform.dto.UserStatusReportDto;
 import com.dxc.dxc_platform.service.ReportingService;
-import lombok.RequiredArgsConstructor;
+import com.dxc.dxc_platform.shared.util.ExcelGenerator;
+import com.dxc.dxc_platform.shared.util.PdfGenerator;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/reporting")
-@CrossOrigin(origins = "http://localhost:4200")
+@PreAuthorize("isAuthenticated()")
 public class ReportingController {
 
     private final ReportingService reportingService;
-    private final UserRepository userRepository;
-    private final ExportPdfService exportPdfService;  // ← AJOUTEZ CETTE LIGNE
 
-    // Constructeur avec les 3 services
-    public ReportingController(ReportingService reportingService,
-                               UserRepository userRepository,
-                               ExportPdfService exportPdfService) {  // ← AJOUTEZ CE PARAMÈTRE
+    public ReportingController(ReportingService reportingService) {
         this.reportingService = reportingService;
-        this.userRepository = userRepository;
-        this.exportPdfService = exportPdfService;  // ← AJOUTEZ CETTE LIGNE
     }
 
-    @GetMapping("/complete")
-    public ResponseEntity<ReportingDataDto> getCompleteReporting() {
-        UserDetails userDetails = (UserDetails) SecurityContextHolder.getContext()
-                .getAuthentication().getPrincipal();
-
-        String email = userDetails.getUsername();
-        User currentUser = userRepository.findByEmailAndDeletedFalse(email)
-                .orElseThrow(() -> new RuntimeException("Utilisateur non trouvé"));
-
-        return ResponseEntity.ok(reportingService.getCompleteReporting(currentUser));
+    /**
+     * Liste globale des projets filtrée par année, statut, équipe
+     */
+    @GetMapping("/projects")
+    public ResponseEntity<List<ProjectReportDto>> getProjectsReport(
+            @RequestParam(required = false) Integer year,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) Long teamId) {
+        return ResponseEntity.ok(reportingService.getProjectsReport(year, status, teamId));
     }
 
-    @GetMapping("/export-pdf")
-    public ResponseEntity<byte[]> exportAdminPdf() {
-        UserDetails userDetails = (UserDetails) SecurityContextHolder.getContext()
-                .getAuthentication().getPrincipal();
-        String email = userDetails.getUsername();
-        User currentUser = userRepository.findByEmailAndDeletedFalse(email)
-                .orElseThrow(() -> new RuntimeException("Utilisateur non trouvé"));
+    /**
+     * Projets qui dépassent la date estimée de fin
+     */
+    @GetMapping("/projects/overdue")
+    public ResponseEntity<List<ProjectReportDto>> getOverdueProjects() {
+        return ResponseEntity.ok(reportingService.getOverdueProjects());
+    }
 
-        ReportingDataDto data = reportingService.getCompleteReporting(currentUser);
-        byte[] pdfBytes = exportPdfService.exportAdminReport(data);
+    /**
+     * Tâches en retard filtrées par projet
+     */
+    @GetMapping("/tasks/overdue")
+    public ResponseEntity<List<TaskReportDto>> getOverdueTasks(
+            @RequestParam(required = false) Long projectId) {
+        return ResponseEntity.ok(reportingService.getOverdueTasks(projectId));
+    }
 
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_PDF);
-        headers.setContentDispositionFormData("attachment",
-                "rapport_admin_" + LocalDate.now() + ".pdf");
+    /**
+     * Utilisateurs sans profil défini
+     */
+    @GetMapping("/users/no-profile")
+    public ResponseEntity<List<com.dxc.dxc_platform.dto.reporting.UserReportDto>> getUsersWithoutProfile() {
+        return ResponseEntity.ok(reportingService.getUsersWithoutProfile());
+    }
 
+    /**
+     * Utilisateurs filtrés par statut (actifs/inactifs) + top réinitialisateurs de mot de passe
+     */
+    @GetMapping("/users/by-status")
+    public ResponseEntity<UserStatusReportDto> getUsersByStatus(
+            @RequestParam(required = false) Boolean active) {
+        return ResponseEntity.ok(reportingService.getUsersByStatus(active));
+    }
+
+    /**
+     * Tous les projets (liste simple pour les selects)
+     */
+    @GetMapping("/projects/select")
+    public ResponseEntity<List<com.dxc.dxc_platform.dto.reporting.ProjectSelectDto>> getProjectsForSelect() {
+        return ResponseEntity.ok(reportingService.getProjectsForSelect());
+    }
+
+    /**
+     * Toutes les équipes (liste simple pour les selects)
+     */
+    @GetMapping("/teams/select")
+    public ResponseEntity<List<com.dxc.dxc_platform.dto.reporting.TeamSelectDto>> getTeamsForSelect() {
+        return ResponseEntity.ok(reportingService.getTeamsForSelect());
+    }
+
+    // ═════════════════════════════════════════════════════════
+    // EXPORT EXCEL / PDF
+    // ═════════════════════════════════════════════════════════
+
+    /**
+     * Export en Excel pour projets globaux
+     */
+    @GetMapping("/projects/export")
+    public ResponseEntity<byte[]> exportProjectsExcel(
+            @RequestParam(required = false) Integer year,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) Long teamId) {
+        List<ProjectReportDto> data = reportingService.getProjectsReport(year, status, teamId);
+        byte[] excel = ExcelGenerator.generateProjectsReport(data);
+        String filename = "projects_" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss")) + ".xlsx";
         return ResponseEntity.ok()
-                .headers(headers)
-                .body(pdfBytes);
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
+                .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                .body(excel);
     }
-    @GetMapping("/export-chef-pdf")
-    public ResponseEntity<byte[]> exportChefProjetPdf() {
-        UserDetails userDetails = (UserDetails) SecurityContextHolder.getContext()
-                .getAuthentication().getPrincipal();
-        String email = userDetails.getUsername();
-        User currentUser = userRepository.findByEmailAndDeletedFalse(email)
-                .orElseThrow(() -> new RuntimeException("Utilisateur non trouve"));
 
-        ReportingDataDto data = reportingService.getCompleteReporting(currentUser);
-        byte[] pdfBytes = exportPdfService.exportChefProjetReport(data);
-
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_PDF);
-        headers.setContentDispositionFormData("attachment",
-                "rapport_chef_projet_" + LocalDate.now() + ".pdf");
-
+    /**
+     * Export en PDF pour projets globaux
+     */
+    @GetMapping("/projects/export/pdf")
+    public ResponseEntity<byte[]> exportProjectsPdf(
+            @RequestParam(required = false) Integer year,
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) Long teamId) {
+        List<ProjectReportDto> data = reportingService.getProjectsReport(year, status, teamId);
+        byte[] pdf = PdfGenerator.generateProjectsReport(data);
+        String filename = "projects_" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss")) + ".pdf";
         return ResponseEntity.ok()
-                .headers(headers)
-                .body(pdfBytes);
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
+                .contentType(MediaType.APPLICATION_PDF)
+                .body(pdf);
     }
-    @GetMapping("/export-manager-pdf")
-    public ResponseEntity<byte[]> exportManagerPdf() {
-        UserDetails userDetails = (UserDetails) SecurityContextHolder.getContext()
-                .getAuthentication().getPrincipal();
-        String email = userDetails.getUsername();
-        User currentUser = userRepository.findByEmailAndDeletedFalse(email)
-                .orElseThrow(() -> new RuntimeException("Utilisateur non trouve"));
 
-        ReportingDataDto data = reportingService.getCompleteReporting(currentUser);
-        byte[] pdfBytes = exportPdfService.exportManagerReport(data);
-
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_PDF);
-        headers.setContentDispositionFormData("attachment",
-                "rapport_manager_" + LocalDate.now() + ".pdf");
-
+    /**
+     * Export en Excel pour projets en retard
+     */
+    @GetMapping("/projects/overdue/export")
+    public ResponseEntity<byte[]> exportOverdueProjectsExcel() {
+        List<ProjectReportDto> data = reportingService.getOverdueProjects();
+        byte[] excel = ExcelGenerator.generateProjectsReport(data);
+        String filename = "overdue_projects_" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss")) + ".xlsx";
         return ResponseEntity.ok()
-                .headers(headers)
-                .body(pdfBytes);
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
+                .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                .body(excel);
     }
-    @GetMapping("/export-membre-pdf")
-    public ResponseEntity<byte[]> exportMembreEquipePdf() {
-        UserDetails userDetails = (UserDetails) SecurityContextHolder.getContext()
-                .getAuthentication().getPrincipal();
-        String email = userDetails.getUsername();
-        User currentUser = userRepository.findByEmailAndDeletedFalse(email)
-                .orElseThrow(() -> new RuntimeException("Utilisateur non trouve"));
 
-        ReportingDataDto data = reportingService.getCompleteReporting(currentUser);
-        byte[] pdfBytes = exportPdfService.exportMembreEquipeReport(data);
-
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_PDF);
-        headers.setContentDispositionFormData("attachment",
-                "rapport_membre_equipe_" + LocalDate.now() + ".pdf");
-
+    /**
+     * Export en PDF pour projets en retard
+     */
+    @GetMapping("/projects/overdue/export/pdf")
+    public ResponseEntity<byte[]> exportOverdueProjectsPdf() {
+        List<ProjectReportDto> data = reportingService.getOverdueProjects();
+        byte[] pdf = PdfGenerator.generateProjectsReport(data);
+        String filename = "overdue_projects_" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss")) + ".pdf";
         return ResponseEntity.ok()
-                .headers(headers)
-                .body(pdfBytes);
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
+                .contentType(MediaType.APPLICATION_PDF)
+                .body(pdf);
     }
-    @GetMapping("/export-responsable-pdf")
-    public ResponseEntity<byte[]> exportResponsableContratPdf() {
-        UserDetails userDetails = (UserDetails) SecurityContextHolder.getContext()
-                .getAuthentication().getPrincipal();
-        String email = userDetails.getUsername();
-        User currentUser = userRepository.findByEmailAndDeletedFalse(email)
-                .orElseThrow(() -> new RuntimeException("Utilisateur non trouve"));
 
-        ReportingDataDto data = reportingService.getCompleteReporting(currentUser);
-        byte[] pdfBytes = exportPdfService.exportResponsableContratReport(data);
-
-        HttpHeaders headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_PDF);
-        headers.setContentDispositionFormData("attachment",
-                "rapport_responsable_contrat_" + LocalDate.now() + ".pdf");
-
+    /**
+     * Export en Excel pour tâches en retard
+     */
+    @GetMapping("/tasks/overdue/export")
+    public ResponseEntity<byte[]> exportOverdueTasksExcel(@RequestParam(required = false) Long projectId) {
+        List<TaskReportDto> data = reportingService.getOverdueTasks(projectId);
+        byte[] excel = ExcelGenerator.generateTasksReport(data);
+        String filename = "overdue_tasks_" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss")) + ".xlsx";
         return ResponseEntity.ok()
-                .headers(headers)
-                .body(pdfBytes);
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
+                .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                .body(excel);
+    }
+
+    /**
+     * Export en PDF pour tâches en retard
+     */
+    @GetMapping("/tasks/overdue/export/pdf")
+    public ResponseEntity<byte[]> exportOverdueTasksPdf(@RequestParam(required = false) Long projectId) {
+        List<TaskReportDto> data = reportingService.getOverdueTasks(projectId);
+        byte[] pdf = PdfGenerator.generateTasksReport(data);
+        String filename = "overdue_tasks_" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss")) + ".pdf";
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
+                .contentType(MediaType.APPLICATION_PDF)
+                .body(pdf);
+    }
+
+    /**
+     * Export en Excel pour utilisateurs sans profil
+     */
+    @GetMapping("/users/no-profile/export")
+    public ResponseEntity<byte[]> exportUsersNoProfileExcel() {
+        List<com.dxc.dxc_platform.dto.reporting.UserReportDto> data = reportingService.getUsersWithoutProfile();
+        byte[] excel = ExcelGenerator.generateUsersReport(data);
+        String filename = "users_no_profile_" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss")) + ".xlsx";
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
+                .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                .body(excel);
+    }
+
+    /**
+     * Export en PDF pour utilisateurs sans profil
+     */
+    @GetMapping("/users/no-profile/export/pdf")
+    public ResponseEntity<byte[]> exportUsersNoProfilePdf() {
+        List<com.dxc.dxc_platform.dto.reporting.UserReportDto> data = reportingService.getUsersWithoutProfile();
+        byte[] pdf = PdfGenerator.generateUsersReport(data);
+        String filename = "users_no_profile_" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss")) + ".pdf";
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
+                .contentType(MediaType.APPLICATION_PDF)
+                .body(pdf);
+    }
+
+    /**
+     * Export en Excel pour utilisateurs par statut
+     */
+    @GetMapping("/users/by-status/export")
+    public ResponseEntity<byte[]> exportUsersByStatusExcel(@RequestParam(required = false) Boolean active) {
+        UserStatusReportDto data = reportingService.getUsersByStatus(active);
+        byte[] excel = ExcelGenerator.generateUserStatusReport(data);
+        String filename = "users_by_status_" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss")) + ".xlsx";
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
+                .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                .body(excel);
+    }
+
+    /**
+     * Export en PDF pour utilisateurs par statut
+     */
+    @GetMapping("/users/by-status/export/pdf")
+    public ResponseEntity<byte[]> exportUsersByStatusPdf(@RequestParam(required = false) Boolean active) {
+        UserStatusReportDto data = reportingService.getUsersByStatus(active);
+        byte[] pdf = PdfGenerator.generateUserStatusReport(data);
+        String filename = "users_by_status_" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss")) + ".pdf";
+        return ResponseEntity.ok()
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
+                .contentType(MediaType.APPLICATION_PDF)
+                .body(pdf);
+    }
+
+    @GetMapping("/projects/by-manager")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<List<ManagerProjectDto>> getProjectsByManager() {
+        return ResponseEntity.ok(reportingService.getProjectsByManager());
     }
 }

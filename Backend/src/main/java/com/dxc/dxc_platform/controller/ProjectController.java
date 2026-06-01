@@ -1,23 +1,22 @@
 package com.dxc.dxc_platform.controller;
 
-import com.dxc.dxc_platform.dto.ManagerSelectDto;
-import com.dxc.dxc_platform.dto.ProjectDto;
+import com.dxc.dxc_platform.dto.*;
 import com.dxc.dxc_platform.enums.ProjectStatus;
+import com.dxc.dxc_platform.service.PredictionService;
 import com.dxc.dxc_platform.service.ProjectService;
+import com.dxc.dxc_platform.service.TeamRecommendationService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import com.dxc.dxc_platform.dto.ManagerSelectDto;
+import com.dxc.dxc_platform.dto.TeamRecommendationResult;
 import com.dxc.dxc_platform.service.UserAdminService;
-import org.springframework.security.access.prepost.PreAuthorize;
-import com.dxc.dxc_platform.dto.ManagerProjectItemDto;
-import com.dxc.dxc_platform.dto.ManagerProjectReviewDto;
-import com.dxc.dxc_platform.dto.UserDto;
+import com.dxc.dxc_platform.dto.RiskPredictionResult;
+
 import java.util.List;
 import java.util.Map;
-import com.dxc.dxc_platform.enums.ProjectStatus;
 
 @RestController
 @RequestMapping("/api/projects")
@@ -25,9 +24,17 @@ public class ProjectController {
 
     private final ProjectService projectService;
     private final UserAdminService userAdminService;
-    public ProjectController(ProjectService projectService, UserAdminService userAdminService) {
+    private final PredictionService predictionService;
+    private final TeamRecommendationService teamRecommendationService;
+
+    public ProjectController(ProjectService projectService,
+                             UserAdminService userAdminService,
+                             PredictionService predictionService,
+                             TeamRecommendationService teamRecommendationService) {
         this.projectService = projectService;
         this.userAdminService = userAdminService;
+        this.predictionService = predictionService;
+        this.teamRecommendationService = teamRecommendationService;
     }
 
     @PostMapping
@@ -116,4 +123,5 @@ public class ProjectController {
         projectService.updateProjectStatus(id, status);
         return ResponseEntity.ok().build();
     }
+
 }

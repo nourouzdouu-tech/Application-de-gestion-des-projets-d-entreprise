@@ -68,12 +68,29 @@ public class Project {
     @JoinColumn(name = "chef_projet_id")
     private User chefProjet;
 
-    // ✅ AJOUT : RC ou chef de projet qui a créé le projet
+    //  AJOUT : RC ou chef de projet qui a créé le projet
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "created_by_id")
     private User createdBy;
 
-    // Getter/Setter
+    @Column(name = "risk_score")
+    private Double riskScore;
+
+    @Column(name = "risk_reason", length = 500)
+    private String riskReason;
+
+    @Column(name = "risk_updated_at")
+    private LocalDateTime riskUpdatedAt;
+
+    public Double getRiskScore() { return riskScore; }
+    public void setRiskScore(Double riskScore) { this.riskScore = riskScore; }
+
+    public String getRiskReason() { return riskReason; }
+    public void setRiskReason(String riskReason) { this.riskReason = riskReason; }
+
+    public LocalDateTime getRiskUpdatedAt() { return riskUpdatedAt; }
+    public void setRiskUpdatedAt(LocalDateTime riskUpdatedAt) { this.riskUpdatedAt = riskUpdatedAt; }
+
 
     public Project() {
     }

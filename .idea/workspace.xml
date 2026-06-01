@@ -5,9 +5,26 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="d6d90c51-4d5c-4da4-945a-1cea9d95d7af" name="Changes" comment="">
+      <change afterPath="$PROJECT_DIR$/Backend/src/main/java/com/dxc/dxc_platform/dto/ManagerProjectDto.java" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Backend/src/main/java/com/dxc/dxc_platform/dto/ManagerProjectMemberDto.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/compiler.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/compiler.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Backend/src/main/java/com/dxc/dxc_platform/controller/AdminUserController.java" beforeDir="false" afterPath="$PROJECT_DIR$/Backend/src/main/java/com/dxc/dxc_platform/controller/AdminUserController.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Frontend/src/app/app.routes.ts" beforeDir="false" afterPath="$PROJECT_DIR$/Frontend/src/app/app.routes.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Backend/pom.xml" beforeDir="false" afterPath="$PROJECT_DIR$/Backend/pom.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Backend/src/main/java/com/dxc/dxc_platform/controller/ReportingController.java" beforeDir="false" afterPath="$PROJECT_DIR$/Backend/src/main/java/com/dxc/dxc_platform/controller/ReportingController.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Backend/src/main/java/com/dxc/dxc_platform/entity/Message.java" beforeDir="false" afterPath="$PROJECT_DIR$/Backend/src/main/java/com/dxc/dxc_platform/entity/Message.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Backend/src/main/java/com/dxc/dxc_platform/service/ReportingService.java" beforeDir="false" afterPath="$PROJECT_DIR$/Backend/src/main/java/com/dxc/dxc_platform/service/ReportingService.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Backend/src/main/java/com/dxc/dxc_platform/service/impl/ReportingServiceImpl.java" beforeDir="false" afterPath="$PROJECT_DIR$/Backend/src/main/java/com/dxc/dxc_platform/service/impl/ReportingServiceImpl.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Backend/src/main/resources/application.properties" beforeDir="false" afterPath="$PROJECT_DIR$/Backend/src/main/resources/application.properties" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Frontend/src/app/core/services/admin.service.ts" beforeDir="false" afterPath="$PROJECT_DIR$/Frontend/src/app/core/services/admin.service.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Frontend/src/app/core/services/reporting.service.ts" beforeDir="false" afterPath="$PROJECT_DIR$/Frontend/src/app/core/services/reporting.service.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Frontend/src/app/features/admin/dashboard/dashboard.ts" beforeDir="false" afterPath="$PROJECT_DIR$/Frontend/src/app/features/admin/dashboard/dashboard.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Frontend/src/app/features/responsable-contract/tjm-calculator/tjm-calculator.css" beforeDir="false" afterPath="$PROJECT_DIR$/Frontend/src/app/features/responsable-contract/tjm-calculator/tjm-calculator.css" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Frontend/src/app/shared/components/dashboard/dashboard.css" beforeDir="false" afterPath="$PROJECT_DIR$/Frontend/src/app/shared/components/dashboard/dashboard.css" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Frontend/src/app/shared/components/dashboard/dashboard.html" beforeDir="false" afterPath="$PROJECT_DIR$/Frontend/src/app/shared/components/dashboard/dashboard.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Frontend/src/app/shared/components/dashboard/dashboard.ts" beforeDir="false" afterPath="$PROJECT_DIR$/Frontend/src/app/shared/components/dashboard/dashboard.ts" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Frontend/src/app/shared/components/reporting/reporting.css" beforeDir="false" afterPath="$PROJECT_DIR$/Frontend/src/app/shared/components/reporting/reporting.css" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Frontend/src/app/shared/components/reporting/reporting.html" beforeDir="false" afterPath="$PROJECT_DIR$/Frontend/src/app/shared/components/reporting/reporting.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Frontend/src/app/shared/components/reporting/reporting.ts" beforeDir="false" afterPath="$PROJECT_DIR$/Frontend/src/app/shared/components/reporting/reporting.ts" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -114,8 +131,7 @@
   <component name="SharedIndexes">
     <attachedChunks>
       <set>
-        <option value="bundled-jdk-30f59d01ecdd-2fc7cc6b9a17-intellij.indexing.shared.core-IU-253.31033.145" />
-        <option value="bundled-js-predefined-d6986cc7102b-9b0f141eb926-JavaScript-IU-253.31033.145" />
+        <option value="bundled-jdk-30f59d01ecdd-2fc7cc6b9a17-intellij.indexing.shared.core-IU-253.30387.90" />
       </set>
     </attachedChunks>
   </component>
@@ -137,13 +153,7 @@
       <workItem from="1777934258827" duration="890000" />
       <workItem from="1777971799075" duration="5264000" />
       <workItem from="1778621115045" duration="4118000" />
-      <workItem from="1778675046749" duration="3679000" />
-      <workItem from="1778700398132" duration="2000" />
-      <workItem from="1778710119044" duration="3839000" />
-      <workItem from="1778853619607" duration="1158000" />
-      <workItem from="1779117413111" duration="2030000" />
-      <workItem from="1779146104083" duration="2222000" />
-      <workItem from="1779180470370" duration="1241000" />
+      <workItem from="1778675046749" duration="2979000" />
     </task>
     <servers />
   </component>
@@ -168,15 +178,6 @@
           <url>file://$PROJECT_DIR$/Backend/src/main/java/com/dxc/dxc_platform/controller/TeamController.java</url>
           <line>93</line>
           <option name="timeStamp" value="1" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" type="java-method">
-          <url>file://$PROJECT_DIR$/Backend/src/main/java/com/dxc/dxc_platform/service/impl/AuthServiceImpl.java</url>
-          <line>151</line>
-          <properties class="com.dxc.dxc_platform.service.impl.AuthServiceImpl" method="changePassword">
-            <option name="EMULATED" value="true" />
-            <option name="WATCH_EXIT" value="false" />
-          </properties>
-          <option name="timeStamp" value="3" />
         </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>

@@ -23,6 +23,9 @@ public class ApiErrorResponse {
         this.code = code;
     }
 
+    public ApiErrorResponse(String rateLimitExceeded, String s) {
+    }
+
     public static ApiErrorResponse of(int status, String error, String message, String path, String code) {
         return new ApiErrorResponse(LocalDateTime.now(), status, error, message, path, code);
     }

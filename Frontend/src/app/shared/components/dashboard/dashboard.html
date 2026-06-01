@@ -8,969 +8,1023 @@
       <span>Chargement du dashboard...</span>
     </div>
   } @else {
-<!-- ================= ADMIN ================= -->
+<!-- ================= ADMIN (version enrichie) ================= -->
 @if (isAdmin()) {
-  <div class="main-content">
-    <div class="hero-section">
-      <div class="hero-left" style="display: flex; justify-content: space-between; align-items: flex-start; width: 100%;">
-        <div style="flex: 1;">
-          <span class="hero-badge">Dashboard Admin</span>
-          <h1 class="heading-title">Aperçu Analytique</h1>
-          <p class="title-description">
-            Visualisez rapidement l'activité des utilisateurs, les charges, les indicateurs clés
-            et les alertes du système.
-          </p>
-        </div>
-        <div style="margin-top: 10px; flex-shrink: 0;">
-          <app-notification-bell></app-notification-bell>
-        </div>
+  <div class="main-content admin-reporting">
+    <div class="hero-stats-wrapper">
+      <div class="hero-stats-title">
+        <h2>📊 Administration & Analytics</h2>
+        <p>Visualisez les indicateurs clés de performance de la plateforme</p>
       </div>
-    </div>
-  
-
-    <div class="kpi-grid">
-      <div class="kpi-card" *ngFor="let kpi of kpiData()">
-        <div class="kpi-top">
-          <div class="kpi-icon-wrap">{{ kpi.icon }}</div>
-        </div>
-        <div class="kpi-title">{{ kpi.title }}</div>
-        <div class="kpi-value">{{ kpi.value }}</div>
+      <div class="hero-controls">
+        <app-notification-bell></app-notification-bell>
       </div>
     </div>
 
-    <div class="charts-container">
-      <div class="chart-card">
-        <div class="chart-header">
-          <h2 class="chart-title">Évolution Utilisateurs</h2>
-          <select class="options-select">
-            <option>Monthly</option>
-            <option>Weekly</option>
-            <option>Daily</option>
-          </select>
+    <div class="kpi-admin-grid">
+      <div class="kpi-admin-card">
+        <div class="kpi-admin-icon blue">👥</div>
+        <div class="kpi-admin-info">
+          <span class="kpi-admin-label">Total utilisateurs</span>
+          <span class="kpi-admin-value">{{ totalUsersCount }}</span>
+          <span class="kpi-admin-trend">+{{ newUsersThisMonth }} ce mois</span>
         </div>
+      </div>
 
-        <div class="chart-placeholder">
-          <svg class="line-chart" viewBox="0 0 400 200" preserveAspectRatio="xMidYMid meet">
-            <polyline points="20,180 80,150 140,100 200,120 260,80 320,90 380,40"
-                      fill="none"
-                      stroke="#8f8b9d"
-                      stroke-width="3" />
-            <circle cx="20" cy="180" r="4" fill="#8f8b9d" />
-            <circle cx="80" cy="150" r="4" fill="#8f8b9d" />
-            <circle cx="140" cy="100" r="4" fill="#8f8b9d" />
-            <circle cx="200" cy="120" r="4" fill="#8f8b9d" />
-            <circle cx="260" cy="80" r="4" fill="#8f8b9d" />
-            <circle cx="320" cy="90" r="4" fill="#8f8b9d" />
-            <circle cx="380" cy="40" r="4" fill="#8f8b9d" />
+      <div class="kpi-admin-card">
+        <div class="kpi-admin-icon green">⚡</div>
+        <div class="kpi-admin-info">
+          <span class="kpi-admin-label">ACTIFS</span>
+          <span class="kpi-admin-value">{{ activeUsersCount }}</span>
+          <span class="kpi-admin-trend">{{ formatPercent(activeUsersPercentage) }} du total des utilisateurs</span>
+        </div>
+      </div>
+
+      <div class="kpi-admin-card">
+        <div class="kpi-admin-icon orange">🚫</div>
+        <div class="kpi-admin-info">
+          <span class="kpi-admin-label">Inactifs / Verrouillés</span>
+          <span class="kpi-admin-value">{{ inactiveUsersCount }}</span>
+          <span class="kpi-admin-trend">Nécessite attention</span>
+        </div>
+      </div>
+
+      <div class="kpi-admin-card">
+        <div class="kpi-admin-icon pink">🛡️</div>
+        <div class="kpi-admin-info">
+          <span class="kpi-admin-label">Rôles actifs</span>
+          <span class="kpi-admin-value">{{ activeRolesCount }}</span>
+          <span class="kpi-admin-trend">- permissions</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="charts-admin-row">
+      <div class="chart-admin-card">
+        <div class="chart-admin-header">
+          <h3>📈 Évolution des utilisateurs</h3>
+        </div>
+        <div class="line-chart-admin">
+          <svg viewBox="0 0 600 200" preserveAspectRatio="xMidYMid meet">
+            <polyline [attr.points]="getUserEvolutionPoints()" fill="none" stroke="#7c3aed" stroke-width="2.5" />
+           @for (point of userEvolutionAdmin; track point.month; let i = $index) {
+  <circle [attr.cx]="50 + (i * (500 / (userEvolutionAdmin.length - 1)))" 
+                      [attr.cy]="180 - (point.count / getMaxUserCount()) * 160" 
+                      r="4" fill="#7c3aed" />
+            }
           </svg>
         </div>
-
-        <div class="chart-legend">
-          <div class="legend-item" *ngFor="let month of monthlyData">
-            <span class="legend-month">{{ month.month }}</span>
-          </div>
+        <div class="chart-labels-admin">
+          @for (point of userEvolutionAdmin; track point.month) {
+            <span class="chart-label">{{ point.month }}</span>
+          }
         </div>
       </div>
 
-      <div class="chart-card">
-        <div class="chart-header">
-          <h2 class="chart-title">Validation vs Rejet</h2>
-          <div class="chart-legend-inline">
-            <div class="legend-item">
-              <span class="legend-dot valid"></span>
-              <span class="legend-label">VALID</span>
-            </div>
-            <div class="legend-item">
-              <span class="legend-dot reject"></span>
-              <span class="legend-label">REJECT</span>
-            </div>
-          </div>
+      <div class="chart-admin-card">
+        <div class="chart-admin-header">
+          <h3>👥 Répartition par rôle</h3>
         </div>
-
-        <div class="bar-chart">
-          <div class="chart-bars" *ngFor="let data of chartData">
-            <div class="bar-group">
-              <div class="bar-container">
-                <div class="bar valid" [style.height]="getChartHeight(data.valid)"></div>
+        <div class="pie-stats-admin">
+         @for (item of roleDistributionAdmin; track item.role) {
+            <div class="pie-stat-item">
+              <div class="pie-stat-color" [style.backgroundColor]="getRoleColor(item.role)"></div>
+              <div class="pie-stat-info">
+                <span class="pie-stat-label">{{ item.role }}</span>
+                <div class="pie-stat-bar">
+                  <div class="pie-stat-fill" [style.width.%]="item.percentage" [style.backgroundColor]="getRoleColor(item.role)"></div>
+                </div>
               </div>
-              <div class="bar-container">
-                <div class="bar reject" [style.height]="getChartRejectHeight(data.reject)"></div>
-              </div>
+              <span class="pie-stat-value">{{ item.count }}</span>
+              <span class="pie-stat-percent">{{ formatPercent(item.percentage) }}</span>
             </div>
-            <span class="bar-label">{{ data.week }}</span>
-          </div>
+          }
         </div>
       </div>
     </div>
 
-    <!-- SECTION CHARGE PAR UTILISATEUR AVEC PAGINATION -->
-    <div class="load-section">
-      <div class="section-header">
-        <div>
-          <h2 class="section-title">Charge par Utilisateur</h2>
-          <p class="section-description">Utilisateurs récupérés depuis la base</p>
+    <div class="charts-admin-row">
+      <div class="chart-admin-card">
+        <div class="chart-admin-header">
+          <h3>🧩 Répartition par profil</h3>
         </div>
-        <span class="section-chip">{{ users().length }} utilisateurs</span>
-      </div>
-
-      <div class="user-load-list">
-        @for (user of paginatedUserLoad; track user.id) {
-          <div class="user-load-item">
-            <div class="user-load-header">
-              <div class="user-load-identity">
-                <div class="user-avatar">{{ getUserInitials(user) }}</div>
-                <div>
-                  <span class="user-name">{{ user.prenom }} {{ user.nom }}</span>
-                  <div class="user-role">{{ getRoleNames(user) }}</div>
+        <div class="pie-stats-admin">
+          @for (item of profileDistributionAdmin; track item.profile) {
+            <div class="pie-stat-item">
+              <div class="pie-stat-color" [style.backgroundColor]="getProfileColorForAdmin(item.profile)"></div>
+              <div class="pie-stat-info">
+                <span class="pie-stat-label">{{ item.profile }}</span>
+                <div class="pie-stat-bar">
+                  <div class="pie-stat-fill" [style.width.%]="item.percentage" [style.backgroundColor]="getProfileColorForAdmin(item.profile)"></div>
                 </div>
               </div>
-              <span class="user-percentage">{{ getUserLoad(user) }}%</span>
+              <span class="pie-stat-value">{{ item.count }}</span>
+              <span class="pie-stat-percent">{{ formatPercent(item.percentage) }}</span>
             </div>
-            <div class="progress-bar">
-              <div class="progress-fill" [style.width.%]="getUserLoad(user)"></div>
-            </div>
-          </div>
-        }
-      </div>
-
-      <!-- Pagination pour Charge par Utilisateur -->
-      @if (users().length > adminUserLoadItemsPerPage) {
-        <div class="performance-pagination">
-          <div class="pagination-info">
-            Affichage de {{ adminUserLoadRangeStart }} à {{ adminUserLoadRangeEnd }} sur {{ users().length }} utilisateurs
-          </div>
-          <div class="pagination-controls">
-            <button class="page-btn" 
-                    [disabled]="adminUserLoadCurrentPage === 1" 
-                    (click)="previousAdminUserLoadPage()">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
-                <polyline points="15 18 9 12 15 6" />
-              </svg>
-            </button>
-            
-            @for (page of getAdminUserLoadPageNumbers(); track $index) {
-              @if (page === -1) {
-                <span class="page-dots">...</span>
-              } @else {
-                <button class="page-btn" 
-                        [class.active]="page === adminUserLoadCurrentPage" 
-                        (click)="goToAdminUserLoadPage(page)">
-                  {{ page }}
-                </button>
-              }
-            }
-            
-            <button class="page-btn" 
-                    [disabled]="adminUserLoadCurrentPage === adminUserLoadTotalPages" 
-                    (click)="nextAdminUserLoadPage()">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
-                <polyline points="9 18 15 12 9 6" />
-              </svg>
-            </button>
-          </div>
-        </div>
-      }
-    </div>
-
-    <!-- SECTION MONITEUR HAUTE CHARGE & ALERTES AVEC PAGINATION -->
-    <div class="alerts-section">
-      <div class="alerts-header">
-        <div>
-          <h2 class="section-title">Moniteur Haute Charge & Alertes de Validation</h2>
-          <p class="section-description">Vue détaillée des utilisateurs et de leur statut</p>
+          }
+          @if (profileDistributionAdmin.length === 0) {
+            <div class="activity-empty">Aucun profil disponible</div>
+          }
         </div>
       </div>
 
-      <div class="alerts-table">
-        <div class="table-header">
-          <div class="col-utilisateur">UTILISATEUR</div>
-          <div class="col-email">EMAIL</div>
-          <div class="col-role">RÔLE</div>
-          <div class="col-status">STATUT</div>
-          <div class="col-charge">CHARGE</div>
+      <div class="chart-admin-card">
+        <div class="chart-admin-header">
+          <h3>🏢 Clients les plus récents</h3>
+          <span class="chart-badge">{{ topClientsList.length }} clients</span>
         </div>
-
-        @for (user of paginatedAlerts; track user.id) {
-          <div class="table-row">
-            <div class="col-utilisateur">
-              <div class="user-info">
-                <div class="user-avatar">{{ getUserInitials(user) }}</div>
-                <div class="user-details">
-                  <div class="user-name">{{ user.prenom }} {{ user.nom }}</div>
-                  <div class="user-role">{{ getRoleNames(user) }}</div>
+        <div class="pie-stats-admin client-presence-list">
+          @for (client of topClientsList; track client.client; let i = $index) {
+            <div class="pie-stat-item client-presence-item">
+              <div class="client-presence-rank" [style.backgroundColor]="getAvatarColorForIndex(i)">{{ i + 1 }}</div>
+              <div class="pie-stat-info">
+                <div class="client-presence-head">
+                  <span class="pie-stat-label">{{ client.client }}</span>
+                  <span class="client-presence-meta">{{ getClientRepresentantsCount(client.client) }} contact(s)</span>
+                </div>
+                <div class="client-presence-details">
+                  <span>Client créé via GST</span>
+                  @if (client.createdAt) {
+                    <span>Créé le: {{ formatAdminActivityDate(client.createdAt) }}</span>
+                  }
                 </div>
               </div>
             </div>
-
-            <div class="col-email">{{ user.email }}</div>
-            <div class="col-role">{{ getRoleNames(user) }}</div>
-
-            <div class="col-status">
-              <span class="status-badge" [ngClass]="getUserStatusClass(user)">
-                {{ getUserStatus(user) }}
-              </span>
-            </div>
-
-            <div class="col-charge">
-              <div class="mini-progress">
-                <div class="mini-progress-fill" [style.width.%]="getUserLoad(user)"></div>
-              </div>
-              <span>{{ getUserLoad(user) }}%</span>
-            </div>
-          </div>
-        }
-      </div>
-
-      <!-- Pagination pour Alertes -->
-      @if (users().length > adminAlertsItemsPerPage) {
-        <div class="performance-pagination">
-          <div class="pagination-info">
-            Affichage de {{ adminAlertsRangeStart }} à {{ adminAlertsRangeEnd }} sur {{ users().length }} utilisateurs
-          </div>
-          <div class="pagination-controls">
-            <button class="page-btn" 
-                    [disabled]="adminAlertsCurrentPage === 1" 
-                    (click)="previousAdminAlertsPage()">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
-                <polyline points="15 18 9 12 15 6" />
-              </svg>
-            </button>
-            
-            @for (page of getAdminAlertsPageNumbers(); track $index) {
-              @if (page === -1) {
-                <span class="page-dots">...</span>
-              } @else {
-                <button class="page-btn" 
-                        [class.active]="page === adminAlertsCurrentPage" 
-                        (click)="goToAdminAlertsPage(page)">
-                  {{ page }}
-                </button>
-              }
-            }
-            
-            <button class="page-btn" 
-                    [disabled]="adminAlertsCurrentPage === adminAlertsTotalPages" 
-                    (click)="nextAdminAlertsPage()">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
-                <polyline points="9 18 15 12 9 6" />
-              </svg>
-            </button>
-          </div>
+          }
+          @if (topClientsList.length === 0) {
+            <div class="activity-empty">Aucun client disponible</div>
+          }
         </div>
-      }
+      </div>
     </div>
   </div>
-}
-<!-- ================= CHEF PROJET ================= -->
+}<!-- ================= CHEF PROJET ================= -->
 @if (isChefProjet()) {
-  <div class="main-content">
+  <div class="main-content chef-reporting">
+    <!-- Hero section -->
     <div class="hero-section">
-      <div class="hero-left" style="display: flex; justify-content: space-between; align-items: flex-start; width: 100%;">
-        <div style="flex: 1;">
-          <span class="hero-badge">Dashboard Chef de Projet</span>
-          <h1 class="heading-title">Vue Opérationnelle</h1>
-          <p class="title-description">
-            Suivez rapidement vos projets, les tâches critiques
-            et les validations en attente.
-          </p>
-        </div>
-        <div style="margin-top: 10px; flex-shrink: 0;">
+      <div class="hero-left">
+        <span class="hero-badge">Reporting Chef de Projet</span>
+        <h1 class="heading-title">Rapports Projets & Équipes</h1>
+        <p class="title-description">
+          Analysez les performances de vos projets et de votre équipe.
+        </p>
+      </div>
+      <div class="hero-right">
+        <div class="hero-controls">
           <app-notification-bell-chef></app-notification-bell-chef>
         </div>
       </div>
     </div>
-  
 
-    <!-- KPIs Chef Projet -->
-    <div class="kpi-grid chef-kpis">
-      @for (item of cpKpis(); track item.title) {
-        <div class="kpi-card" 
-             [class.warning]="item.title === 'Tâches urgentes' && item.value > 0"
-             [class.primary]="item.title === 'Projets en cours'">
-          <div class="kpi-icon">
-            @if (item.title === 'Projets en cours') { 📁 }
-            @if (item.title === 'Tâches urgentes') { ⚠️ }
-            @if (item.title === 'Tâches à valider') { ✓ }
-            @if (item.title === 'Projets sans équipe') { 👥 }
+    <!-- KPIs -->
+    <div class="kpi-manager-grid">
+      <div class="kpi-manager-card total">
+        <div class="kpi-manager-icon">📁</div>
+        <div class="kpi-manager-info">
+          <span class="kpi-manager-label">Mes projets</span>
+          <span class="kpi-manager-value">{{ chefProjects.length }}</span>
+        </div>
+      </div>
+      <div class="kpi-manager-card assigned">
+        <div class="kpi-manager-icon">👥</div>
+        <div class="kpi-manager-info">
+          <span class="kpi-manager-label">Membres suivis</span>
+          <span class="kpi-manager-value">{{ chefTeamMembersCount }}</span>
+        </div>
+      </div>
+      <div class="kpi-manager-card pending">
+        <div class="kpi-manager-icon">✅</div>
+        <div class="kpi-manager-info">
+          <span class="kpi-manager-label">Tâches terminées</span>
+          <span class="kpi-manager-value">{{ chefCompletedTasks }}</span>
+        </div>
+      </div>
+      <div class="kpi-manager-card rejected">
+        <div class="kpi-manager-icon">⚠️</div>
+        <div class="kpi-manager-info">
+          <span class="kpi-manager-label">En retard</span>
+          <span class="kpi-manager-value">{{ chefLateTasks }}</span>
+        </div>
+      </div>
+      <!-- KPI AI Risk -->
+<div class="kpi-manager-card" style="border-left-color: #7c3aed;">
+  <div class="kpi-manager-icon" style="background:#f3e8ff;">🤖</div>
+  <div class="kpi-manager-info">
+    <span class="kpi-manager-label">Risques IA détectés</span>
+    <span class="kpi-manager-value">{{ chefHighRiskProjectsCount() }}</span>
+<span class="kpi-manager-trend">{{ chefMediumRiskProjectsCount() }} risques moyens</span>
+  </div>
+</div>
+    </div>
+
+    <!-- Graphiques : distribution projets + barres tâches -->
+    <div class="charts-row">
+      <div class="chart-card">
+        <div class="chart-header">
+          <h3>Vue d'ensemble des projets</h3>
+          <span class="chart-badge">{{ formatPercent(chefCompletionRate) }}</span>
+        </div>
+        <div class="pie-legend">
+          <div class="legend-item">
+            <span class="legend-color" style="background:#3b82f6"></span>
+            <span class="legend-label">En cours</span>
+            <span class="legend-value">{{ getChefProjectCount('EN_COURS') }}</span>
           </div>
-          <div class="kpi-title">{{ item.title }}</div>
-          <div class="kpi-value">{{ item.value }}</div>
+          <div class="legend-item">
+            <span class="legend-color" style="background:#f59e0b"></span>
+            <span class="legend-label">En validation</span>
+            <span class="legend-value">{{ getChefProjectCount('EN_VALIDATION') }}</span>
+          </div>
+          <div class="legend-item">
+            <span class="legend-color" style="background:#10b981"></span>
+            <span class="legend-label">Pré-validés</span>
+            <span class="legend-value">{{ getChefProjectCount('PRE_VALIDE') }}</span>
+          </div>
+          <div class="legend-item">
+            <span class="legend-color" style="background:#ef4444"></span>
+            <span class="legend-label">Rejetés</span>
+            <span class="legend-value">{{ getChefProjectCount('REJETE') }}</span>
+          </div>
         </div>
-      }
-    </div>
+      </div>
 
-    <!-- Projets récents -->
-    <div class="charts-container">
       <div class="chart-card">
         <div class="chart-header">
-          <h2 class="chart-title">Projets récents</h2>
+          <h3>Évolution des tâches</h3>
+          <span class="chart-badge">{{ chefTotalTasks }} tâches</span>
         </div>
-        <div class="user-load-list">
-          @for (project of projetsRecents(); track project.id) {
-            <div class="user-load-item">
-              <div class="user-load-header">
-                <div>
-                  <span class="user-name">{{ project.name }}</span>
-                  <div class="user-role">{{ project.client }} · {{ project.teamName || 'Sans équipe' }}</div>
-                </div>
-                <span class="section-chip">{{ project.status }}</span>
-              </div>
+        <div class="bar-chart">
+          <div class="bar-item">
+            <div class="bar-container"><div class="bar" [style.height.px]="chefCompletedTasks * 8"></div></div>
+            <span class="bar-label">Terminées</span>
+            <span class="bar-value">{{ chefCompletedTasks }}</span>
+          </div>
+          <div class="bar-item">
+            <div class="bar-container"><div class="bar" [style.height.px]="chefInProgressTasks * 8"></div></div>
+            <span class="bar-label">En cours</span>
+            <span class="bar-value">{{ chefInProgressTasks }}</span>
+          </div>
+          <div class="bar-item">
+            <div class="bar-container"><div class="bar pending" [style.height.px]="chefPendingTasks * 8"></div></div>
+            <span class="bar-label">À faire</span>
+            <span class="bar-value">{{ chefPendingTasks }}</span>
+          </div>
+          <div class="bar-item">
+            <div class="bar-container"><div class="bar late" [style.height.px]="chefLateTasks * 6"></div></div>
+            <span class="bar-label">Retard</span>
+            <span class="bar-value">{{ chefLateTasks }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Portefeuille clients + Alertes opérationnelles -->
+    <div class="charts-row">
+      <div class="chart-card">
+        <div class="chart-header">
+          <h3>Portefeuille clients</h3>
+          <span class="chart-badge">{{ chefClientPortfolio.length }} client(s)</span>
+        </div>
+        <div class="pie-legend">
+          @for (client of chefClientPortfolio; track client.client) {
+            <div class="legend-item">
+              <span class="legend-color" [style.backgroundColor]="getProfileColor(client.client)"></span>
+              <span class="legend-label">{{ client.client }}</span>
+              <span class="legend-value">{{ client.projects }} projet(s) · {{ client.averageProgress }}%</span>
             </div>
-          } @empty {
-            <div class="user-load-item">
-              <span class="user-role">Aucun projet trouvé.</span>
-            </div>
+          }
+          @empty {
+            <div class="top-client-empty">Aucun client disponible</div>
           }
         </div>
       </div>
 
       <div class="chart-card">
         <div class="chart-header">
-          <h2 class="chart-title">Tâches critiques</h2>
+          <h3>Alertes opérationnelles</h3>
+          <span class="chart-badge">{{ chefHighRiskProjects.length + chefProjectsInValidation.length + chefProjectsEndingSoon.length }} alertes</span>
         </div>
-        <div class="user-load-list">
-          @for (task of tachesCritiques(); track task.id) {
-            <div class="user-load-item">
-              <div class="user-load-header">
-                <div>
-                  <span class="user-name">{{ task.title }}</span>
-                  <div class="user-role">{{ task.projectName || 'Sans projet' }} · {{ task.assignedToName || 'Non assignée' }}</div>
-                </div>
-                <span class="section-chip">{{ task.status }}</span>
-              </div>
-            </div>
-          } @empty {
-            <div class="user-load-item">
-              <span class="user-role">Aucune tâche critique.</span>
-            </div>
-          }
+        <div class="pie-legend">
+          <div class="legend-item">
+            <span class="legend-color" style="background:#ef4444"></span>
+            <span class="legend-label">Projets à risque élevé</span>
+            <span class="legend-value">{{ chefHighRiskProjects.length }}</span>
+          </div>
+          <div class="legend-item">
+            <span class="legend-color" style="background:#f59e0b"></span>
+            <span class="legend-label">Projets en validation</span>
+            <span class="legend-value">{{ chefProjectsInValidation.length }}</span>
+          </div>
+          <div class="legend-item">
+            <span class="legend-color" style="background:#3b82f6"></span>
+            <span class="legend-label">Échéances sous 7 jours</span>
+            <span class="legend-value">{{ chefProjectsEndingSoon.length }}</span>
+          </div>
         </div>
       </div>
     </div>
 
-    <!-- PERFORMANCES PAR MEMBRE AVEC PAGINATION -->
+    <!-- Performances des membres (tableau avec pagination) -->
     <div class="performance-section">
       <div class="section-header">
-        <div>
-          <h2 class="section-title">📊 Détails des performances par membre</h2>
-          <p class="section-description">Suivez l'efficacité et la productivité de chaque membre de votre équipe</p>
-        </div>
-        <div class="performance-actions">
-          
-        </div>
+        <h2>📊 Performances des membres</h2>
+        <p>Efficacité moyenne : {{ formatPercent(chefAverageEfficiency) }}</p>
       </div>
-
       <div class="performance-table-container">
         <table class="performance-table">
           <thead>
             <tr>
-              <th>MEMBRE</th>
-              <th>TÂCHES TERMINÉES</th>
-              <th>EFFICACITÉ</th>
-              <th>DÉLAI MOYEN</th>
-              <th>ETAT</th>
+              <th>Membre</th>
+              <th>Email</th>
+              <th>Tâches terminées</th>
+              <th>Efficacité</th>
+              <th>Statut</th>
             </tr>
           </thead>
           <tbody>
-            @for (member of paginatedTeamPerformance(); track member.id) {
-              <tr class="performance-row">
+            @for (member of paginatedTeamPerformance; track member.memberId) {
+              <tr>
                 <td class="member-cell">
-                  <div class="member-avatar" [style.background]="getAvatarColor(member.name)">
-                    {{ getMemberInitials(member.name) }}
-                  </div>
-                  <div class="member-info">
-                    <span class="member-name">{{ member.name }}</span>
-                    <span class="member-email">{{ member.email }}</span>
-                  </div>
+                  <div class="member-avatar">{{ getMemberInitials(member.memberName) }}</div>
+                  {{ member.memberName }}
                 </td>
-                <td class="tasks-count">{{ member.tachesTerminees }}</td>
+                <td>{{ member.email }}</td>
+                <td class="tasks-count">{{ member.completedTasks }}</td>
                 <td class="efficiency">
                   <div class="efficiency-bar">
-                    <div class="efficiency-fill" [style.width.%]="member.efficacite"></div>
+                    <div class="efficiency-fill" [style.width.%]="member.efficiency"></div>
                   </div>
-                  <span class="efficiency-value">{{ member.efficacite }}%</span>
+                  <span class="efficiency-value">{{ formatPercent(member.efficiency) }}</span>
                 </td>
-                <td class="delay">
-                  <span class="delay-value">{{ member.delaiMoyen }}</span>
-                  <span class="delay-unit">jours</span>
-                </td>
-                <td>
-                  <span class="status-badge" 
-                        [class.status-excellent]="member.statut === 'EXCELLENT'"
-                        [class.status-bon]="member.statut === 'BON'"
-                        [class.status-moyen]="member.statut === 'MOYEN'"
-                        [class.status-faible]="member.statut === 'À AMÉLIORER'">
-                    <span class="status-dot"></span>
-                    {{ member.statut }}
+                <td><span class="status-badge" [class.status-excellent]="member.efficiency >= 90"
+                          [class.status-bon]="member.efficiency >= 70 && member.efficiency < 90"
+                          [class.status-moyen]="member.efficiency >= 50 && member.efficiency < 70">
+                    {{ member.status }}
                   </span>
                 </td>
               </tr>
-            } @empty {
-              <tr>
-                <td colspan="5" class="empty-cell">Aucune donnée de performance disponible</td>
-              </tr>
+            }
+            @empty {
+              <tr><td colspan="5" class="empty-cell">Aucune donnée équipe disponible</td></tr>
             }
           </tbody>
         </table>
+      </div>
+      @if (teamPerformance.length > chefTeamPerformanceItemsPerPage) {
+        <div class="pagination-bar">
+          <span>Page {{ chefTeamPerformancePage }} / {{ chefTeamPerformanceTotalPages }}</span>
+          <div>
+            <button [disabled]="chefTeamPerformancePage === 1" (click)="goToChefTeamPerformancePage(chefTeamPerformancePage - 1)">‹</button>
+            <button [disabled]="chefTeamPerformancePage === chefTeamPerformanceTotalPages" (click)="goToChefTeamPerformancePage(chefTeamPerformancePage + 1)">›</button>
+          </div>
+        </div>
+      }
+    </div>
+    <!-- ================= IA : RISQUES & RECOMMANDATIONS ================= -->
+<div class="performance-section" style="margin-top: 28px;">
+  <div class="section-header">
+    <div class="section-title-wrapper">
+      <span class="section-icon">🤖</span>
+      <h2>Analyse IA — Risques de retard</h2>
+    </div>
+    <button class="btn-refresh" (click)="loadAllChefProjectRisks()">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M23 4v6h-6M1 20v-6h6"/>
+        <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+      </svg>
+      Actualiser
+    </button>
+  </div>
 
-        <!-- Pagination -->
-        @if (teamPerformance().length > 0) {
-          <div class="performance-pagination">
-            <div class="pagination-info">
-              Affichage de {{ performanceRangeStart() }} à {{ performanceRangeEnd() }} sur {{ teamPerformance().length }} membres
+  <!-- Message si aucun projet EN_COURS -->
+@if ((chefProjects).length > 0 && chefProjects.every(p => p.status !== 'EN_COURS')) {
+  <div class="empty-cell" style="padding: 40px; text-align: center; color: #9ca3af;">
+    Aucun projet EN COURS — l'analyse IA ne s'applique qu'aux projets actifs.
+  </div>
+}
+
+  <div style="display: flex; flex-direction: column; gap: 16px; padding: 20px 24px;">
+    @for (project of chefProjects; track project.id) {
+      @if (project.status === 'EN_COURS') {
+
+        <!-- Carte risque par projet -->
+        <div class="ai-risk-card"
+             [class.ai-risk-eleve]="getRiskForProject(project.id)?.level === 'ELEVE'"
+             [class.ai-risk-moyen]="getRiskForProject(project.id)?.level === 'MOYEN'"
+             [class.ai-risk-faible]="getRiskForProject(project.id)?.level === 'FAIBLE'">
+
+          <!-- En-tête de la carte -->
+          <div class="ai-risk-header">
+            <div class="ai-risk-project-info">
+              <div class="project-avatar-manager"
+                   [style.background]="getProfileColor(project.name)">
+                {{ project.name.substring(0, 2).toUpperCase() }}
+              </div>
+              <div>
+                <strong class="ai-risk-project-name">{{ project.name }}</strong>
+                <span class="ai-risk-client">{{ project.client }} · Échéance : {{ project.endDate | date:'dd/MM/yyyy' }}</span>
+              </div>
             </div>
-            <div class="pagination-controls">
-              <button class="page-btn" 
-                      [disabled]="performanceCurrentPage === 1" 
-                      (click)="previousPerformancePage()">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <polyline points="15 18 9 12 15 6" />
-                </svg>
-              </button>
-              
-              @for (page of getPerformancePageNumbers(); track $index) {
-                @if (page === -1) {
-                  <span class="page-dots">...</span>
-                } @else {
-                  <button class="page-btn" 
-                          [class.active]="page === performanceCurrentPage" 
-                          (click)="goToPerformancePage(page)">
-                    {{ page }}
-                  </button>
-                }
-              }
-              
-              <button class="page-btn" 
-                      [disabled]="performanceCurrentPage === totalPerformancePages()" 
-                      (click)="nextPerformancePage()">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <polyline points="9 18 15 12 9 6" />
-                </svg>
-              </button>
+
+            <!-- Badge risque -->
+            @if (isRiskLoading(project.id)) {
+              <span class="ai-risk-badge ai-risk-loading">
+                <span class="ai-spinner"></span> Analyse...
+              </span>
+            } @else if (getRiskForProject(project.id); as risk) {
+              <span class="ai-risk-badge" [ngClass]="getRiskLevelClass(risk.level)">
+                {{ risk.level === 'FAIBLE' ? '✅' : risk.level === 'MOYEN' ? '⚠️' : '🔴' }}
+                {{ getRiskLevelLabel(risk.level) }}
+                ({{ getRiskScorePercent(risk.score) }}%)
+              </span>
+            } @else {
+              <button class="btn-refresh" style="font-size:12px; padding: 6px 12px;"
+        (click)="forceRefreshProject(project.id)">
+  Analyser
+</button>
+            }
+          </div>
+
+          <!-- Résultat IA -->
+          @if (getRiskForProject(project.id); as risk) {
+            <div class="ai-risk-body">
+
+              <!-- Barre de score -->
+              <div class="ai-score-bar-wrapper">
+                <div class="ai-score-bar-track">
+                  <div class="ai-score-bar-fill"
+                       [class.fill-faible]="risk.level === 'FAIBLE'"
+                       [class.fill-moyen]="risk.level === 'MOYEN'"
+                       [class.fill-eleve]="risk.level === 'ELEVE'"
+                       [style.width.%]="getRiskScorePercent(risk.score)">
+                  </div>
+                </div>
+                <span class="ai-score-label">{{ getRiskScorePercent(risk.score) }}% de risque</span>
+              </div>
+
+              <!-- Raison IA -->
+              <p class="ai-risk-reason">
+                <span style="font-weight:600;">Analyse :</span> {{ risk.reason }}
+              </p>
+
+              <!-- Recommandations membres (si risque ELEVE) -->
+              @if (risk.level === 'ELEVE') {
+
+  @if (getRecommendationForProject(project.id); as rec) {
+    <!-- Recommandations déjà chargées → afficher -->
+    <div class="ai-recommendation-block">
+      <div class="ai-rec-header">
+        <span>👥 Membres recommandés pour renforcer l'équipe</span>
+        <span class="chart-badge">{{ rec.recommendedMembers.length }} suggestions</span>
+      </div>
+      <p class="ai-rec-summary">{{ rec.aiJustification }}</p>
+      <div class="ai-members-list">
+        @for (member of rec.recommendedMembers; track member.userId; let i = $index) {
+          <div class="ai-member-item">
+            <div class="ai-member-rank">{{ i + 1 }}</div>
+            <div class="ai-member-info">
+              <strong>{{ member.fullName }}</strong>
+              <span class="ai-member-tasks">{{ member.activeTasks }} tâches actives</span>
+              <p class="ai-member-reason">{{ member.reason }}</p>
             </div>
           </div>
         }
       </div>
     </div>
-  </div>  <!-- ✅ FERMETURE DE main-content POUR CHEF PROJET -->
-}  <!-- ✅ FERMETURE DE @if (isChefProjet()) -->
-   
-<!-- ================= MANAGER ================= -->
-@if (isManager()) {
-  <div class="main-content">
-    <div class="hero-section">
-      <div class="hero-left" style="display: flex; justify-content: space-between; align-items: flex-start; width: 100%;">
-        <div style="flex: 1;">
-          <span class="hero-badge">Dashboard Manager</span>
-          <h1 class="heading-title">Suivi des validations</h1>
-          <p class="title-description">
-            Visualisez rapidement les projets à examiner, les pré-validations
-            et l'état global des projets que vous pilotez.
-          </p>
-        </div>
-        <div style="margin-top: 10px; flex-shrink: 0;">
-          <app-notification-bell-manager></app-notification-bell-manager>
-        </div>
-      </div>
-    </div>
 
-    <!-- KPIs Manager -->
-    <div class="kpi-grid manager-kpis">
-      @for (item of managerKpis(); track item.title) {
-        <div class="kpi-card" [class.warning]="item.title === 'Projets en validation' && item.value > 0">
-          <div class="kpi-title">{{ item.title }}</div>
-          <div class="kpi-value">{{ item.value }}</div>
-          <div class="kpi-trend">
-            @if (item.title === 'Projets en validation') {
-              <span class="trend-up">⚠️ À traiter</span>
-            } @else if (item.title === 'Projets pré-validés') {
-              <span class="trend-neutral">✓ En attente</span>
-            } @else if (item.title === 'Projets rejetés') {
-              <span class="trend-down">✗ À revoir</span>
-            }
-          </div>
+  } @else {
+    <!-- Recommandations pas encore chargées → bouton à la demande -->
+    <div style="margin-top: 12px;">
+      @if (isRecommendationLoading(project.id)) {
+        <div class="ai-rec-loading">
+          <span class="ai-spinner"></span>
+          Analyse des membres disponibles...
         </div>
+      } @else {
+        <button class="btn-load-recommendations"
+                (click)="loadRecommendationForProject(project.id)">
+          👥 Voir les recommandations de renfort
+        </button>
       }
     </div>
+  }
 
-    <!-- Graphique d'activité Manager -->
-    <div class="charts-container">
-      <div class="chart-card full-width">
-        <div class="chart-header">
-          <h2 class="chart-title">Activité des projets</h2>
-          <div class="chart-legend">
-            <div class="legend-item">
-              <span class="legend-dot en-validation"></span>
-              <span>En validation</span>
+}
+
             </div>
-            <div class="legend-item">
-              <span class="legend-dot pre-valide"></span>
-              <span>Pré-validés</span>
+          }
+
+        </div>
+
+      }
+    }
+  </div>
+</div>
+  </div>
+}<!-- ================= MANAGER ================= -->
+@if (isManager()) {
+  <div class="main-content manager-reporting">
+    <div class="hero-stats-wrapper">
+      <div class="hero-stats-title">
+        <h2>📊 Reporting Manager</h2>
+        <p>Suivez les projets à valider, les assignations et les performances</p>
+      </div>
+      <div class="hero-controls">
+        <app-notification-bell-chef></app-notification-bell-chef>
+      </div>
+    </div>
+
+    <div class="kpi-manager-grid">
+      <div class="kpi-manager-card pending">
+        <div class="kpi-manager-icon">⏳</div>
+        <div class="kpi-manager-info">
+          <span class="kpi-manager-label">À valider</span>
+          <span class="kpi-manager-value">{{ managerPendingCount }}</span>
+          <span class="kpi-manager-trend">En attente de décision</span>
+        </div>
+      </div>
+
+      <div class="kpi-manager-card assigned">
+        <div class="kpi-manager-icon">✓</div>
+        <div class="kpi-manager-info">
+          <span class="kpi-manager-label">Assignés</span>
+          <span class="kpi-manager-value">{{ managerValidatedCount }}</span>
+          <span class="kpi-manager-trend">Chef de projet assigné</span>
+        </div>
+      </div>
+
+      <div class="kpi-manager-card rejected">
+        <div class="kpi-manager-icon">❌</div>
+        <div class="kpi-manager-info">
+          <span class="kpi-manager-label">Rejetés</span>
+          <span class="kpi-manager-value">{{ managerRejectedCount }}</span>
+          <span class="kpi-manager-trend">À revoir</span>
+        </div>
+      </div>
+
+      <div class="kpi-manager-card total">
+        <div class="kpi-manager-icon">📁</div>
+        <div class="kpi-manager-info">
+          <span class="kpi-manager-label">Total projets</span>
+          <span class="kpi-manager-value">{{ managerTotalProjects }}</span>
+          <span class="kpi-manager-trend">Sous supervision</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="charts-manager-row">
+      <div class="chart-manager-card">
+        <div class="chart-manager-header">
+          <h3>Distribution des projets</h3>
+          <span class="chart-badge">Statut</span>
+        </div>
+        <div class="bar-chart-manager">
+          <div class="bar-item-manager">
+            <div class="bar-container-manager">
+              <div class="bar-manager pending-bar" [style.height.%]="getProjectPercentage('EN_VALIDATION')"></div>
             </div>
-            <div class="legend-item">
-              <span class="legend-dot rejete"></span>
-              <span>Rejetés</span>
+            <span class="bar-label-manager">En validation</span>
+            <span class="bar-value-manager">{{ getManagerProjectCount('EN_VALIDATION') }}</span>
+          </div>
+          <div class="bar-item-manager">
+            <div class="bar-container-manager">
+              <div class="bar-manager assigned-bar" [style.height.%]="getProjectPercentage('PRE_VALIDE')"></div>
             </div>
+            <span class="bar-label-manager">Assignés</span>
+            <span class="bar-value-manager">{{ getManagerProjectCount('PRE_VALIDE') }}</span>
+          </div>
+          <div class="bar-item-manager">
+            <div class="bar-container-manager">
+              <div class="bar-manager rejected-bar" [style.height.%]="getProjectPercentage('REJETE')"></div>
+            </div>
+            <span class="bar-label-manager">Rejetés</span>
+            <span class="bar-value-manager">{{ getManagerProjectCount('REJETE') }}</span>
+          </div>
+          <div class="bar-item-manager">
+            <div class="bar-container-manager">
+              <div class="bar-manager progress-bar-manager" [style.height.%]="getProjectPercentage('EN_COURS')"></div>
+            </div>
+            <span class="bar-label-manager">En cours</span>
+            <span class="bar-value-manager">{{ getManagerProjectCount('EN_COURS') }}</span>
           </div>
         </div>
-        <div class="manager-stats-bars">
-          <div class="stat-bar">
-            <div class="stat-bar-label">En validation</div>
-            <div class="stat-bar-track">
-              <div class="stat-bar-fill validation-fill" 
-                   [style.width.%]="getManagerProjectPercentage('EN_VALIDATION')">
-              </div>
+      </div>
+
+      <div class="chart-manager-card">
+        <div class="chart-manager-header">
+          <h3>Taux de validation</h3>
+          <span class="chart-badge">{{ formatPercent(managerValidationRate) }}</span>
+        </div>
+        <div class="pie-stats-manager">
+          <div class="pie-circle-simple">
+            <div class="pie-circle-progress" [style.background]="'conic-gradient(#10b981 0deg ' + (managerValidationRate * 3.6) + 'deg, #f59e0b ' + (managerValidationRate * 3.6) + 'deg 360deg)'"></div>
+            <div class="pie-circle-center">
+              <span class="pie-percent">{{ formatPercent(managerValidationRate) }}</span>
             </div>
-            <div class="stat-bar-value">{{ getManagerProjectCount('EN_VALIDATION') }}</div>
           </div>
-          <div class="stat-bar">
-            <div class="stat-bar-label">Pré-validés</div>
-            <div class="stat-bar-track">
-              <div class="stat-bar-fill prevalid-fill" 
-                   [style.width.%]="getManagerProjectPercentage('PRE_VALIDE')">
-              </div>
+          <div class="pie-legend-manager">
+            <div class="legend-manager-item">
+              <span class="legend-color-manager validated"></span>
+              <span>Validés / Assignés</span>
+              <strong>{{ formatPercent(managerValidationRate) }}</strong>
             </div>
-            <div class="stat-bar-value">{{ getManagerProjectCount('PRE_VALIDE') }}</div>
-          </div>
-          <div class="stat-bar">
-            <div class="stat-bar-label">En cours</div>
-            <div class="stat-bar-track">
-              <div class="stat-bar-fill encours-fill" 
-                   [style.width.%]="getManagerProjectPercentage('EN_COURS')">
-              </div>
+            <div class="legend-manager-item">
+              <span class="legend-color-manager pending"></span>
+              <span>En attente</span>
+              <strong>{{ formatPercent(100 - managerValidationRate) }}</strong>
             </div>
-            <div class="stat-bar-value">{{ getManagerProjectCount('EN_COURS') }}</div>
-          </div>
-          <div class="stat-bar">
-            <div class="stat-bar-label">Rejetés</div>
-            <div class="stat-bar-track">
-              <div class="stat-bar-fill rejet-fill" 
-                   [style.width.%]="getManagerProjectPercentage('REJETE')">
-              </div>
-            </div>
-            <div class="stat-bar-value">{{ getManagerProjectCount('REJETE') }}</div>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- Projets récents -->
-    <div class="load-section">
-      <div class="section-header">
-        <div>
-          <h2 class="section-title">Projets récents</h2>
-          <p class="section-description">Liste des projets sous votre supervision</p>
-        </div>
-        <a routerLink="/manager/projets" class="view-all-link">Voir tous les projets →</a>
+    <div class="table-manager-card">
+      <div class="table-manager-header">
+        <h3>📜 Historique des décisions</h3>
+        <span class="badge-manager">Derniers projets traités</span>
       </div>
-
-      <div class="projects-table-container">
-        <table class="projects-table">
+      <div class="table-responsive">
+        <table class="manager-history-table">
           <thead>
-            <tr>
-              <th>Projet</th>
-              <th>Client</th>
-              <th>Statut</th>
-              <th>Chef de projet</th>
-              <th>Date</th>
-              <th>Action</th>
-            </tr>
+            <tr><th>Projet</th><th>Client</th><th>Décision</th><th>Commentaire</th></tr>
           </thead>
           <tbody>
-            @for (project of managerRecentProjects(); track project.id) {
+            @for (project of getManagerProcessedProjects(); track project.id) {
               <tr>
-                <td class="project-name-cell">
-                  <div class="project-avatar-mini">{{ (project.name | slice:0:2).toUpperCase() }}</div>
-                  <span>{{ project.name }}</span>
-                </td>
+                <td>{{ project.name }}</td>
                 <td>{{ project.client }}</td>
                 <td>
-                  <span class="status-badge" 
-                        [class.status-en-validation]="project.status === 'EN_VALIDATION'"
-                        [class.status-pre-valide]="project.status === 'PRE_VALIDE'"
-                        [class.status-en-cours]="project.status === 'EN_COURS'"
-                        [class.status-rejete]="project.status === 'REJETE'">
-                    {{ getStatusLabel(project.status) }}
+                  <span class="decision-badge" [class.validated]="project.status === 'PRE_VALIDE'" [class.rejected]="project.status === 'REJETE'">
+                    {{ project.status === 'PRE_VALIDE' ? '✅ Validé' : '❌ Rejeté' }}
                   </span>
                 </td>
-                <td>{{ project.chefProjetName || 'Non assigné' }}</td>
-                <td>{{ project.createdAt | date:'dd/MM/yyyy' }}</td>
-                <td>
-                  <a [routerLink]="['/manager/projets', project.id]" class="action-link">Détails</a>
-                </td>
+                <td class="comment-cell">{{ project.managerComment || '-' }}</td>
               </tr>
-            } @empty {
-              <tr>
-                <td colspan="6" class="empty-cell">Aucun projet trouvé</td>
-              </tr>
+            }
+            @empty {
+              <tr><td colspan="4" class="empty-cell-manager">Aucun historique disponible</td></tr>
             }
           </tbody>
         </table>
-      </div>
-    </div>
-
-    <!-- Actions rapides -->
-    <div class="quick-actions-section">
-      <div class="section-header">
-        <div>
-          <h2 class="section-title">Actions rapides</h2>
-          <p class="section-description">Accédez directement aux fonctionnalités principales</p>
-        </div>
-      </div>
-      <div class="quick-actions-grid">
-        <div class="quick-action-card" routerLink="/manager/projets">
-          <div class="quick-action-icon">📋</div>
-          <div class="quick-action-title">Revue des projets</div>
-          <div class="quick-action-desc">Examiner et valider les projets</div>
-        </div>
-        <div class="quick-action-card" routerLink="/manager/audit">
-          <div class="quick-action-icon">📊</div>
-          <div class="quick-action-title">Audit workflow</div>
-          <div class="quick-action-desc">Consulter l'historique</div>
-        </div>
-        <div class="quick-action-card" routerLink="/manager/calendrier">
-          <div class="quick-action-icon">📅</div>
-          <div class="quick-action-title">Calendrier</div>
-          <div class="quick-action-desc">Voir les échéances</div>
-        </div>
       </div>
     </div>
   </div>
 }<!-- ================= RESPONSABLE CONTRAT ================= -->
 @if (isResponsableContract()) {
   <div class="main-content">
-    <div class="hero-section">
-      <div class="hero-left" style="display: flex; justify-content: space-between; align-items: flex-start; width: 100%;">
-        <div style="flex: 1;">
-          <span class="hero-badge">Dashboard Responsable Contrat</span>
-          <h1 class="heading-title">Pilotage contractuel</h1>
-          <p class="title-description">
-            Suivez les projets créés, les validations en attente,
-            les clients actifs et les éléments de facturation.
-          </p>
-        </div>
-        <div style="margin-top: 10px; flex-shrink: 0;">
-          <app-notification-bell-rc></app-notification-bell-rc>
+    <div class="hero-section rc-hero-section">
+      <div class="hero-left">
+        <span class="hero-badge">Dashboard Responsable Contrat</span>
+        <h1 class="heading-title">Pilotage Contractuel</h1>
+        <p class="title-description">
+          Suivez les projets créés, les validations, la facturation et les indicateurs clés de votre activité.
+        </p>
+      </div>
+      <div class="hero-right">
+        <div class="hero-controls">
+          <app-notification-bell-chef></app-notification-bell-chef>
         </div>
       </div>
     </div>
 
-
-    <!-- KPIs Responsable Contrat -->
+    <!-- KPIs (6 cartes) -->
     <div class="kpi-grid rc-kpis">
       <div class="kpi-card">
-        <div class="kpi-icon">📁</div>
-        <div class="kpi-title">Projets créés</div>
-        <div class="kpi-value">{{ rcKpis()[0].value }}</div>
-      </div>
-      <div class="kpi-card" [class.warning]="rcKpis()[1].value > 0">
-        <div class="kpi-icon">⏳</div>
-        <div class="kpi-title">En validation</div>
-        <div class="kpi-value">{{ rcKpis()[1].value }}</div>
+        <div class="kpi-icon purple">📁</div>
+        <div class="kpi-info">
+          <span class="kpi-title">Projets créés</span>
+          <span class="kpi-value">{{ projets.length }}</span>
+          <span class="kpi-trend up">+{{ projetsEnValidation }} en validation</span>
+        </div>
       </div>
       <div class="kpi-card">
-        <div class="kpi-icon">✓</div>
-        <div class="kpi-title">Pré-validés</div>
-        <div class="kpi-value">{{ rcKpis()[2].value }}</div>
+        <div class="kpi-icon orange">⏳</div>
+        <div class="kpi-info">
+          <span class="kpi-title">En validation</span>
+          <span class="kpi-value">{{ projetsEnValidation }}</span>
+          <span class="kpi-trend">En attente de décision</span>
+        </div>
       </div>
       <div class="kpi-card">
-        <div class="kpi-icon">🏢</div>
-        <div class="kpi-title">Clients actifs</div>
-        <div class="kpi-value">{{ rcKpis()[3].value }}</div>
+        <div class="kpi-icon green">✓</div>
+        <div class="kpi-info">
+          <span class="kpi-title">Pré-validés</span>
+          <span class="kpi-value">{{ projetsPreValides }}</span>
+          <span class="kpi-trend up">Taux {{ tauxValidation }}%</span>
+        </div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-icon red">❌</div>
+        <div class="kpi-info">
+          <span class="kpi-title">Rejetés</span>
+          <span class="kpi-value">{{ projetsRejetes }}</span>
+          <span class="kpi-trend down">À analyser</span>
+        </div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-icon blue">🏢</div>
+        <div class="kpi-info">
+          <span class="kpi-title">Clients actifs</span>
+          <span class="kpi-value">{{ activeClientsCount }}</span>
+          <span class="kpi-trend">Entreprises</span>
+        </div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-icon green">💰</div>
+        <div class="kpi-info">
+          <span class="kpi-title">CA estimé TTC</span>
+          <span class="kpi-value">{{ totalFactureTTC | number:'1.0-0' }} MAD</span>
+          <span class="kpi-trend">HT: {{ totalFactureHT | number:'1.0-0' }} MAD</span>
+        </div>
       </div>
     </div>
 
-    <!-- Graphique d'activité -->
-    <div class="charts-container">
-      <div class="chart-card full-width">
+    <!-- Graphiques : distribution des profils + projets par mois -->
+    <div class="charts-row">
+      <div class="chart-card">
         <div class="chart-header">
-          <h2 class="chart-title">Distribution des projets</h2>
-          <div class="chart-legend">
-            <div class="legend-item">
-              <span class="legend-dot en-validation"></span>
-              <span>En validation</span>
+          <h3>Distribution des profils</h3>
+          <span class="chart-badge">{{ allTeams.length }} membres</span>
+        </div>
+        <div class="pie-container">
+          <div class="pie-chart-simple">
+            @for (item of profileDistribution; track item.profile; let i = $index) {
+              <div class="pie-segment" 
+                   [style.background]="getColorForProfile(item.profile)"
+                   [style.width.%]="item.percentage"
+                   [style.height.%]="100">
+              </div>
+            }
+          </div>
+          <div class="pie-legend">
+            @for (item of profileDistribution; track item.profile) {
+              <div class="legend-item">
+                <span class="legend-color" [style.backgroundColor]="getColorForProfile(item.profile)"></span>
+                <span class="legend-label">{{ item.profile }}</span>
+                <span class="legend-value">{{ formatPercent(item.percentage) }}</span>
+              </div>
+            }
+          </div>
+        </div>
+      </div>
+
+      <div class="chart-card">
+        <div class="chart-header">
+          <h3>Projets par mois</h3>
+          <span class="chart-badge">{{ currentYear }}</span>
+        </div>
+        <div class="bar-chart">
+          @for (item of projectsByMonth; track item.month) {
+            <div class="bar-item">
+              <div class="bar-container">
+                <div class="bar" [style.height.px]="item.count * 8"></div>
+              </div>
+              <span class="bar-label">{{ item.month }}</span>
+              <span class="bar-value">{{ item.count }}</span>
             </div>
-            <div class="legend-item">
-              <span class="legend-dot pre-valide"></span>
-              <span>Pré-validés</span>
+          }
+        </div>
+      </div>
+    </div>
+
+    <!-- Top clients -->
+    <div class="table-card">
+      <div class="table-card-header">
+        <h3>Top clients</h3>
+        <span class="badge">{{ topClients.length }} clients</span>
+      </div>
+      <div class="top-clients-showcase">
+        @for (client of topClients; track client.client; let i = $index) {
+          <div class="top-client-card">
+            <div class="top-client-main">
+              <div class="top-client-rank">{{ i + 1 }}</div>
+              <div class="client-avatar top-client-avatar">{{ client.client.substring(0, 2).toUpperCase() }}</div>
+              <div class="top-client-identity">
+                <div class="top-client-name-row">
+                  <span class="top-client-name">{{ client.client }}</span>
+                  <span class="top-client-projects">{{ client.projectsCount }} projet(s)</span>
+                </div>
+                <div class="top-client-progress-row">
+                  <div class="progress-bar top-client-progress">
+                    <div class="progress-fill" [style.width.%]="client.sharePercentage"></div>
+                  </div>
+                  <span class="progress-percent">{{ formatPercent(client.sharePercentage) }}</span>
+                </div>
+              </div>
             </div>
-            <div class="legend-item">
-              <span class="legend-dot en-cours"></span>
-              <span>En cours</span>
+            <div class="top-client-side">
+              <span class="top-client-ca-label">CA estimé HT</span>
+              <strong class="top-client-ca">{{ client.totalHT | number:'1.0-0' }} MAD</strong>
             </div>
-            <div class="legend-item">
-              <span class="legend-dot rejete"></span>
-              <span>Rejetés</span>
+          </div>
+        }
+        @if (topClients.length === 0) {
+          <div class="top-client-empty">Aucun client disponible</div>
+        }
+      </div>
+    </div>
+
+    
+  </div>
+}<!-- ================= MEMBRE EQUIPE (version enrichie) ================= -->
+@if (isMembreEquipe()) {
+  <div class="main-content membre-reporting">
+    <!-- Header -->
+    <div class="hero-stats-wrapper">
+      <div class="hero-stats-title">
+        <h2>📊 Mon Reporting Personnel</h2>
+        <p>Suivez vos performances, vos tâches et votre progression</p>
+        </div>
+        <div class="hero-controls">
+          <app-notification-bell-chef></app-notification-bell-chef>
+        </div>
+    </div>
+    <div class="kpi-membre-grid">
+      <div class="kpi-membre-card">
+        <div class="kpi-membre-icon purple">📋</div>
+        <div class="kpi-membre-info">
+          <span class="kpi-membre-label">Total tâches</span>
+          <span class="kpi-membre-value">{{ totalMyTasks }}</span>
+          <span class="kpi-membre-trend">Assignées</span>
+        </div>
+      </div>
+
+      <div class="kpi-membre-card">
+        <div class="kpi-membre-icon green">✅</div>
+        <div class="kpi-membre-info">
+          <span class="kpi-membre-label">Terminées</span>
+          <span class="kpi-membre-value">{{ myTasksCompleted }}</span>
+          <span class="kpi-membre-trend">Validées</span>
+        </div>
+      </div>
+
+      <div class="kpi-membre-card">
+        <div class="kpi-membre-icon orange">⏳</div>
+        <div class="kpi-membre-info">
+          <span class="kpi-membre-label">En cours</span>
+          <span class="kpi-membre-value">{{ myTasksInProgress }}</span>
+          <span class="kpi-membre-trend">À terminer</span>
+        </div>
+      </div>
+
+      <div class="kpi-membre-card">
+        <div class="kpi-membre-icon red">⚠️</div>
+        <div class="kpi-membre-info">
+          <span class="kpi-membre-label">En retard</span>
+          <span class="kpi-membre-value">{{ myTasksLate }}</span>
+          <span class="kpi-membre-trend">Urgent</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Productivité et efficacité -->
+    <div class="charts-membre-row">
+      <!-- Taux d'achèvement -->
+      <div class="chart-membre-card">
+        <div class="chart-membre-header">
+          <h3>📈 Suivi des tâches</h3>
+        </div>
+        <div class="progress-circle-container">
+          <div class="progress-circle">
+            <div class="progress-ring" [style.background]="'conic-gradient(#10b981 0deg ' + (myCompletionRate * 3.6) + 'deg, #f59e0b ' + (myCompletionRate * 3.6) + 'deg 360deg)'"></div>
+            <div class="progress-circle-center">
+              <span class="progress-percent">{{ myTasksCompleted }}/{{ totalMyTasks }}</span>
+            </div>
+          </div>
+          <div class="progress-stats">
+            <div class="stat-detail">
+              <span class="stat-dot completed"></span>
+              <span>Terminées</span>
+              <strong>{{ myTasksCompleted }}</strong>
+            </div>
+            <div class="stat-detail">
+              <span class="stat-dot pending"></span>
+              <span>Restantes</span>
+              <strong>{{ myTasksRemaining }}</strong>
             </div>
           </div>
         </div>
-        <div class="rc-stats-bars">
-          <div class="stat-bar">
-            <div class="stat-bar-label">En validation</div>
-            <div class="stat-bar-track">
-              <div class="stat-bar-fill validation-fill" 
-                   [style.width.%]="getRCProjectPercentage('EN_VALIDATION')">
-              </div>
+      </div>
+
+      <!-- Distribution par priorité -->
+      <div class="chart-membre-card">
+        <div class="chart-membre-header">
+          <h3>🎯 Répartition par priorité</h3>
+        </div>
+        <div class="priority-stats">
+          <div class="priority-item high">
+            <div class="priority-bar">
+              <div class="priority-fill" [style.width.%]="myHighPriorityPercent"></div>
             </div>
-            <div class="stat-bar-value">{{ getRCProjectCount('EN_VALIDATION') }}</div>
+            <div class="priority-info">
+              <span class="priority-label">Haute priorité</span>
+              <span class="priority-count">{{ myHighPriorityCount }}</span>
+            </div>
           </div>
-          <div class="stat-bar">
-            <div class="stat-bar-label">Pré-validés</div>
-            <div class="stat-bar-track">
-              <div class="stat-bar-fill prevalid-fill" 
-                   [style.width.%]="getRCProjectPercentage('PRE_VALIDE')">
-              </div>
+          <div class="priority-item medium">
+            <div class="priority-bar">
+              <div class="priority-fill" [style.width.%]="myMediumPriorityPercent"></div>
             </div>
-            <div class="stat-bar-value">{{ getRCProjectCount('PRE_VALIDE') }}</div>
+            <div class="priority-info">
+              <span class="priority-label">Priorité moyenne</span>
+              <span class="priority-count">{{ myMediumPriorityCount }}</span>
+            </div>
           </div>
-          <div class="stat-bar">
-            <div class="stat-bar-label">En cours</div>
-            <div class="stat-bar-track">
-              <div class="stat-bar-fill encours-fill" 
-                   [style.width.%]="getRCProjectPercentage('EN_COURS')">
-              </div>
+          <div class="priority-item low">
+            <div class="priority-bar">
+              <div class="priority-fill" [style.width.%]="myLowPriorityPercent"></div>
             </div>
-            <div class="stat-bar-value">{{ getRCProjectCount('EN_COURS') }}</div>
-          </div>
-          <div class="stat-bar">
-            <div class="stat-bar-label">Rejetés</div>
-            <div class="stat-bar-track">
-              <div class="stat-bar-fill rejet-fill" 
-                   [style.width.%]="getRCProjectPercentage('REJETE')">
-              </div>
+            <div class="priority-info">
+              <span class="priority-label">Basse priorité</span>
+              <span class="priority-count">{{ myLowPriorityCount }}</span>
             </div>
-            <div class="stat-bar-value">{{ getRCProjectCount('REJETE') }}</div>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- Projets récents -->
-    <div class="load-section">
-      <div class="section-header">
-        <div>
-          <h2 class="section-title">Projets récents</h2>
-          <p class="section-description">Liste des projets créés</p>
-        </div>
-        <a routerLink="/responsable-contrat/projets" class="view-all-link">Voir tous les projets →</a>
+    <!-- Évolution hebdomadaire -->
+    <div class="chart-membre-card full-width">
+      <div class="chart-membre-header">
+        <h3>📅 Évolution hebdomadaire</h3>
+        <span class="chart-badge">Dernières semaines</span>
       </div>
+      <div class="weekly-chart">
+        @for (week of weeklyEvolution; track week.week) {
+          <div class="weekly-bar-item">
+            <div class="weekly-bar-container">
+              <div class="weekly-bar completed-bar" [style.height.px]="week.completed * 12"></div>
+              <div class="weekly-bar total-bar" [style.height.px]="week.total * 12" [style.marginTop.px]="-week.completed * 12"></div>
+            </div>
+            <span class="weekly-label">{{ week.week }}</span>
+            <span class="weekly-value">{{ week.completed }}/{{ week.total }}</span>
+          </div>
+        }
+      </div>
+    </div>
 
-      <div class="projects-table-container">
-        <table class="projects-table">
+    <!-- Liste des tâches -->
+    <div class="table-membre-card">
+      <div class="table-membre-header">
+        <h3>📋 Mes tâches en cours et à faire</h3>
+        <span class="badge-membre">{{ myCurrentTasks.length }} tâche(s)</span>
+      </div>
+      <div class="table-responsive">
+        <table class="membre-tasks-table">
           <thead>
             <tr>
+              <th>Tâche</th>
               <th>Projet</th>
-              <th>Client</th>
-              <th>Manager</th>
+              <th>Priorité</th>
+              <th>Échéance</th>
               <th>Statut</th>
-              <th>Date</th>
-              
             </tr>
           </thead>
           <tbody>
-            @for (project of rcRecentProjects(); track project.id) {
+            @for (task of paginatedMyCurrentTasks; track task.id) {
               <tr>
-                <td class="project-name-cell">
-                  <div class="project-avatar-mini">{{ (project.name | slice:0:2).toUpperCase() }}</div>
-                  <span>{{ project.name }}</span>
+                <td class="task-cell-membre">
+                  <div class="task-icon-membre">📌</div>
+                  <span class="task-title-membre">{{ task.title }}</span>
                 </td>
-                <td>{{ project.client }}</td>
-                <td>{{ project.managerName || 'Non assigné' }}</td>
-                <td>
-                  <span class="status-badge" 
-                        [class.status-en-validation]="project.status === 'EN_VALIDATION'"
-                        [class.status-pre-valide]="project.status === 'PRE_VALIDE'"
-                        [class.status-en-cours]="project.status === 'EN_COURS'"
-                        [class.status-rejete]="project.status === 'REJETE'">
-                    {{ getStatusLabel(project.status) }}
+                <td>{{ task.projectName || '-' }}</td>
+                <td class="priority-cell">
+                  <span class="priority-badge-membre" 
+                        [class.priority-high]="task.priority === 'HAUTE'"
+                        [class.priority-medium]="task.priority === 'MOYENNE'"
+                        [class.priority-low]="task.priority === 'BASSE'">
+                    {{ getPriorityLabel(task.priority) }}
                   </span>
                 </td>
-                <td>{{ project.createdAt | date:'dd/MM/yyyy' }}</td>
-                
+                <td class="date-cell-membre">
+                  <span [class.date-late]="isTaskLate(task)">{{ formatTaskDate(task.estimatedEndDate) }}</span>
+                </td>
+                <td class="status-cell-membre">
+                  <span class="status-badge-membre" 
+                        [class.status-progress]="task.status === 'En_cours'"
+                        [class.status-todo]="task.status === 'A_faire'"
+                        [class.status-validation]="task.status === 'Validation'">
+                    {{ getTaskStatusLabel(task.status) }}
+                  </span>
+                </td>
               </tr>
-            } @empty {
-              <tr>
-                <td colspan="6" class="empty-cell">Aucun projet trouvé</td>
-              </tr>
+            }
+            @empty {
+              <tr><td colspan="5" class="empty-cell-membre">✅ Aucune tâche en cours, bravo !</td></tr>
             }
           </tbody>
         </table>
       </div>
-    </div>
-
-    <!-- Actions rapides -->
-   <!-- Actions rapides - Design amélioré -->
-<div class="quick-actions-section">
-  <div class="section-header">
-    <div>
-      <h2 class="section-title">Actions rapides</h2>
-      <p class="section-description">Accédez directement aux fonctionnalités principales</p>
-    </div>
-  </div>
-  <div class="modern-actions-grid">
-    <div class="modern-action-card" routerLink="/responsable-contrat/projets">
-      <div class="action-card-inner">
-        <div class="action-icon-container">
-          <div class="action-icon-bg">
-            <span class="action-icon">📋</span>
+      @if (myCurrentTasks.length > memberTasksItemsPerPage) {
+        <div class="pagination-bar">
+          <span>Page {{ memberTasksPage }} / {{ memberTasksTotalPages }}</span>
+          <div>
+            <button [disabled]="memberTasksPage === 1" (click)="goToMemberTasksPage(memberTasksPage - 1)">‹</button>
+            <button [disabled]="memberTasksPage === memberTasksTotalPages" (click)="goToMemberTasksPage(memberTasksPage + 1)">›</button>
           </div>
         </div>
-        <div class="action-info">
-          <h3 class="action-title">Créer un projet</h3>
-          <p class="action-description">Ajouter une nouvelle initiative</p>
-        </div>
-        <div class="action-arrow">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M5 12h14M12 5l7 7-7 7"/>
-          </svg>
-        </div>
-      </div>
-      <div class="action-card-shine"></div>
-    </div>
-    <div class="modern-action-card" routerLink="/responsable-contrat/reporting">
-      <div class="action-card-inner">
-        <div class="action-icon-container">
-          <div class="action-icon-bg reporting-bg">
-            <span class="action-icon">📊</span>
-          </div>
-        </div>
-        <div class="action-info">
-          <h3 class="action-title">Reporting</h3>
-          <p class="action-description">Consulter les rapports</p>
-        </div>
-        <div class="action-arrow">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M5 12h14M12 5l7 7-7 7"/>
-          </svg>
-        </div>
-      </div>
-      <div class="action-card-shine"></div>
+      }
     </div>
   </div>
-</div>
-  </div>
-}<!-- ================= MEMBRE EQUIPE ================= -->
-@if (isMembreEquipe()) {
-  <div class="main-content">
-    <div class="hero-section">
-      <div class="hero-left" style="display: flex; justify-content: space-between; align-items: flex-start; width: 100%;">
-        <div style="flex: 1;">
-          <span class="hero-badge">Dashboard Membre d'Équipe</span>
-          <h1 class="heading-title">Mon espace de travail</h1>
-          <p class="title-description">
-            Suivez vos tâches, vos projets et vos échéances prioritaires.
-          </p>
-        </div>
-        <div style="margin-top: 10px; flex-shrink: 0;">
-          <app-notification-bell-membre></app-notification-bell-membre>
-        </div>
-      </div>
-    </div>
-   
-
-    <!-- KPIs Membre Équipe -->
-    <div class="kpi-grid membre-kpis">
-      <div class="kpi-card" [class.warning]="membreKpis()[0].value > 0">
-        <div class="kpi-icon">📋</div>
-        <div class="kpi-title">Mes tâches</div>
-        <div class="kpi-value">{{ membreKpis()[0].value }}</div>
-      </div>
-      <div class="kpi-card">
-        <div class="kpi-icon">⚡</div>
-        <div class="kpi-title">En cours</div>
-        <div class="kpi-value">{{ membreKpis()[1].value }}</div>
-      </div>
-      <div class="kpi-card" [class.warning]="membreKpis()[2].value > 0">
-        <div class="kpi-icon">✓</div>
-        <div class="kpi-title">À valider</div>
-        <div class="kpi-value">{{ membreKpis()[2].value }}</div>
-      </div>
-      <div class="kpi-card" [class.danger]="membreKpis()[3].value > 0">
-        <div class="kpi-icon">⏰</div>
-        <div class="kpi-title">En retard</div>
-        <div class="kpi-value">{{ membreKpis()[3].value }}</div>
-      </div>
-    </div>
-
-    <!-- Mes tâches prioritaires -->
-    <div class="section-card">
-      <div class="section-header">
-        <div>
-          <h2 class="section-title">Mes tâches prioritaires</h2>
-          <p class="section-description">Tâches urgentes et à valider</p>
-        </div>
-        <a routerLink="/membre-equipe/taches" class="view-all-link">Voir toutes →</a>
-      </div>
-
-      <div class="tasks-list">
-        @for (task of myRecentTasks(); track task.id) {
-          <div class="task-item" [class.task-urgent]="task.priority === 'HAUTE'">
-            <div class="task-status" [class.status-pending]="task.status === 'Validation'"
-                                      [class.status-progress]="task.status === 'En_cours'"
-                                      [class.status-todo]="task.status === 'A_faire'">
-            </div>
-            <div class="task-info">
-              <div class="task-title">{{ task.title }}</div>
-              <div class="task-meta">{{ task.projectName || 'Sans projet' }}</div>
-            </div>
-            <div class="task-priority">
-              <span class="priority-badge" 
-                    [class.priority-high]="task.priority === 'HAUTE'"
-                    [class.priority-medium]="task.priority === 'MOYENNE'"
-                    [class.priority-low]="task.priority === 'BASSE'">
-                {{ getPriorityLabel(task.priority) }}
-              </span>
-            </div>
-            <div class="task-date">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
-                <rect x="3" y="4" width="18" height="18" rx="2"/>
-                <line x1="16" y1="2" x2="16" y2="6"/>
-                <line x1="8" y1="2" x2="8" y2="6"/>
-                <line x1="3" y1="10" x2="21" y2="10"/>
-              </svg>
-              {{ formatDate(task.estimatedEndDate) }}
-            </div>
-          </div>
-        } @empty {
-          <div class="empty-state">Aucune tâche prioritaire</div>
-        }
-      </div>
-    </div>
-
-    <!-- Mes projets -->
-    <div class="section-card">
-      <div class="section-header">
-        <div>
-          <h2 class="section-title">Mes projets</h2>
-          <p class="section-description">Projets auxquels vous participez</p>
-        </div>
-        
-        <a routerLink="/membre-equipe/projets" class="view-all-link">Voir tous →</a>
-      </div>
-
-      <div class="projects-list">
-        @for (project of myProjects(); track project.id) {
-          <div class="project-item">
-            <div class="project-avatar">{{ (project.name | slice:0:2).toUpperCase() }}</div>
-            <div class="project-info">
-              <div class="project-name">{{ project.name }}</div>
-              <div class="project-meta">{{ project.client }}</div>
-            </div>
-            <div class="project-status">
-              <span class="status-badge" 
-                    [class.status-en-cours]="project.status === 'EN_COURS'"
-                    [class.status-pre-valide]="project.status === 'PRE_VALIDE'"
-                    [class.status-en-validation]="project.status === 'EN_VALIDATION'">
-                {{ getProjectStatusLabel(project.status) }}
-              </span>
-            </div>
-          </div>
-        } @empty {
-          <div class="empty-state">Aucun projet trouvé</div>
-        }
-      </div>
-    </div>
-  </div>
-
-  }
-  }
+}}

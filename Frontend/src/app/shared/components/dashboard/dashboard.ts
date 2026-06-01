@@ -4,7 +4,7 @@ import { HttpClient } from '@angular/common/http';
 import { forkJoin, of, Observable } from 'rxjs';
 import { catchError, map, switchMap } from 'rxjs/operators';
 
-import { AdminService, PageResponse, UserResponse } from '../../../core/services/admin.service';
+import { AdminService, PageResponse, UserResponse, ClientResponse } from '../../../core/services/admin.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { ProjectService, ProjectDto } from '../../../core/services/project.service';
 import { TaskService, TaskDto } from '../../../core/services/task.service';
@@ -15,6 +15,7 @@ import { NotificationBellChefComponent } from '../../../core/services/notificati
 import { NotificationBellMembreComponent } from '../../../core/services/notification-bell-membre.component';
 import { NotificationBellManagerComponent } from '../../../core/services/notification-bell-manager.component';
 import { NotificationBellRcComponent } from '../../../core/services/notification-bell-rc.component';
+import { PredictionService, RiskPredictionResult, TeamRecommendationResult } from '../../../core/services/prediction.service';
 
 interface TeamMemberInfo {
   id: number;
@@ -25,6 +26,7 @@ interface TeamMemberInfo {
   profileId?: number;
   profileLibelle?: string;
   tjm?: number;
+  
 }
 
 interface TeamPerformance {
@@ -70,6 +72,7 @@ interface DashboardProject {
   createdById?: number;
   createdByName?: string;
   teamName?: string;
+  managerComment?: string;
 }
 
 @Component({
@@ -86,18 +89,26 @@ export class Dashboard implements OnInit {
   private taskService = inject(TaskService);
   private managerService = inject(ManagerService);
   private http = inject(HttpClient);
+  private predictionService = inject(PredictionService);
 
   private readonly teamsApiUrl = 'http://localhost:8080/api/teams';
 
   currentUser = signal<any>(null);
   roles = signal<string[]>([]);
   loading = signal(false);
+  // ================= AI PREDICTION =================
+projectRisks = signal<Map<number, RiskPredictionResult>>(new Map());
+projectRecommendations = signal<Map<number, TeamRecommendationResult>>(new Map());
+riskLoading = signal<Map<number, boolean>>(new Map());
 
   // ================= ADMIN =================
   users = signal<UserResponse[]>([]);
+  clients = signal<ClientResponse[]>([]);
   totalUsers = signal(0);
   activeUsers = signal(0);
   inactiveUsers = signal(0);
+  chefTeamPerformancePage = 1;
+chefTeamPerformanceItemsPerPage = 5;
 
   kpiData = computed(() => [
     { title: 'Total Utilisateurs', value: this.totalUsers().toString(), icon: '👥' },
@@ -142,7 +153,222 @@ export class Dashboard implements OnInit {
   // ================= PERFORMANCES MEMBRES (PAGINATION) =================
   performanceCurrentPage = 1;
   performanceItemsPerPage = 5;
+  
 
+    // ================= ADMIN (version enrichie) =================
+  
+  // Nouveaux getters pour le reporting admin
+  get totalUsersCount(): number {
+    return this.users().length;
+  }
+
+  get activeUsersCount(): number {
+    return this.users().filter(u => !u.locked).length;
+  }
+
+  get inactiveUsersCount(): number {
+    return this.users().filter(u => u.locked).length;
+  }
+
+  get newUsersThisMonth(): number {
+    const now = new Date();
+    const month = now.getMonth();
+    const year = now.getFullYear();
+    return this.users().filter(user => {
+      const createdAt = (user as any).createdAt || (user as any).updatedAt;
+      if (!createdAt) return false;
+      const date = new Date(createdAt);
+      return !isNaN(date.getTime()) && date.getFullYear() === year && date.getMonth() === month;
+    }).length;
+  }
+
+  get activeUsersPercentage(): number {
+    if (this.totalUsersCount === 0) return 0;
+    return (this.activeUsersCount / this.totalUsersCount) * 100;
+  }
+
+  get activeRolesCount(): number {
+    const roles = new Set(this.users().flatMap(u => u.roles?.map(r => r.nom) || []));
+    return roles.size;
+  }
+
+  get roleDistributionAdmin(): { role: string; count: number; percentage: number }[] {
+    const roleCount = new Map<string, number>();
+    for (const user of this.users()) {
+      for (const role of user.roles || []) {
+        const roleName = role.nom;
+        roleCount.set(roleName, (roleCount.get(roleName) || 0) + 1);
+      }
+    }
+    return Array.from(roleCount.entries())
+      .map(([role, count]) => ({
+        role,
+        count,
+        percentage: (count / this.totalUsersCount) * 100
+      }))
+      .sort((a, b) => b.count - a.count);
+  }
+
+  get userEvolutionAdmin(): { month: string; count: number }[] {
+    const months = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Août', 'Sep', 'Oct', 'Nov', 'Déc'];
+    const monthCounts = new Array(12).fill(0);
+
+    const datedUsers = this.users().filter(user => {
+      const createdAt = (user as any).createdAt || (user as any).updatedAt;
+      return !!createdAt;
+    });
+
+    for (const user of datedUsers) {
+      const createdAt = (user as any).createdAt || (user as any).updatedAt;
+      const date = new Date(createdAt);
+      if (isNaN(date.getTime())) continue;
+      monthCounts[date.getMonth()] += 1;
+    }
+
+    const result = months.map((month, index) => ({ month, count: monthCounts[index] }));
+
+    if (this.totalUsersCount > 0 && datedUsers.length === 0) {
+      const approximatePerMonth = Math.ceil(this.totalUsersCount / 12);
+      return months.map((month, index) => ({ month, count: Math.min(this.totalUsersCount, approximatePerMonth * (index + 1)) }));
+    }
+
+    return result;
+  }
+
+  getUserEvolutionPoints(): string {
+    const data = this.userEvolutionAdmin;
+    if (data.length === 0) return '';
+    const max = Math.max(...data.map(d => d.count), 1);
+    const width = 600;
+    const height = 200;
+    const step = width / (data.length - 1);
+    return data.map((point, index) => {
+      const x = 50 + (index * step);
+      const y = 180 - (point.count / max) * 160;
+      return `${x},${y}`;
+    }).join(' ');
+  }
+
+  getMaxUserCount(): number {
+    const data = this.userEvolutionAdmin;
+    if (data.length === 0) return 1;
+    return Math.max(...data.map(d => d.count), 1);
+  }
+
+  get profileDistributionAdmin(): { profile: string; count: number; percentage: number }[] {
+    const profileCount = new Map<string, number>();
+    for (const user of this.users()) {
+      const profile = (user as any).profileLibelle?.trim() || 'Non défini';
+      profileCount.set(profile, (profileCount.get(profile) || 0) + 1);
+    }
+    return Array.from(profileCount.entries())
+      .map(([profile, count]) => ({
+        profile,
+        count,
+        percentage: this.totalUsersCount > 0 ? (count / this.totalUsersCount) * 100 : 0
+      }))
+      .sort((a, b) => b.count - a.count);
+  }
+
+  get topClientsList(): any[] {
+    return [...this.clients()]
+      .sort((a, b) => b.id - a.id)
+      .slice(0, 6)
+      .map(client => ({
+        client: client.nom,
+        representantsCount: client.representantsCount,
+        createdAt: (client as any).createdAt
+      }));
+  }
+
+  getClientShare(projectsCount: number): number {
+    const totalProjects = this.topClientsList.reduce((sum, client) => sum + (client.projectsCount || 0), 0);
+    return totalProjects > 0 ? (projectsCount * 100) / totalProjects : 0;
+  }
+
+  getClientRepresentantsCount(clientName: string): number {
+    const client = this.clients().find(c => (c.nom || '').trim() === (clientName || '').trim());
+    if (client) {
+      return client.representantsCount;
+    }
+    const relatedProjects = this.projets.filter(p => (p.client || '').trim() === (clientName || '').trim());
+    const contacts = new Set<string>();
+    relatedProjects.forEach(p => {
+      if (p.managerName) {
+        contacts.add(p.managerName.trim());
+      }
+      if (p.chefProjetName) {
+        contacts.add(p.chefProjetName.trim());
+      }
+    });
+    return contacts.size;
+  }
+
+  private getClientAverageProgress(clientName: string): number {
+    const relatedProjects = this.projets.filter(p => (p.client || '').trim() === (clientName || '').trim());
+    if (relatedProjects.length === 0) return 0;
+    const totalProgress = relatedProjects.reduce((sum, project) => sum + (project.progressPercentage || 0), 0);
+    return totalProgress / relatedProjects.length;
+  }
+
+  private getClientLatestActivity(clientName: string): string | null {
+    const relatedProjects = this.projets
+      .filter(p => (p.client || '').trim() === (clientName || '').trim() && p.updatedAt)
+      .sort((a, b) => (new Date(b.updatedAt || '').getTime() || 0) - (new Date(a.updatedAt || '').getTime() || 0));
+    return relatedProjects.length > 0 ? relatedProjects[0].updatedAt || null : null;
+  }
+
+  formatAdminActivityDate(dateStr?: string): string {
+    if (!dateStr) return 'Non disponible';
+    return new Date(dateStr).toLocaleDateString('fr-FR');
+  }
+
+  exportAdminToPdf(): void {
+    console.log('🔵 Export PDF Admin appelé');
+    if (!this.isAdmin()) return;
+    this.http.get('http://localhost:8080/api/reporting/export-pdf', {
+      responseType: 'blob'
+    }).subscribe({
+      next: (blob) => {
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `rapport_admin_${new Date().toISOString().split('T')[0]}.pdf`;
+        link.click();
+        window.URL.revokeObjectURL(url);
+        this.showToast('PDF exporté avec succès !', 'success');
+      },
+      error: (err) => {
+        console.error('❌ Erreur export PDF:', err);
+        this.showToast('Erreur lors de l\'export PDF', 'error');
+      }
+    });
+  }
+
+  getRoleColor(role: string): string {
+    const colors: Record<string, string> = {
+      'ADMIN': '#7c3aed',
+      'MANAGER': '#3b82f6',
+      'CHEF_PROJET': '#10b981',
+      'RESPONSABLE_CONTRAT': '#f59e0b',
+      'MEMBRE_EQUIPE': '#ec4899'
+    };
+    return colors[role] || '#9ca3af';
+  }
+
+  getProfileColorForAdmin(profile: string): string {
+    const colors = ['#7c3aed', '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#ec4899', '#06b6d4', '#84cc16'];
+    let hash = 0;
+    for (let i = 0; i < profile.length; i++) {
+      hash = profile.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    return colors[Math.abs(hash) % colors.length];
+  }
+
+  getAvatarColorForIndex(index: number): string {
+    const colors = ['#7c3aed', '#3b82f6', '#10b981', '#f59e0b', '#ef4444'];
+    return colors[index % colors.length];
+  }
   // ================= GETTERS PAGINATION ADMIN =================
   
   get paginatedUserLoad(): UserResponse[] {
@@ -184,6 +410,7 @@ export class Dashboard implements OnInit {
   }
 
   // ================= MÉTHODES NAVIGATION ADMIN =================
+  
   
   goToAdminUserLoadPage(page: number): void {
     if (page >= 1 && page <= this.adminUserLoadTotalPages) {
@@ -303,18 +530,57 @@ export class Dashboard implements OnInit {
   }
 
   loadAdminDashboardData() {
-    this.adminService.getUsers(1, 100).subscribe({
-      next: (response: PageResponse<UserResponse>) => {
-        this.users.set(response.content);
-        this.totalUsers.set(response.totalElements);
-        const active = response.content.filter(u => !u.locked).length;
-        const inactive = response.content.filter(u => u.locked).length;
+    this.loading.set(true);
+
+    forkJoin({
+      users: this.adminService.getUsers(1, 100).pipe(
+        catchError((err) => {
+          console.error('Erreur lors du chargement des utilisateurs:', err);
+          return of({
+            content: [] as UserResponse[],
+            totalElements: 0,
+            totalPages: 0,
+            size: 0,
+            number: 0
+          } as PageResponse<UserResponse>);
+        })
+      ),
+      projects: this.projectService.getAllProjects().pipe(
+        catchError((err) => {
+          console.error('Erreur lors du chargement des projets admin:', err);
+          return of([] as ProjectDto[]);
+        })
+      ),
+      clients: this.adminService.getClients(0, 10).pipe(
+        catchError((err) => {
+          console.error('Erreur lors du chargement des clients GST:', err);
+          return of({
+            content: [] as ClientResponse[],
+            totalElements: 0,
+            totalPages: 0,
+            size: 0,
+            number: 0
+          } as PageResponse<ClientResponse>);
+        })
+      )
+    }).subscribe({
+      next: ({ users, projects, clients }) => {
+        this.users.set(users.content);
+        this.totalUsers.set(users.totalElements);
+        const active = users.content.filter(u => !u.locked).length;
+        const inactive = users.content.filter(u => u.locked).length;
         this.activeUsers.set(active);
         this.inactiveUsers.set(inactive);
+        this.projects.set(projects.map((p) => ({
+          ...p,
+          startDate: new Date(p.startDate),
+          endDate: new Date(p.endDate)
+        })) as DashboardProject[]);
+        this.clients.set(clients.content.sort((a,b) => b.id - a.id).slice(0, 6));
         this.loading.set(false);
       },
       error: (err) => {
-        console.error('Erreur lors du chargement des utilisateurs:', err);
+        console.error('Erreur lors du chargement du tableau de bord admin:', err);
         this.loading.set(false);
       }
     });
@@ -382,8 +648,10 @@ export class Dashboard implements OnInit {
       )
       .subscribe({
         next: (tasks) => {
-          this.tasks.set(tasks ?? []);
-          this.loading.set(false);
+         // APRÈS
+this.tasks.set(tasks ?? []);
+this.loading.set(false);
+setTimeout(() => this.loadAllChefProjectRisks(), 1500);
         },
         error: (err) => {
           console.error('Erreur dashboard chef projet:', err);
@@ -539,6 +807,7 @@ export class Dashboard implements OnInit {
           managerName: p.managerName ?? undefined,
           chefProjetId: p.chefProjetId ?? undefined,
           chefProjetName: p.chefProjetName ?? undefined,
+          managerComment: p.managerComment ?? undefined,
           description: '',
           progressPercentage: 0,
           riskLevel: 'FAIBLE',
@@ -621,7 +890,7 @@ export class Dashboard implements OnInit {
     return new Date(now.getFullYear(), now.getMonth(), now.getDate());
   }
 
-  private isTaskLate(task: TaskDto): boolean {
+  isTaskLate(task: TaskDto): boolean {
     const due = this.parseDate(task.estimatedEndDate);
     if (!due) return false;
     return due < this.todayStart() && task.status !== 'Terminé';
@@ -658,6 +927,163 @@ export class Dashboard implements OnInit {
       .filter(t => t.status === 'Validation')
       .slice(0, 5)
   );
+  // ================= CHEF PROJET REPORTING (comme dans reporting) =================
+// Pagination spécifique pour les performances membres dans la vue chef projet
+
+
+// Getter des projets du chef (filtrés par chefProjetId === currentUserId)
+get chefProjects(): DashboardProject[] {
+  const currentUserId = this.currentUser()?.id;
+  return this.projects().filter(p => p.chefProjetId === currentUserId);
+}
+
+// Nombre de membres suivis (membres des équipes des projets du chef)
+get chefTeamMembersCount(): number {
+  const teamIds = new Set(this.chefProjects.map(p => p.teamId).filter(id => id != null));
+  const members = this.allTeams().filter(t => teamIds.has(t.id)).flatMap(t => t.members || []);
+  return members.length;
+}
+
+// Statistiques des tâches pour les projets du chef
+get chefTaskStats() {
+  const tasks = this.tasks().filter(t => {
+    const project = this.projects().find(p => p.id === t.projectId);
+    return project?.chefProjetId === this.currentUser()?.id;
+  });
+  const total = tasks.length;
+  const completed = tasks.filter(t => t.status === 'Terminé').length;
+  const inProgress = tasks.filter(t => t.status === 'En_cours').length;
+  const pending = tasks.filter(t => t.status === 'A_faire').length;
+  const late = tasks.filter(t => this.isTaskLate(t)).length;
+  return { total, completed, inProgress, pending, late, completionRate: total ? (completed / total) * 100 : 0 };
+}
+
+get chefTotalTasks(): number { return this.chefTaskStats.total; }
+get chefCompletedTasks(): number { return this.chefTaskStats.completed; }
+get chefInProgressTasks(): number { return this.chefTaskStats.inProgress; }
+get chefPendingTasks(): number { return this.chefTaskStats.pending; }
+get chefLateTasks(): number { return this.chefTaskStats.late; }
+get chefCompletionRate(): number { return this.chefTaskStats.completionRate; }
+
+// Nombre de projets par statut pour le chef
+getChefProjectCount(status: string): number {
+  return this.chefProjects.filter(p => p.status === status).length;
+}
+
+// Portefeuille clients
+get chefClientPortfolio(): { client: string; projects: number; averageProgress: number }[] {
+  const map = new Map<string, { projects: number; sumProgress: number }>();
+  for (const p of this.chefProjects) {
+    const client = p.client || 'Non défini';
+    const cur = map.get(client) || { projects: 0, sumProgress: 0 };
+    cur.projects++;
+    cur.sumProgress += p.progressPercentage;
+    map.set(client, cur);
+  }
+  return Array.from(map.entries()).map(([client, data]) => ({
+    client,
+    projects: data.projects,
+    averageProgress: Math.round(data.sumProgress / data.projects)
+  })).sort((a, b) => b.projects - a.projects);
+}
+
+// Alertes
+get chefHighRiskProjects(): DashboardProject[] {
+  return this.chefProjects.filter(p => p.riskLevel === 'ELEVE');
+}
+get chefProjectsInValidation(): DashboardProject[] {
+  return this.chefProjects.filter(p => p.status === 'EN_VALIDATION');
+}
+get chefProjectsEndingSoon(): DashboardProject[] {
+  const today = new Date();
+  const limit = new Date();
+  limit.setDate(today.getDate() + 7);
+  return this.chefProjects.filter(p => {
+    if (!p.endDate) return false;
+    const end = new Date(p.endDate);
+    return end >= today && end <= limit;
+  });
+}
+
+// Performances des membres (pour le tableau)
+get chefTeamPerformance(): any[] {
+  const teamIds = new Set(this.chefProjects.map(p => p.teamId).filter(id => id != null));
+  const members = this.allTeams().filter(t => teamIds.has(t.id)).flatMap(t => t.members || []);
+  const tasks = this.tasks();
+  return members.map(member => {
+    const memberTasks = tasks.filter(t => t.assignedToId === member.id);
+    const completed = memberTasks.filter(t => t.status === 'Terminé').length;
+    const efficiency = memberTasks.length ? (completed / memberTasks.length) * 100 : 0;
+    let status = 'À améliorer';
+    if (efficiency >= 90) status = 'EXCELLENT';
+    else if (efficiency >= 70) status = 'BON';
+    else if (efficiency >= 50) status = 'MOYEN';
+    return {
+      memberId: member.id,
+      memberName: member.fullName,
+      email: member.email,
+      completedTasks: completed,
+      efficiency,
+      status
+    };
+  }).sort((a,b) => b.efficiency - a.efficiency);
+}
+
+// Pagination pour le tableau des performances
+get paginatedTeamPerformance(): any[] {
+  const start = (this.chefTeamPerformancePage - 1) * this.chefTeamPerformanceItemsPerPage;
+  return this.chefTeamPerformance.slice(start, start + this.chefTeamPerformanceItemsPerPage);
+}
+get chefTeamPerformanceTotalPages(): number {
+  return Math.max(1, Math.ceil(this.chefTeamPerformance.length / this.chefTeamPerformanceItemsPerPage));
+}
+goToChefTeamPerformancePage(page: number): void {
+  if (page >= 1 && page <= this.chefTeamPerformanceTotalPages) {
+    this.chefTeamPerformancePage = page;
+  }
+}
+get chefAverageEfficiency(): number {
+  if (this.chefTeamPerformance.length === 0) return 0;
+  const total = this.chefTeamPerformance.reduce((sum, m) => sum + m.efficiency, 0);
+  return total / this.chefTeamPerformance.length;
+}
+
+// Méthode utilitaire pour formater les pourcentages
+formatPercent(value: number): string {
+  return `${Math.round(value * 10) / 10}%`;
+}
+
+// Export PDF pour chef projet
+exportChefProjetToPdf(): void {
+  console.log('🔵 Export PDF Chef Projet appelé');
+  this.http.get('http://localhost:8080/api/reporting/export-chef-pdf', {
+    responseType: 'blob'
+  }).subscribe({
+    next: (blob: Blob) => {
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `rapport_chef_projet_${new Date().toISOString().split('T')[0]}.pdf`;
+      link.click();
+      window.URL.revokeObjectURL(url);
+    },
+    error: (err) => {
+      console.error('❌ Erreur export PDF chef projet:', err);
+    }
+  });
+}
+
+// Couleur pour les clients (identique à getProfileColor)
+getProfileColor(client: string): string {
+  const colors = ['#7c3aed', '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#ec4899', '#06b6d4', '#84cc16'];
+  let hash = 0;
+  for (let i = 0; i < client.length; i++) {
+    hash = client.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  return colors[Math.abs(hash) % colors.length];
+}
+
+  
 
   // ================= PERFORMANCES MEMBRES =================
   teamPerformance = computed(() => {
@@ -693,12 +1119,7 @@ export class Dashboard implements OnInit {
     return performances.sort((a, b) => b.efficacite - a.efficacite);
   });
 
-  paginatedTeamPerformance = computed(() => {
-    const start = (this.performanceCurrentPage - 1) * this.performanceItemsPerPage;
-    const end = start + this.performanceItemsPerPage;
-    return this.teamPerformance().slice(start, end);
-  });
-
+ 
   totalPerformancePages = computed(() => 
     Math.max(1, Math.ceil(this.teamPerformance().length / this.performanceItemsPerPage))
   );
@@ -811,6 +1232,57 @@ export class Dashboard implements OnInit {
   }
 
   // ================= MANAGER =================
+  
+get managerTotalProjects(): number {
+  return this.managerProjects().length;
+}
+
+get managerPendingCount(): number {
+  return this.getManagerProjectCount('EN_VALIDATION');
+}
+
+get managerValidatedCount(): number {
+  return this.getManagerProjectCount('PRE_VALIDE');
+}
+
+get managerRejectedCount(): number {
+  return this.getManagerProjectCount('REJETE');
+}
+
+get managerValidationRate(): number {
+  const total = this.managerTotalProjects;
+  if (total === 0) return 0;
+  return (this.managerValidatedCount / total) * 100;
+}
+
+// Alias pour faciliter l'utilisation dans le template
+getProjectPercentage(status: string): number {
+  return this.getManagerProjectPercentage(status);
+}
+
+// Retourne la liste des projets déjà traités (validés ou rejetés)
+getManagerProcessedProjects(): DashboardProject[] {
+  return this.managerProjects().filter(p => p.status === 'PRE_VALIDE' || p.status === 'REJETE');
+}
+
+// Export PDF pour le manager
+exportManagerToPdf(): void {
+  console.log('🔵 Export PDF Manager appelé');
+  if (!this.isManager()) return;
+  this.http.get('http://localhost:8080/api/reporting/export-manager-pdf', {
+    responseType: 'blob'
+  }).subscribe({
+    next: (blob) => {
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `rapport_manager_${new Date().toISOString().split('T')[0]}.pdf`;
+      link.click();
+      window.URL.revokeObjectURL(url);
+    },
+    error: (err) => console.error('Erreur export PDF manager:', err)
+  });
+}
   managerProjects = computed(() => {
     const currentUserId = this.currentUser()?.id;
     if (!currentUserId) return [];
@@ -865,6 +1337,185 @@ export class Dashboard implements OnInit {
 
   // ================= RESPONSABLE CONTRAT =================
   rcProjects = computed(() => this.projects());
+    // ================= RESPONSABLE CONTRAT (version enrichie) =================
+
+  // Alias pour faciliter l'accès dans le template
+  get projets(): DashboardProject[] {
+    return this.projects();
+  }
+
+  get projetsEnValidation(): number {
+    return this.projets.filter(p => p.status === 'EN_VALIDATION').length;
+  }
+
+  get projetsPreValides(): number {
+    return this.projets.filter(p => p.status === 'PRE_VALIDE').length;
+  }
+
+  get projetsRejetes(): number {
+    return this.projets.filter(p => p.status === 'REJETE').length;
+  }
+
+  get tauxValidation(): number {
+    const total = this.projets.length;
+    if (total === 0) return 0;
+    return Math.round((this.projetsPreValides / total) * 100);
+  }
+
+  get activeClientsCount(): number {
+    const clients = new Set(this.projets.map(p => p.client).filter(Boolean));
+    return clients.size;
+  }
+
+  get totalFactureHT(): number {
+    // Calcul du CA estimé HT basé sur les TJM des équipes
+    return this.projets.reduce((sum, project) => sum + this.estimateProjectRevenueHT(project), 0);
+  }
+
+  get totalFactureTTC(): number {
+    return Math.round(this.totalFactureHT * 1.2);
+  }
+
+  get topClients(): any[] {
+    const clientMap = new Map<string, { projectsCount: number; totalHT: number }>();
+    const totalProjects = this.projets.length;
+
+    for (const project of this.projets) {
+      const client = (project.client || 'Non défini').trim() || 'Non défini';
+      const current = clientMap.get(client) || { projectsCount: 0, totalHT: 0 };
+      current.projectsCount++;
+      current.totalHT += this.estimateProjectRevenueHT(project);
+      clientMap.set(client, current);
+    }
+
+    return Array.from(clientMap.entries())
+      .map(([client, data]) => ({
+        client,
+        projectsCount: data.projectsCount,
+        totalHT: Math.round(data.totalHT),
+        sharePercentage: totalProjects > 0 ? (data.projectsCount * 100) / totalProjects : 0
+      }))
+      .sort((a, b) => b.totalHT - a.totalHT || b.projectsCount - a.projectsCount);
+  }
+
+  get projectsByMonth(): { month: string; count: number; percentage: number }[] {
+    const months = ['Jan', 'Fév', 'Mar', 'Avr', 'Mai', 'Juin', 'Juil', 'Août', 'Sep', 'Oct', 'Nov', 'Déc'];
+    const monthCounts = new Array(12).fill(0);
+
+    for (const project of this.projets) {
+      if (!project.createdAt) continue;
+      const date = new Date(project.createdAt);
+      if (isNaN(date.getTime())) continue;
+      monthCounts[date.getMonth()] += 1;
+    }
+
+    const total = monthCounts.reduce((sum, count) => sum + count, 0);
+
+    return months.map((month, index) => ({
+      month,
+      count: monthCounts[index],
+      percentage: total > 0 ? (monthCounts[index] * 100) / total : 0
+    }));
+  }
+
+  get profileDistribution(): { profile: string; count: number; percentage: number; color: string }[] {
+    const members = this.allTeams().flatMap(team => team.members || []);
+    const total = members.length;
+    const profileMap = new Map<string, number>();
+
+    for (const member of members) {
+      const profile = (member.profileLibelle || 'Non défini').trim() || 'Non défini';
+      profileMap.set(profile, (profileMap.get(profile) || 0) + 1);
+    }
+
+    return Array.from(profileMap.entries())
+      .map(([profile, count]) => ({
+        profile,
+        count,
+        percentage: total > 0 ? (count * 100) / total : 0,
+        color: this.getColorForProfile(profile)
+      }))
+      .sort((a, b) => b.count - a.count || a.profile.localeCompare(b.profile));
+  }
+
+  
+
+  get currentYear(): number {
+    return new Date().getFullYear();
+  }
+
+  // Méthodes de calcul du CA estimé
+  private estimateProjectRevenueHT(project: DashboardProject): number {
+    const team = this.allTeams().find(t => t.id === project.teamId);
+    const members = team?.members || [];
+    const teamDailyRate = members.reduce((sum, member) => sum + (member.tjm || 0), 0);
+
+    if (teamDailyRate === 0) return 0;
+
+    const businessDays = this.getBusinessDaysBetween(
+      project.startDate instanceof Date ? project.startDate.toISOString() : project.startDate,
+      project.endDate instanceof Date ? project.endDate.toISOString() : project.endDate
+    );
+    const progressRatio = Math.min(Math.max((project.progressPercentage || 0) / 100, 0), 1);
+    const effectiveDays = Math.max(1, Math.round(businessDays * progressRatio));
+
+    return teamDailyRate * effectiveDays;
+  }
+
+  private getBusinessDaysBetween(startDate?: string | Date, endDate?: string | Date): number {
+    if (!startDate || !endDate) return 1;
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    if (isNaN(start.getTime()) || isNaN(end.getTime()) || start > end) return 1;
+
+    let count = 0;
+    const current = new Date(start);
+    while (current <= end) {
+      const day = current.getDay();
+      if (day !== 0 && day !== 6) count++;
+      current.setDate(current.getDate() + 1);
+    }
+    return Math.max(count, 1);
+  }
+
+  // Couleur pour un profil (identique à reporting)
+  getColorForProfile(profile: string): string {
+    const colors = ['#7c3aed', '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#ec4899', '#06b6d4', '#84cc16'];
+    let hash = 0;
+    for (let i = 0; i < profile.length; i++) {
+      hash = profile.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    return colors[Math.abs(hash) % colors.length];
+  }
+
+  // Utilitaire pour le template : avatar par index
+  getAvatarColorIndex(index: number): string {
+    const colors = ['#7c3aed', '#3b82f6', '#10b981', '#f59e0b', '#ef4444'];
+    return colors[index % colors.length];
+  }
+
+  // Export PDF pour Responsable Contrat (optionnel)
+  exportResponsableContratToPdf(): void {
+    console.log('🔵 Export PDF Responsable Contrat appelé');
+    if (!this.isResponsableContract()) return;
+    this.http.get('http://localhost:8080/api/reporting/export-responsable-pdf', {
+      responseType: 'blob'
+    }).subscribe({
+      next: (blob) => {
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `rapport_responsable_contrat_${new Date().toISOString().split('T')[0]}.pdf`;
+        link.click();
+        window.URL.revokeObjectURL(url);
+        this.showToast('PDF exporté avec succès !', 'success');
+      },
+      error: (err) => {
+        console.error('❌ Erreur export PDF:', err);
+        this.showToast('Erreur lors de l\'export PDF', 'error');
+      }
+    });
+  }
 
   rcKpis = computed(() => [
     {
@@ -903,6 +1554,145 @@ export class Dashboard implements OnInit {
   }
 
   // ================= MEMBRE EQUIPE =================
+    // ================= MEMBRE EQUIPE (version enrichie) =================
+  // Statistiques personnelles (basées sur myTasks)
+  get totalMyTasks(): number {
+    return this.myTasks().length;
+  }
+
+  get myTasksCompleted(): number {
+    return this.myTasks().filter(t => t.status === 'Terminé').length;
+  }
+
+  get myTasksInProgress(): number {
+    return this.myTasks().filter(t => t.status === 'En_cours').length;
+  }
+
+  get myTasksLate(): number {
+    return this.myTasks().filter(t => this.isTaskLate(t)).length;
+  }
+
+  get myTasksRemaining(): number {
+    return this.totalMyTasks - this.myTasksCompleted;
+  }
+
+  get myCompletionRate(): number {
+    if (this.totalMyTasks === 0) return 0;
+    return Math.round((this.myTasksCompleted / this.totalMyTasks) * 100);
+  }
+
+  // Distribution par priorité
+  get myHighPriorityCount(): number {
+    return this.myTasks().filter(t => t.priority === 'HAUTE').length;
+  }
+
+  get myMediumPriorityCount(): number {
+    return this.myTasks().filter(t => t.priority === 'MOYENNE').length;
+  }
+
+  get myLowPriorityCount(): number {
+    return this.myTasks().filter(t => t.priority === 'BASSE').length;
+  }
+
+  get myHighPriorityPercent(): number {
+    if (this.totalMyTasks === 0) return 0;
+    return (this.myHighPriorityCount / this.totalMyTasks) * 100;
+  }
+
+  get myMediumPriorityPercent(): number {
+    if (this.totalMyTasks === 0) return 0;
+    return (this.myMediumPriorityCount / this.totalMyTasks) * 100;
+  }
+
+  get myLowPriorityPercent(): number {
+    if (this.totalMyTasks === 0) return 0;
+    return (this.myLowPriorityCount / this.totalMyTasks) * 100;
+  }
+
+  // Tâches en cours ou à faire (pour le tableau)
+  get myCurrentTasks(): TaskDto[] {
+    return this.myTasks().filter(t => t.status !== 'Terminé');
+  }
+
+  // Pagination pour le tableau des tâches
+  memberTasksPage = 1;
+  memberTasksItemsPerPage = 5;
+
+  get paginatedMyCurrentTasks(): TaskDto[] {
+    const start = (this.memberTasksPage - 1) * this.memberTasksItemsPerPage;
+    return this.myCurrentTasks.slice(start, start + this.memberTasksItemsPerPage);
+  }
+
+  get memberTasksTotalPages(): number {
+    return Math.max(1, Math.ceil(this.myCurrentTasks.length / this.memberTasksItemsPerPage));
+  }
+
+  goToMemberTasksPage(page: number): void {
+    if (page >= 1 && page <= this.memberTasksTotalPages) {
+      this.memberTasksPage = page;
+    }
+  }
+
+  // Évolution hebdomadaire (simulée – vous pouvez la remplacer par des données réelles)
+  get weeklyEvolution(): { week: string; total: number; completed: number }[] {
+    const weeks = ['Sem 1', 'Sem 2', 'Sem 3', 'Sem 4'];
+    // Simulation : à adapter selon vos données réelles (par ex. depuis le backend)
+    return weeks.map(week => ({
+      week,
+      total: Math.floor(Math.random() * 10) + 5,
+      completed: Math.floor(Math.random() * 8) + 2
+    }));
+  }
+
+  // Formatage de date pour l'affichage dans le tableau
+  formatTaskDate(dateStr?: string): string {
+    if (!dateStr) return 'Non définie';
+    const date = new Date(dateStr);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const dueDate = new Date(date);
+    dueDate.setHours(0, 0, 0, 0);
+    const diffDays = Math.ceil((dueDate.getTime() - today.getTime()) / (1000 * 3600 * 24));
+    if (diffDays < 0) return `En retard (${Math.abs(diffDays)}j)`;
+    if (diffDays === 0) return "Aujourd'hui";
+    if (diffDays === 1) return "Demain";
+    return date.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' });
+  }
+
+  // Libellé du statut d'une tâche
+  getTaskStatusLabel(status?: string): string {
+    switch (status) {
+      case 'A_faire': return 'À faire';
+      case 'En_cours': return 'En cours';
+      case 'Terminé': return 'Terminé';
+      case 'Validation': return 'Validation';
+      case 'A_revoir': return 'À revoir';
+      default: return status || '-';
+    }
+  }
+
+  // Export PDF pour membre équipe (appelé par le bouton)
+  exportMembreEquipeToPdf(): void {
+    console.log('🔵 Export PDF Membre Équipe appelé');
+    if (!this.isMembreEquipe()) return;
+    this.http.get('http://localhost:8080/api/reporting/export-membre-pdf', {
+      responseType: 'blob'
+    }).subscribe({
+      next: (blob) => {
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `rapport_membre_equipe_${new Date().toISOString().split('T')[0]}.pdf`;
+        link.click();
+        window.URL.revokeObjectURL(url);
+        this.showToast('PDF exporté avec succès !', 'success');
+      },
+      error: (err) => {
+        console.error('❌ Erreur export PDF:', err);
+        this.showToast('Erreur lors de l\'export PDF', 'error');
+      }
+    });
+  }
   myTasks = computed(() => {
     const currentUserId = this.currentUser()?.id;
     if (!currentUserId) return [];
@@ -973,4 +1763,157 @@ export class Dashboard implements OnInit {
     if (isNaN(date.getTime())) return 'Non définie';
     return date.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' });
   }
+
+
+// ================= AI PREDICTION METHODS =================
+
+private analysisQueue: number[] = [];
+private isAnalysing = false;
+
+// "Actualiser" → lit le cache pour tous les projets (rapide, pas de 429)
+loadAllChefProjectRisks(): void {
+  const enCoursProjects = this.chefProjects.filter(p => p.status === 'EN_COURS');
+  enCoursProjects.forEach((project, index) => {
+    // Délai léger juste pour ne pas saturer l'UI
+    setTimeout(() => this.loadRiskForProject(project.id), index * 300);
+  });
+}
+
+// Bouton "Analyser" sur un projet → force le refresh IA
+forceRefreshProject(projectId: number): void {
+  if (this.isRiskLoading(projectId)) return;
+  this.riskLoading.set(new Map([...this.riskLoading(), [projectId, true]]));
+
+  this.predictionService.forceRefreshRisk(projectId).subscribe({
+    next: (result) => {
+      this.projectRisks.set(new Map([...this.projectRisks(), [projectId, result]]));
+      this.riskLoading.set(new Map([...this.riskLoading(), [projectId, false]]));
+      if (result.level === 'ELEVE') {
+        this.loadRecommendationForProject(projectId);
+      }
+    },
+    error: (err) => {
+      console.error('Erreur force refresh:', err);
+      this.riskLoading.set(new Map([...this.riskLoading(), [projectId, false]]));
+    }
+  });
+}
+
+private processNextInQueue(): void {
+  if (this.isAnalysing || this.analysisQueue.length === 0) return;
+
+  const projectId = this.analysisQueue.shift()!;
+  this.isAnalysing = true;
+  this.analyseOneProject(projectId);
+}
+
+private analyseOneProject(projectId: number): void {
+  this.riskLoading.set(new Map([...this.riskLoading(), [projectId, true]]));
+
+  this.predictionService.getProjectRisk(projectId).subscribe({
+    next: (result) => {
+      this.projectRisks.set(new Map([...this.projectRisks(), [projectId, result]]));
+      this.riskLoading.set(new Map([...this.riskLoading(), [projectId, false]]));
+
+      // ✅ NE PAS charger les recommandations automatiquement
+      // Elles seront chargées à la demande (bouton "Voir recommandations")
+
+      this.isAnalysing = false;
+      setTimeout(() => this.processNextInQueue(), 4000);
+    },
+    error: (err) => {
+      console.error(`Erreur prédiction projet ${projectId}:`, err);
+      this.riskLoading.set(new Map([...this.riskLoading(), [projectId, false]]));
+      this.isAnalysing = false;
+
+      if (err.status === 503 || err.status === 429) {
+        this.analysisQueue.unshift(projectId);
+        setTimeout(() => this.processNextInQueue(), 10000);
+      } else {
+        setTimeout(() => this.processNextInQueue(), 2000);
+      }
+    }
+  });
+}
+
+// Bouton "Analyser" d'un seul projet
+loadRiskForProject(projectId: number): void {
+  if (this.riskLoading().get(projectId)) return;
+
+  // Si déjà une analyse en cours, mettre en queue
+  if (this.isAnalysing) {
+    if (!this.analysisQueue.includes(projectId)) {
+      this.analysisQueue.push(projectId);
+      console.log(`📋 Projet ${projectId} mis en file d'attente`);
+    }
+    return;
+  }
+
+  this.isAnalysing = true;
+  this.analyseOneProject(projectId);
+}
+
+recommendationLoading = signal<Map<number, boolean>>(new Map());
+
+loadRecommendationForProject(projectId: number): void {
+  if (this.recommendationLoading().get(projectId)) return;
+
+  this.recommendationLoading.set(
+    new Map([...this.recommendationLoading(), [projectId, true]]));
+
+  this.predictionService.getTeamRecommendation(projectId).subscribe({
+    next: (result) => {
+      this.projectRecommendations.set(
+        new Map([...this.projectRecommendations(), [projectId, result]]));
+      this.recommendationLoading.set(
+        new Map([...this.recommendationLoading(), [projectId, false]]));
+    },
+    error: (err) => {
+      console.error(`Erreur recommandation projet ${projectId}:`, err);
+      this.recommendationLoading.set(
+        new Map([...this.recommendationLoading(), [projectId, false]]));
+    }
+  });
+}
+
+isRecommendationLoading(projectId: number): boolean {
+  return this.recommendationLoading().get(projectId) ?? false;
+}
+
+getRiskForProject(projectId: number): RiskPredictionResult | null {
+  return this.projectRisks().get(projectId) ?? null;
+}
+
+getRecommendationForProject(projectId: number): TeamRecommendationResult | null {
+  return this.projectRecommendations().get(projectId) ?? null;
+}
+
+isRiskLoading(projectId: number): boolean {
+  return this.riskLoading().get(projectId) ?? false;
+}
+
+getRiskLevelLabel(level: string): string {
+  return { 'FAIBLE': 'Faible', 'MOYEN': 'Moyen', 'ELEVE': 'Élevé' }[level] ?? level;
+}
+
+getRiskLevelClass(level: string): string {
+  return { 'FAIBLE': 'risk-faible', 'MOYEN': 'risk-moyen', 'ELEVE': 'risk-eleve' }[level] ?? '';
+}
+
+getRiskScorePercent(score: number): number {
+  return Math.round(score * 100);
+}
+
+// la déclaration de projectRisks signal
+chefHighRiskProjectsCount = computed(() => {
+  let count = 0;
+  this.projectRisks().forEach(r => { if (r.level === 'ELEVE') count++; });
+  return count;
+});
+
+chefMediumRiskProjectsCount = computed(() => {
+  let count = 0;
+  this.projectRisks().forEach(r => { if (r.level === 'MOYEN') count++; });
+  return count;
+});
 }

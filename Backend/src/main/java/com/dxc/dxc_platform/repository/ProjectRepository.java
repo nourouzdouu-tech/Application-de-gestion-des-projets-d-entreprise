@@ -28,16 +28,25 @@ public interface ProjectRepository extends JpaRepository<Project, Long> {
     List<Project> findAllByTeamProjectManagerIdAndDeletedFalse(Long projectManagerId);
 
     List<Project> findAllByTeamProjectManagerIdAndDeletedFalseAndStatus(Long projectManagerId, ProjectStatus status);
+
     List<Project> findAllByDeletedFalseAndStatusAndManagerId(ProjectStatus status, Long managerId);
-    List<Project> findAllByChefProjetIdAndDeletedFalse(Long chefProjetId);
-    List<Project> findAllByChefProjetIdAndDeletedFalseAndStatus(Long chefProjetId, ProjectStatus status);
+
+    @Query("SELECT p FROM Project p WHERE p.chefProjet.id = :chefProjetId AND p.deleted = false")
+    List<Project> findAllByChefProjetIdAndDeletedFalse(@Param("chefProjetId") Long chefProjetId);
+
+    @Query("SELECT p FROM Project p WHERE p.chefProjet.id = :chefProjetId AND p.deleted = false AND p.status = :status")
+    List<Project> findAllByChefProjetIdAndDeletedFalseAndStatus(@Param("chefProjetId") Long chefProjetId, @Param("status") ProjectStatus status);
+
     boolean existsByTeamIdAndDeletedFalseAndIdNot(Long teamId, Long projectId);
+
     List<Project> findAllByDeletedFalseAndManagerId(Long managerId);
 
     List<Project> findAllByDeletedFalseAndManagerIdAndStatusIn(Long managerId, List<ProjectStatus> statuses);
+
     List<Project> findAllByTeamIdAndDeletedFalse(Long teamId);
 
     List<Project> findAllByTeamIdAndDeletedFalseAndStatus(Long teamId, ProjectStatus status);
+
     long countByStatus(String status);
     long countByCreatedAtAfter(LocalDateTime date);
     long countByDeletedFalseAndCreatedAtAfter(LocalDateTime date);
@@ -47,7 +56,20 @@ public interface ProjectRepository extends JpaRepository<Project, Long> {
     int countByManagerId(Long managerId);
     int countByManagerIdAndStatus(Long managerId, String status);
     List<Project> findByManagerId(Long managerId);
-    List<Project> findByChefProjetId(Long chefProjetId);
+
+    @Query("SELECT p FROM Project p WHERE p.chefProjet.id = :chefProjetId")
+    List<Project> findByChefProjetId(@Param("chefProjetId") Long chefProjetId);
+
+    List<Project> findByEndDateBefore(LocalDateTime date);
+
+    // List<Project> findByBilledTrue();
+
+    List<Project> findByStatus(ProjectStatus status);
+    List<Project> findByStatusAndManagerId(ProjectStatus status, Long managerId);
+
+    @Query("SELECT p FROM Project p WHERE p.chefProjet.id = :chefProjetId")
+    List<Project> findByChefDeProjetId(@Param("chefProjetId") Long chefProjetId);
+
     @Query("SELECT COUNT(p) FROM Project p WHERE p.deleted = false AND MONTH(p.createdAt) = :month")
     long countByMonth(@Param("month") int month);
 

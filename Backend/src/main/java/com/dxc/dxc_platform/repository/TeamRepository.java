@@ -1,6 +1,7 @@
 package com.dxc.dxc_platform.repository;
 
 import com.dxc.dxc_platform.entity.Team;
+import com.dxc.dxc_platform.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -23,6 +24,10 @@ public interface TeamRepository extends JpaRepository<Team, Long> {
 
     List<Team> findByProjectManagerIdAndDeletedFalse(Long projectManagerId);
 
+    // Pour récupérer les membres d'une équipe
+    @Query("SELECT m FROM Team t JOIN t.members m " +
+            "WHERE t.id = :teamId AND t.deleted = false AND m.deleted = false")
+    List<User> findMembersByTeamId(@Param("teamId") Long teamId);
     @Query("SELECT COUNT(t) > 0 FROM Team t JOIN t.members m WHERE m.id = :userId AND t.deleted = false")
     boolean isUserInAnyTeam(@Param("userId") Long userId);
 }

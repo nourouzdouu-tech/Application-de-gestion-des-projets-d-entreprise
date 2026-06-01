@@ -96,7 +96,7 @@
   color: white;
 }
 
-..btn-success:hover {
+.btn-success:hover {
   background: #15803d;
 }
 

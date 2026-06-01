@@ -21,12 +21,12 @@ export class Dashboard implements OnInit {
 
   // KPI Data - sera mis à jour avec les vraies données
   kpiData = computed(() => [
-    { title: 'Total Utilisateurs', value: this.totalUsers().toString(), icon: '👥' },
-    { title: 'Utilisateurs Actifs', value: this.activeUsers().toString(), icon: '⚡' },
-    { title: 'Utilisateurs Inactifs', value: this.inactiveUsers().toString(), icon: '🚫' },
-    { title: 'Taux de Validation', value: '94.2%', icon: '✓' },
-    { title: 'Taux de Rejet', value: '5.8%', icon: '✕' },
-    { title: 'Charge Moyenne', value: '72%', icon: '⚙️' }
+    { title: 'TOTAL', value: this.totalUsers().toString(), icon: '👥' },
+    { title: 'ACTIFS', value: this.activeUsers().toString(), icon: '⚡' },
+    { title: 'INACTIFS', value: this.inactiveUsers().toString(), icon: '🚫' },
+    { title: 'TAUX VALIDATION', value: '94.2%', icon: '✓' },
+    { title: 'TAUX REJET', value: '5.8%', icon: '✕' },
+    { title: 'CHARGE MOYENNE', value: '72%', icon: '⚙️' }
   ]);
 
   userLoadData = [
