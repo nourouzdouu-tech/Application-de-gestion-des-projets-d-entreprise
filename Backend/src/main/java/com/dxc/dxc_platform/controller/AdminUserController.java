@@ -72,7 +72,8 @@ public class AdminUserController {
     @PatchMapping("/{id}/change-password")
     public ResponseEntity<Void> changePassword(
             @PathVariable Long id,
-            @RequestBody UserDto.ChangePasswordRequest req) {
+            @RequestBody UserDto
+                    .ChangePasswordRequest req) {
         userAdminService.changePassword(id, req.newPassword());
         return ResponseEntity.noContent().build();
     }
