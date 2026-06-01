@@ -33,7 +33,7 @@ export class App implements OnInit, OnDestroy {
   }
 
   private disableBackNavigation(): void {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem('auth_token');
     const currentUrl = this.router.url;
     
     console.log('URL actuelle:', currentUrl, 'Token:', !!token);

@@ -18,6 +18,9 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     Optional<User> findByEmailAndDeletedFalse(String email);
 
+    // ← AJOUT : recherche insensible à la casse pour WebAuthn
+    Optional<User> findByEmailIgnoreCaseAndDeletedFalse(String email);
+
     boolean existsByEmailAndDeletedFalse(String email);
 
     // ✅ CORRIGÉ : findByLockedTrue (pas findByIsLockedTrue)

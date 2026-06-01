@@ -336,8 +336,8 @@ export class SidebarComponent implements OnInit {
   }
 
 getRoleLabel(): string {
-  const roles = this.authService.getRoles();
-  if (!roles || roles.length === 0) return 'Utilisateur';
+  const user = this.authService.getUser();
+  if (!user || !user.roles || user.roles.length === 0) return 'Utilisateur';
 
   const roleLabels: Record<string, string> = {
     ADMIN: 'Administrateur système',
@@ -347,7 +347,13 @@ getRoleLabel(): string {
     RESPONSABLE_CONTRAT: 'Responsable de contrat'
   };
 
-  return roles.map(r => roleLabels[r] ?? r).join(', ');
+  // ✅ Filtrer les rôles réels (ignorer les permissions)
+  const validRoleKeys = Object.keys(roleLabels);
+  const actualRoles = user.roles.filter(r => validRoleKeys.includes(r));
+
+  if (actualRoles.length === 0) return 'Utilisateur';
+  
+  return actualRoles.map(r => roleLabels[r] ?? r).join(', ');
 }
   private triggerToast(type: 'success' | 'error', msg: string): void {
     this.toastMessage.set(msg);

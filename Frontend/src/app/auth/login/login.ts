@@ -1,26 +1,37 @@
-import { Component, ChangeDetectionStrategy, signal, inject } from '@angular/core';
+import { Component, ChangeDetectionStrategy, ChangeDetectorRef, signal, inject, ViewChild, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
+import { WebAuthnService } from '../../core/services/webauthn.service';
+import { BiometricSetupModalComponent } from '../biometric-setup-modal/biometric-setup-modal';
 
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, ReactiveFormsModule, BiometricSetupModalComponent],
   templateUrl: './login.html',
   styleUrl: './login.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class Login {
+export class Login implements OnInit {
   private fb = inject(FormBuilder);
   private authService = inject(AuthService);
+  private webAuthnService = inject(WebAuthnService);
   private router = inject(Router);
+  private cdr = inject(ChangeDetectorRef);
+
+  @ViewChild(BiometricSetupModalComponent) setupModal!: BiometricSetupModalComponent;
 
   loginForm: FormGroup;
   showPassword = signal(false);
   isLoading = signal(false);
   errorMessage = signal('');
+  showSetupModal = signal(false);
+  pendingEmail = signal('');
+
+  biometricAvailable = false;
+  biometricLabel = 'Empreinte digitale';
 
   dxcLogo = '/assets/DXC_logo.png';
 
@@ -35,17 +46,68 @@ export class Login {
       email: ['', [Validators.required, Validators.email]],
       password: ['', [Validators.required, Validators.minLength(8)]],
     });
+  }
 
-    // biometric support removed
+  async ngOnInit(): Promise<void> {
+    if (window.PublicKeyCredential) {
+      this.biometricAvailable =
+        await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
+    }
+    // ✅ Détecte correctement FaceID sur Windows (Windows Hello)
+    const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent);
+    const isWindows = /Windows/.test(navigator.userAgent);
+    
+    if (isIOS) {
+      this.biometricLabel = 'Face ID';
+    } else if (isWindows && this.biometricAvailable) {
+      // Windows Hello peut supporter Face ID ou empreinte
+      this.biometricLabel = 'Windows Hello (Face ID ou Empreinte)';
+    } else {
+      this.biometricLabel = 'Empreinte digitale';
+    }
+    this.cdr.markForCheck();
   }
 
   togglePasswordVisibility(): void {
-    this.showPassword.update(value => !value);
+    this.showPassword.update(v => !v);
   }
 
-  
+  // ← MÉTHODE UNIQUE navigateByRoles avec logging ET NORMALISATION
+  private navigateByRoles(roles: any[]): void {
+    console.log('[Login] navigateByRoles - raw roles:', roles);
+    
+    const normalized = roles.map((r: any) => {
+      let roleStr = typeof r === 'string' ? r : (r?.nom || r?.authority || '');
+      roleStr = roleStr.trim().toUpperCase();
+      // ✅ Supprimer le préfixe 'ROLE_' si présent pour normaliser
+      if (roleStr.startsWith('ROLE_')) {
+        roleStr = roleStr.substring(5);
+      }
+      return roleStr;
+    });
+    
+    console.log('[Login] navigateByRoles - normalized roles:', normalized);
 
-  
+    if (normalized.some(r => r === 'CHEF_PROJET')) {
+      console.log('[Login] Redirecting to: /chef-projet/dashboard');
+      this.router.navigateByUrl('/chef-projet/dashboard');
+    } else if (normalized.some(r => r === 'RESPONSABLE_CONTRAT')) {
+      console.log('[Login] Redirecting to: /responsable-contrat/dashboard');
+      this.router.navigateByUrl('/responsable-contrat/dashboard');
+    } else if (normalized.some(r => r === 'ADMIN')) {
+      console.log('[Login] Redirecting to: /admin/dashboard');
+      this.router.navigateByUrl('/admin/dashboard');
+    } else if (normalized.some(r => r === 'MANAGER')) {
+      console.log('[Login] Redirecting to: /manager/dashboard');
+      this.router.navigateByUrl('/manager/dashboard');
+    } else if (normalized.some(r => r === 'MEMBRE_EQUIPE')) {
+      console.log('[Login] Redirecting to: /membre-equipe/dashboard');
+      this.router.navigateByUrl('/membre-equipe/dashboard');
+    } else {
+      console.error('[Login] ❌ Unrecognized roles:', normalized);
+      this.errorMessage.set('Rôle non reconnu : ' + normalized.join(', '));
+    }
+  }
 
   onSubmit(): void {
     if (!this.loginForm.valid) {
@@ -57,49 +119,36 @@ export class Login {
     this.errorMessage.set('');
 
     const { email, password } = this.loginForm.value;
+    const emailNormalized = email.trim().toLowerCase();
 
     this.authService.login(email, password).subscribe({
-      next: (response) => {
-        console.log('Login réussi:', response);
-
+      next: async (response) => {
         this.authService.saveToken(response.accessToken);
         this.authService.saveUser(response);
         this.isLoading.set(false);
 
-        const roles = (response.roles || []).map((r: any) => {
-          if (typeof r === 'string') {
-            return r.trim().toUpperCase();
+        const bioAvailable = window.PublicKeyCredential &&
+          await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
+
+        if (bioAvailable) {
+          try {
+            const hasCredential = await this.webAuthnService.hasCredential(emailNormalized);
+            if (!hasCredential) {
+              this.pendingEmail.set(emailNormalized);
+              this.showSetupModal.set(true);
+              this.cdr.detectChanges();
+              return;
+            }
+          } catch {
+            // En cas d'erreur réseau ou 401, on navigue normalement
           }
-          return (r?.nom || '').trim().toUpperCase();
-        });
-
-        console.log('Roles utilisateur :', roles);
-
-        if (roles.includes('CHEF_PROJET') || roles.includes('ROLE_CHEF_PROJET')) {
-          this.router.navigateByUrl('/chef-projet/dashboard');
-        } else if (
-          roles.includes('RESPONSABLE_CONTRAT') ||
-          roles.includes('ROLE_RESPONSABLE_CONTRAT')
-        ) {
-          this.router.navigateByUrl('/responsable-contrat/dashboard');
-        } else if (roles.includes('ADMIN') || roles.includes('ROLE_ADMIN')) {
-          this.router.navigateByUrl('/admin/dashboard');
-        } else if (roles.includes('MANAGER') || roles.includes('ROLE_MANAGER')) {
-          this.router.navigateByUrl('/manager/dashboard');
-        } else if (
-          roles.includes('MEMBRE_EQUIPE') ||
-          roles.includes('ROLE_MEMBRE_EQUIPE')
-        ) {
-          this.router.navigateByUrl('/membre-equipe/dashboard');
-        } else {
-          this.router.navigateByUrl('/login');
         }
+
+        this.navigateByRoles(response.roles || []);
       },
 
       error: (error) => {
-        console.error('Erreur login:', error);
         this.isLoading.set(false);
-
         if (error.status === 401) {
           this.errorMessage.set('Email ou mot de passe incorrect');
         } else if (error.status === 403) {
@@ -111,11 +160,64 @@ export class Login {
     });
   }
 
-  get email() {
-    return this.loginForm.get('email');
+  async onModalAccepted(): Promise<void> {
+    try {
+      await this.webAuthnService.registerWithWebAuthn(this.pendingEmail());
+      this.setupModal.showSuccess();
+    } catch (e: any) {
+      const cancelled = e?.name === 'NotAllowedError';
+      this.setupModal.showError(cancelled);
+    } finally {
+      this.cdr.detectChanges();
+    }
   }
 
-  get password() {
-    return this.loginForm.get('password');
+  onModalDeclined(): void {
+    this.showSetupModal.set(false);
+    this.cdr.detectChanges();
+    const user = this.authService.getUser();
+    this.navigateByRoles(user?.roles || []);
   }
+
+  async loginWithBiometrics(): Promise<void> {
+    const emailValue = this.email?.value?.trim();
+    if (!emailValue || !this.email?.valid) {
+      this.errorMessage.set('Veuillez entrer votre adresse email avant d\'utiliser la biométrie');
+      return;
+    }
+
+    if (!('credentials' in navigator)) {
+      this.errorMessage.set('Navigateur ne supporte pas WebAuthn');
+      return;
+    }
+
+    this.isLoading.set(true);
+    this.errorMessage.set('');
+
+    try {
+      console.log('[Login] Starting WebAuthn login for:', emailValue);
+      
+      const me = await this.webAuthnService.loginWithWebAuthn(emailValue);
+      
+      console.log('[Login] WebAuthn success, user data:', me);
+      console.log('[Login] Roles received:', me.roles);
+      
+      if (!me.roles || me.roles.length === 0) {
+        console.error('[Login] ❌ No roles found in response!');
+        this.errorMessage.set('Aucun rôle trouvé pour cet utilisateur');
+        return;
+      }
+      
+      this.navigateByRoles(me.roles);
+    } catch (err: any) {
+      console.error('[Login] WebAuthn error:', err);
+      this.errorMessage.set(err?.error?.message || err?.message || 'Erreur d\'authentification biométrique');
+    } finally {
+      this.isLoading.set(false);
+      this.cdr.detectChanges();
+    }
+  }
+
+  get email() { return this.loginForm.get('email'); }
+  get password() { return this.loginForm.get('password'); }
 }

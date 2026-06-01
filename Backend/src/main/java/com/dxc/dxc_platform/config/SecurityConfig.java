@@ -35,8 +35,10 @@ public class SecurityConfig {
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
+                        // Endpoints publics
                         .requestMatchers(
-                                "/api/auth/**",
+                                "/api/auth/login",
+                                "/api/auth/webauthn/**",
                                 "/swagger-ui/**",
                                 "/swagger-ui.html",
                                 "/v3/api-docs/**",
@@ -45,10 +47,18 @@ public class SecurityConfig {
                                 "/uploads/**",
                                 "/api/files/**"
                         ).permitAll()
+
+                        // ← IMPORTANT : /me accessible à TOUS les utilisateurs authentifiés
+                        .requestMatchers("/api/auth/me").authenticated()
+
+                        // Endpoints protégés par rôle
                         .requestMatchers("/api/admin/**").hasAuthority("ADMIN")
+
+                        // Autres endpoints nécessitant une authentification
                         .requestMatchers("/api/clients/select").authenticated()
                         .requestMatchers("/api/teams/**").authenticated()
                         .requestMatchers("/api/projects/**").authenticated()
+
                         .anyRequest().authenticated()
                 )
                 .authenticationProvider(authenticationProvider)

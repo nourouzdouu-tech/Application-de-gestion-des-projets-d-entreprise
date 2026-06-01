@@ -485,7 +485,18 @@ chefTeamPerformanceItemsPerPage = 5;
   ngOnInit() {
     const user = this.authService.getUser();
     this.currentUser.set(user);
-    this.roles.set((user?.roles || []).map((r: any) => r.nom || r));
+    // ✅ NORMALISE LES RÔLES POUR GARANTIR LA COHÉRENCE
+    const normalized = (user?.roles || []).map((r: any) => {
+      let roleStr = typeof r === 'string' ? r : (r?.nom || r?.authority || '');
+      roleStr = roleStr.trim().toUpperCase();
+      // Supprimer le préfixe 'ROLE_' si présent
+      if (roleStr.startsWith('ROLE_')) {
+        roleStr = roleStr.substring(5);
+      }
+      return roleStr;
+    });
+    this.roles.set(normalized);
+    console.log('[Dashboard] Normalized roles from user:', normalized);
 
     this.loadDashboardData();
   }
