@@ -11,6 +11,7 @@ import { TaskService, TaskDto } from '../../../core/services/task.service';
 import { RouterModule } from '@angular/router';
 import { ManagerService, ManagerProjectItemDto } from '../../../core/services/manager.service';
 import { NotificationBellComponent } from '../../../core/services/notification-bell.component';
+import { ProfileService, ProfileDto } from '../../../core/services/profile.service';
 import { NotificationBellChefComponent } from '../../../core/services/notification-bell-chef.component';
 import { NotificationBellMembreComponent } from '../../../core/services/notification-bell-membre.component';
 import { NotificationBellManagerComponent } from '../../../core/services/notification-bell-manager.component';
@@ -88,6 +89,7 @@ export class Dashboard implements OnInit {
   private projectService = inject(ProjectService);
   private taskService = inject(TaskService);
   private managerService = inject(ManagerService);
+  private profileService = inject(ProfileService);
   private http = inject(HttpClient);
   private predictionService = inject(PredictionService);
 
@@ -140,6 +142,7 @@ chefTeamPerformanceItemsPerPage = 5;
   projects = signal<DashboardProject[]>([]);
   tasks = signal<TaskDto[]>([]);
   allTeams = signal<TeamDto[]>([]);
+  profiles = signal<ProfileDto[]>([]);
 
   // ================= PAGINATION ADMIN =================
   // Pagination pour "Charge par Utilisateur"
@@ -256,18 +259,25 @@ chefTeamPerformanceItemsPerPage = 5;
   }
 
   get profileDistributionAdmin(): { profile: string; count: number; percentage: number }[] {
-    const profileCount = new Map<string, number>();
-    for (const user of this.users()) {
-      const profile = (user as any).profileLibelle?.trim() || 'Non défini';
-      profileCount.set(profile, (profileCount.get(profile) || 0) + 1);
+    const profiles = this.profiles().map(profile => profile.libelle.trim() || 'Non défini');
+    const profileCounts = new Map<string, number>();
+
+    for (const label of profiles) {
+      profileCounts.set(label, 0);
     }
-    return Array.from(profileCount.entries())
-      .map(([profile, count]) => ({
-        profile,
-        count,
-        percentage: this.totalUsersCount > 0 ? (count / this.totalUsersCount) * 100 : 0
-      }))
-      .sort((a, b) => b.count - a.count);
+
+    for (const user of this.users()) {
+      const profileLabel = (user as any).profileLibelle?.trim() || 'Non défini';
+      profileCounts.set(profileLabel, (profileCounts.get(profileLabel) || 0) + 1);
+    }
+
+    const distribution = Array.from(profileCounts.entries()).map(([profile, count]) => ({
+      profile,
+      count,
+      percentage: this.totalUsersCount > 0 ? (count / this.totalUsersCount) * 100 : 0
+    }));
+
+    return distribution.sort((a, b) => b.count - a.count);
   }
 
   get topClientsList(): any[] {
@@ -556,6 +566,12 @@ chefTeamPerformanceItemsPerPage = 5;
           } as PageResponse<UserResponse>);
         })
       ),
+      profiles: this.profileService.getAllProfiles().pipe(
+        catchError((err) => {
+          console.error('Erreur lors du chargement des profils:', err);
+          return of([] as ProfileDto[]);
+        })
+      ),
       projects: this.projectService.getAllProjects().pipe(
         catchError((err) => {
           console.error('Erreur lors du chargement des projets admin:', err);
@@ -575,13 +591,14 @@ chefTeamPerformanceItemsPerPage = 5;
         })
       )
     }).subscribe({
-      next: ({ users, projects, clients }) => {
+      next: ({ users, projects, clients, profiles }) => {
         this.users.set(users.content);
         this.totalUsers.set(users.totalElements);
         const active = users.content.filter(u => !u.locked).length;
         const inactive = users.content.filter(u => u.locked).length;
         this.activeUsers.set(active);
         this.inactiveUsers.set(inactive);
+        this.profiles.set(profiles || []);
         this.projects.set(projects.map((p) => ({
           ...p,
           startDate: new Date(p.startDate),

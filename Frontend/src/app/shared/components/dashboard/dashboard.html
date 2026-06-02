@@ -13,7 +13,13 @@
   <div class="main-content admin-reporting">
     <div class="hero-stats-wrapper">
       <div class="hero-stats-title">
-        <h2>📊 Administration & Analytics</h2>
+        <h2>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="vertical-align:middle; margin-right:8px;">
+            <path d="M3 3v18h18" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M7 13l3-3 3 3 4-6" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          Administration &amp; Analytics
+        </h2>
         <p>Visualisez les indicateurs clés de performance de la plateforme</p>
       </div>
       <div class="hero-controls">
@@ -23,7 +29,12 @@
 
     <div class="kpi-admin-grid">
       <div class="kpi-admin-card">
-        <div class="kpi-admin-icon blue">👥</div>
+        <div class="kpi-admin-icon blue">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+            <path d="M16 11c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM8 11c1.657 0 3-1.343 3-3S9.657 5 8 5 5 6.343 5 8s1.343 3 3 3z"/>
+            <path d="M2 21c0-3.866 3.582-7 8-7s8 3.134 8 7"/>
+          </svg>
+        </div>
         <div class="kpi-admin-info">
           <span class="kpi-admin-label">Total utilisateurs</span>
           <span class="kpi-admin-value">{{ totalUsersCount }}</span>
@@ -32,7 +43,11 @@
       </div>
 
       <div class="kpi-admin-card">
-        <div class="kpi-admin-icon green">⚡</div>
+        <div class="kpi-admin-icon green">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+            <path d="M13 2L3 14h9l-1 8L21 10h-9l1-8z" stroke-linejoin="round" stroke-linecap="round"/>
+          </svg>
+        </div>
         <div class="kpi-admin-info">
           <span class="kpi-admin-label">ACTIFS</span>
           <span class="kpi-admin-value">{{ activeUsersCount }}</span>
@@ -41,7 +56,12 @@
       </div>
 
       <div class="kpi-admin-card">
-        <div class="kpi-admin-icon orange">🚫</div>
+        <div class="kpi-admin-icon orange">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+            <path d="M12 17a2 2 0 0 0 2-2v-3a2 2 0 1 0-4 0v3a2 2 0 0 0 2 2z"/>
+            <path d="M7 11V9a5 5 0 0 1 10 0v2"/>
+          </svg>
+        </div>
         <div class="kpi-admin-info">
           <span class="kpi-admin-label">Inactifs / Verrouillés</span>
           <span class="kpi-admin-value">{{ inactiveUsersCount }}</span>
@@ -50,7 +70,12 @@
       </div>
 
       <div class="kpi-admin-card">
-        <div class="kpi-admin-icon pink">🛡️</div>
+        <div class="kpi-admin-icon pink">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+            <path d="M12 2l7 4v6c0 5-3.582 9-7 10-3.418-1-7-5-7-10V6l7-4z" stroke-linejoin="round" stroke-linecap="round"/>
+            <path d="M9.5 11.5l1.8 1.8 3.2-3.2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
         <div class="kpi-admin-info">
           <span class="kpi-admin-label">Rôles actifs</span>
           <span class="kpi-admin-value">{{ activeRolesCount }}</span>
@@ -62,7 +87,13 @@
     <div class="charts-admin-row">
       <div class="chart-admin-card">
         <div class="chart-admin-header">
-          <h3>📈 Évolution des utilisateurs</h3>
+          <h3>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" style="vertical-align:middle; margin-right:8px;">
+              <path d="M3 3v18h18" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M7 13l3-3 3 3 4-6" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            Évolution des utilisateurs
+          </h3>
         </div>
         <div class="line-chart-admin">
           <svg viewBox="0 0 600 200" preserveAspectRatio="xMidYMid meet">
@@ -83,7 +114,12 @@
 
       <div class="chart-admin-card">
         <div class="chart-admin-header">
-          <h3>👥 Répartition par rôle</h3>
+          <h3>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" style="vertical-align:middle; margin-right:8px;">
+              <path d="M16 11c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM8 11c1.657 0 3-1.343 3-3S9.657 5 8 5 5 6.343 5 8s1.343 3 3 3zM2 21c0-3.866 3.582-7 8-7s8 3.134 8 7"/>
+            </svg>
+            Répartition par rôle
+          </h3>
         </div>
         <div class="pie-stats-admin">
          @for (item of roleDistributionAdmin; track item.role) {
@@ -105,9 +141,14 @@
 
     <div class="charts-admin-row">
       <div class="chart-admin-card">
-        <div class="chart-admin-header">
-          <h3>🧩 Répartition par profil</h3>
-        </div>
+          <div class="chart-admin-header">
+            <h3>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" style="vertical-align:middle; margin-right:8px;">
+                <path d="M4 6h16M4 12h16M4 18h16" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              Répartition par profil
+            </h3>
+          </div>
         <div class="pie-stats-admin">
           @for (item of profileDistributionAdmin; track item.profile) {
             <div class="pie-stat-item">
@@ -130,7 +171,13 @@
 
       <div class="chart-admin-card">
         <div class="chart-admin-header">
-          <h3>🏢 Clients les plus récents</h3>
+          <h3>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" style="vertical-align:middle; margin-right:8px;">
+              <path d="M3 21h18V7H3v14z" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M7 7V3h10v4" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            Clients les plus récents
+          </h3>
           <span class="chart-badge">{{ topClientsList.length }} clients</span>
         </div>
         <div class="pie-stats-admin client-presence-list">
@@ -164,8 +211,8 @@
     <!-- Hero section -->
     <div class="hero-section">
       <div class="hero-left">
-        <span class="hero-badge">Reporting Chef de Projet</span>
-        <h1 class="heading-title">Rapports Projets & Équipes</h1>
+        <span class="hero-badge">Tableau de bord </span>
+        <h1 class="heading-title">Tableau de bord Projets & Équipes</h1>
         <p class="title-description">
           Analysez les performances de vos projets et de votre équipe.
         </p>
@@ -180,28 +227,49 @@
     <!-- KPIs -->
     <div class="kpi-manager-grid">
       <div class="kpi-manager-card total">
-        <div class="kpi-manager-icon">📁</div>
+        <div class="kpi-manager-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+            <path d="M3 7h6l2 3h10v9H3z" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M3 7V5a2 2 0 0 1 2-2h3" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
         <div class="kpi-manager-info">
           <span class="kpi-manager-label">Mes projets</span>
           <span class="kpi-manager-value">{{ chefProjects.length }}</span>
         </div>
       </div>
       <div class="kpi-manager-card assigned">
-        <div class="kpi-manager-icon">👥</div>
+        <div class="kpi-manager-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+            <path d="M17 21v-2a4 4 0 0 0-3-3.87" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M7 21v-2a4 4 0 0 1 3-3.87" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M12 7a4 4 0 1 0 0-8 4 4 0 0 0 0 8z"/>
+          </svg>
+        </div>
         <div class="kpi-manager-info">
           <span class="kpi-manager-label">Membres suivis</span>
           <span class="kpi-manager-value">{{ chefTeamMembersCount }}</span>
         </div>
       </div>
       <div class="kpi-manager-card pending">
-        <div class="kpi-manager-icon">✅</div>
+        <div class="kpi-manager-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+            <path d="M20 6L9 17l-5-5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
         <div class="kpi-manager-info">
           <span class="kpi-manager-label">Tâches terminées</span>
           <span class="kpi-manager-value">{{ chefCompletedTasks }}</span>
         </div>
       </div>
       <div class="kpi-manager-card rejected">
-        <div class="kpi-manager-icon">⚠️</div>
+        <div class="kpi-manager-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M12 9v4" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M12 17h.01" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
         <div class="kpi-manager-info">
           <span class="kpi-manager-label">En retard</span>
           <span class="kpi-manager-value">{{ chefLateTasks }}</span>
@@ -209,11 +277,18 @@
       </div>
       <!-- KPI AI Risk -->
 <div class="kpi-manager-card" style="border-left-color: #7c3aed;">
-  <div class="kpi-manager-icon" style="background:#f3e8ff;">🤖</div>
+  <div class="kpi-manager-icon" style="background:#f3e8ff;">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+      <rect x="6" y="3" width="12" height="6" rx="2" stroke-linecap="round" stroke-linejoin="round"/>
+      <rect x="3" y="9" width="18" height="12" rx="2" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M8 12v4" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M16 12v4" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+  </div>
   <div class="kpi-manager-info">
     <span class="kpi-manager-label">Risques IA détectés</span>
     <span class="kpi-manager-value">{{ chefHighRiskProjectsCount() }}</span>
-<span class="kpi-manager-trend">{{ chefMediumRiskProjectsCount() }} risques moyens</span>
+    <span class="kpi-manager-trend">{{ chefMediumRiskProjectsCount() }} risques moyens</span>
   </div>
 </div>
     </div>
@@ -328,7 +403,13 @@
     <!-- Performances des membres (tableau avec pagination) -->
     <div class="performance-section">
       <div class="section-header">
-        <h2>📊 Performances des membres</h2>
+        <h2>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" style="vertical-align:middle; margin-right:8px;">
+            <path d="M3 3v18h18" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M7 13l3-3 3 3 4-6" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          Performances des membres
+        </h2>
         <p>Efficacité moyenne : {{ formatPercent(chefAverageEfficiency) }}</p>
       </div>
       <div class="performance-table-container">
@@ -385,7 +466,12 @@
 <div class="performance-section" style="margin-top: 28px;">
   <div class="section-header">
     <div class="section-title-wrapper">
-      <span class="section-icon">🤖</span>
+      <span class="section-icon">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+          <rect x="3" y="3" width="18" height="6" rx="2" stroke-linecap="round" stroke-linejoin="round"/>
+          <rect x="3" y="11" width="18" height="10" rx="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </span>
       <h2>Analyse IA — Risques de retard</h2>
     </div>
     <button class="btn-refresh" (click)="loadAllChefProjectRisks()">
@@ -433,11 +519,26 @@
                 <span class="ai-spinner"></span> Analyse...
               </span>
             } @else if (getRiskForProject(project.id); as risk) {
-              <span class="ai-risk-badge" [ngClass]="getRiskLevelClass(risk.level)">
-                {{ risk.level === 'FAIBLE' ? '✅' : risk.level === 'MOYEN' ? '⚠️' : '🔴' }}
-                {{ getRiskLevelLabel(risk.level) }}
-                ({{ getRiskScorePercent(risk.score) }}%)
-              </span>
+                <span class="ai-risk-badge" [ngClass]="getRiskLevelClass(risk.level)">
+                  @if (risk.level === 'FAIBLE') {
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" style="vertical-align: middle; margin-right:6px;">
+                      <path d="M20 6L9 17l-5-5" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                  } @else if (risk.level === 'MOYEN') {
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" style="vertical-align: middle; margin-right:6px;">
+                      <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" stroke-linecap="round" stroke-linejoin="round"/>
+                      <path d="M12 9v4" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                  } @else {
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" style="vertical-align: middle; margin-right:6px;">
+                      <circle cx="12" cy="12" r="10" stroke-linecap="round" stroke-linejoin="round"/>
+                      <path d="M12 8v4" stroke-linecap="round" stroke-linejoin="round"/>
+                      <path d="M12 16h.01" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                  }
+                  {{ getRiskLevelLabel(risk.level) }}
+                  ({{ getRiskScorePercent(risk.score) }}%)
+                </span>
             } @else {
               <button class="btn-refresh" style="font-size:12px; padding: 6px 12px;"
         (click)="forceRefreshProject(project.id)">
@@ -475,7 +576,14 @@
     <!-- Recommandations déjà chargées → afficher -->
     <div class="ai-recommendation-block">
       <div class="ai-rec-header">
-        <span>👥 Membres recommandés pour renforcer l'équipe</span>
+        <span>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" style="vertical-align: middle; margin-right:6px;">
+            <path d="M17 21v-2a4 4 0 0 0-3-3.87" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M7 21v-2a4 4 0 0 1 3-3.87" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M12 7a4 4 0 1 0 0-8 4 4 0 0 0 0 8z"/>
+          </svg>
+          Membres recommandés pour renforcer l'équipe
+        </span>
         <span class="chart-badge">{{ rec.recommendedMembers.length }} suggestions</span>
       </div>
       <p class="ai-rec-summary">{{ rec.aiJustification }}</p>
@@ -504,7 +612,12 @@
       } @else {
         <button class="btn-load-recommendations"
                 (click)="loadRecommendationForProject(project.id)">
-          👥 Voir les recommandations de renfort
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" style="vertical-align: middle; margin-right:6px;">
+            <path d="M17 21v-2a4 4 0 0 0-3-3.87" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M7 21v-2a4 4 0 0 1 3-3.87" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M12 7a4 4 0 1 0 0-8 4 4 0 0 0 0 8z"/>
+          </svg>
+          Voir les recommandations de renfort
         </button>
       }
     </div>
@@ -527,7 +640,13 @@
   <div class="main-content manager-reporting">
     <div class="hero-stats-wrapper">
       <div class="hero-stats-title">
-        <h2>📊 Reporting Manager</h2>
+        <h2>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="vertical-align:middle; margin-right:8px;">
+            <path d="M3 3v18h18" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M7 13l3-3 3 3 4-6" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          Tableau de bord
+        </h2>
         <p>Suivez les projets à valider, les assignations et les performances</p>
       </div>
       <div class="hero-controls">
@@ -537,7 +656,12 @@
 
     <div class="kpi-manager-grid">
       <div class="kpi-manager-card pending">
-        <div class="kpi-manager-icon">⏳</div>
+        <div class="kpi-manager-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+            <path d="M12 8v5l3 3" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M21 12a9 9 0 1 1-9-9" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
         <div class="kpi-manager-info">
           <span class="kpi-manager-label">À valider</span>
           <span class="kpi-manager-value">{{ managerPendingCount }}</span>
@@ -546,7 +670,11 @@
       </div>
 
       <div class="kpi-manager-card assigned">
-        <div class="kpi-manager-icon">✓</div>
+        <div class="kpi-manager-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+            <path d="M20 6L9 17l-5-5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
         <div class="kpi-manager-info">
           <span class="kpi-manager-label">Assignés</span>
           <span class="kpi-manager-value">{{ managerValidatedCount }}</span>
@@ -555,7 +683,11 @@
       </div>
 
       <div class="kpi-manager-card rejected">
-        <div class="kpi-manager-icon">❌</div>
+        <div class="kpi-manager-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+            <path d="M18 6L6 18M6 6l12 12" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
         <div class="kpi-manager-info">
           <span class="kpi-manager-label">Rejetés</span>
           <span class="kpi-manager-value">{{ managerRejectedCount }}</span>
@@ -564,7 +696,12 @@
       </div>
 
       <div class="kpi-manager-card total">
-        <div class="kpi-manager-icon">📁</div>
+        <div class="kpi-manager-icon">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+            <path d="M3 7h6l2 3h10v9H3z" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M3 7V5a2 2 0 0 1 2-2h3" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
         <div class="kpi-manager-info">
           <span class="kpi-manager-label">Total projets</span>
           <span class="kpi-manager-value">{{ managerTotalProjects }}</span>
@@ -641,7 +778,12 @@
 
     <div class="table-manager-card">
       <div class="table-manager-header">
-        <h3>📜 Historique des décisions</h3>
+        <h3>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" style="vertical-align:middle; margin-right:8px;">
+            <path d="M4 6h16M4 12h16M4 18h16" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          Historique des décisions
+        </h3>
         <span class="badge-manager">Derniers projets traités</span>
       </div>
       <div class="table-responsive">
@@ -655,9 +797,19 @@
                 <td>{{ project.name }}</td>
                 <td>{{ project.client }}</td>
                 <td>
-                  <span class="decision-badge" [class.validated]="project.status === 'PRE_VALIDE'" [class.rejected]="project.status === 'REJETE'">
-                    {{ project.status === 'PRE_VALIDE' ? '✅ Validé' : '❌ Rejeté' }}
-                  </span>
+                    <span class="decision-badge" [class.validated]="project.status === 'PRE_VALIDE'" [class.rejected]="project.status === 'REJETE'">
+                      @if (project.status === 'PRE_VALIDE') {
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" style="vertical-align: middle; margin-right:6px;">
+                          <path d="M20 6L9 17l-5-5" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                        Validé
+                      } @else {
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" style="vertical-align: middle; margin-right:6px;">
+                          <path d="M18 6L6 18M6 6l12 12" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                        Rejeté
+                      }
+                    </span>
                 </td>
                 <td class="comment-cell">{{ project.managerComment || '-' }}</td>
               </tr>
@@ -691,7 +843,12 @@
     <!-- KPIs (6 cartes) -->
     <div class="kpi-grid rc-kpis">
       <div class="kpi-card">
-        <div class="kpi-icon purple">📁</div>
+        <div class="kpi-icon purple">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+            <path d="M3 7h6l2 3h10v9H3z" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M3 7V5a2 2 0 0 1 2-2h3" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
         <div class="kpi-info">
           <span class="kpi-title">Projets créés</span>
           <span class="kpi-value">{{ projets.length }}</span>
@@ -699,7 +856,12 @@
         </div>
       </div>
       <div class="kpi-card">
-        <div class="kpi-icon orange">⏳</div>
+        <div class="kpi-icon orange">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+            <path d="M12 8v5l3 3" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M21 12a9 9 0 1 1-9-9" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
         <div class="kpi-info">
           <span class="kpi-title">En validation</span>
           <span class="kpi-value">{{ projetsEnValidation }}</span>
@@ -707,7 +869,11 @@
         </div>
       </div>
       <div class="kpi-card">
-        <div class="kpi-icon green">✓</div>
+        <div class="kpi-icon green">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+            <path d="M20 6L9 17l-5-5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
         <div class="kpi-info">
           <span class="kpi-title">Pré-validés</span>
           <span class="kpi-value">{{ projetsPreValides }}</span>
@@ -715,7 +881,11 @@
         </div>
       </div>
       <div class="kpi-card">
-        <div class="kpi-icon red">❌</div>
+        <div class="kpi-icon red">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+            <path d="M18 6L6 18M6 6l12 12" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
         <div class="kpi-info">
           <span class="kpi-title">Rejetés</span>
           <span class="kpi-value">{{ projetsRejetes }}</span>
@@ -723,7 +893,12 @@
         </div>
       </div>
       <div class="kpi-card">
-        <div class="kpi-icon blue">🏢</div>
+        <div class="kpi-icon blue">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+            <path d="M3 21V8a2 2 0 0 1 2-2h14v15" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M7 21v-8h10v8" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
         <div class="kpi-info">
           <span class="kpi-title">Clients actifs</span>
           <span class="kpi-value">{{ activeClientsCount }}</span>
@@ -731,7 +906,12 @@
         </div>
       </div>
       <div class="kpi-card">
-        <div class="kpi-icon green">💰</div>
+        <div class="kpi-icon green">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+            <path d="M12 1v22" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M17 5H9a4 4 0 0 0 0 8h6a4 4 0 0 1 0 8H7" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
         <div class="kpi-info">
           <span class="kpi-title">CA estimé TTC</span>
           <span class="kpi-value">{{ totalFactureTTC | number:'1.0-0' }} MAD</span>
@@ -833,7 +1013,13 @@
     <!-- Header -->
     <div class="hero-stats-wrapper">
       <div class="hero-stats-title">
-        <h2>📊 Mon Reporting Personnel</h2>
+        <h2>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="vertical-align:middle; margin-right:8px;">
+            <path d="M3 3v18h18" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M7 13l3-3 3 3 4-6" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          Mon Tableau de bord Personnel
+        </h2>
         <p>Suivez vos performances, vos tâches et votre progression</p>
         </div>
         <div class="hero-controls">
@@ -842,7 +1028,12 @@
     </div>
     <div class="kpi-membre-grid">
       <div class="kpi-membre-card">
-        <div class="kpi-membre-icon purple">📋</div>
+        <div class="kpi-membre-icon purple">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+            <rect x="3" y="4" width="18" height="16" rx="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M8 8h8" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
         <div class="kpi-membre-info">
           <span class="kpi-membre-label">Total tâches</span>
           <span class="kpi-membre-value">{{ totalMyTasks }}</span>
@@ -851,7 +1042,11 @@
       </div>
 
       <div class="kpi-membre-card">
-        <div class="kpi-membre-icon green">✅</div>
+        <div class="kpi-membre-icon green">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+            <path d="M20 6L9 17l-5-5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
         <div class="kpi-membre-info">
           <span class="kpi-membre-label">Terminées</span>
           <span class="kpi-membre-value">{{ myTasksCompleted }}</span>
@@ -860,7 +1055,12 @@
       </div>
 
       <div class="kpi-membre-card">
-        <div class="kpi-membre-icon orange">⏳</div>
+        <div class="kpi-membre-icon orange">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+            <path d="M12 8v5l3 3" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M21 12a9 9 0 1 1-9-9" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
         <div class="kpi-membre-info">
           <span class="kpi-membre-label">En cours</span>
           <span class="kpi-membre-value">{{ myTasksInProgress }}</span>
@@ -869,7 +1069,13 @@
       </div>
 
       <div class="kpi-membre-card">
-        <div class="kpi-membre-icon red">⚠️</div>
+        <div class="kpi-membre-icon red">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">
+            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M12 9v4" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M12 17h.01" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
         <div class="kpi-membre-info">
           <span class="kpi-membre-label">En retard</span>
           <span class="kpi-membre-value">{{ myTasksLate }}</span>
@@ -883,7 +1089,13 @@
       <!-- Taux d'achèvement -->
       <div class="chart-membre-card">
         <div class="chart-membre-header">
-          <h3>📈 Suivi des tâches</h3>
+          <h3>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" style="vertical-align:middle; margin-right:6px;">
+              <path d="M3 3v18h18" stroke-linecap="round" stroke-linejoin="round"/>
+              <path d="M7 13l3-3 3 3 4-6" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            Suivi des tâches
+          </h3>
         </div>
         <div class="progress-circle-container">
           <div class="progress-circle">
@@ -910,7 +1122,13 @@
       <!-- Distribution par priorité -->
       <div class="chart-membre-card">
         <div class="chart-membre-header">
-          <h3>🎯 Répartition par priorité</h3>
+          <h3>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" style="vertical-align:middle; margin-right:6px;">
+              <circle cx="12" cy="12" r="10"/>
+              <path d="M12 8v4l3 3" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            Répartition par priorité
+          </h3>
         </div>
         <div class="priority-stats">
           <div class="priority-item high">
@@ -945,9 +1163,15 @@
     </div>
 
     <!-- Évolution hebdomadaire -->
-    <div class="chart-membre-card full-width">
+      <div class="chart-membre-card full-width">
       <div class="chart-membre-header">
-        <h3>📅 Évolution hebdomadaire</h3>
+        <h3>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" style="vertical-align:middle; margin-right:6px;">
+            <rect x="3" y="4" width="18" height="16" rx="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M16 2v4M8 2v4" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          Évolution hebdomadaire
+        </h3>
         <span class="chart-badge">Dernières semaines</span>
       </div>
       <div class="weekly-chart">
@@ -967,7 +1191,13 @@
     <!-- Liste des tâches -->
     <div class="table-membre-card">
       <div class="table-membre-header">
-        <h3>📋 Mes tâches en cours et à faire</h3>
+        <h3>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" style="vertical-align:middle; margin-right:6px;">
+            <rect x="3" y="4" width="18" height="16" rx="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M8 8h8" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          Mes tâches en cours et à faire
+        </h3>
         <span class="badge-membre">{{ myCurrentTasks.length }} tâche(s)</span>
       </div>
       <div class="table-responsive">
@@ -985,7 +1215,11 @@
             @for (task of paginatedMyCurrentTasks; track task.id) {
               <tr>
                 <td class="task-cell-membre">
-                  <div class="task-icon-membre">📌</div>
+                  <div class="task-icon-membre">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" style="vertical-align: middle;">
+                      <path d="M18 2l4 4-10 10-4 2 2-4 10-10z" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                  </div>
                   <span class="task-title-membre">{{ task.title }}</span>
                 </td>
                 <td>{{ task.projectName || '-' }}</td>
@@ -1011,7 +1245,12 @@
               </tr>
             }
             @empty {
-              <tr><td colspan="5" class="empty-cell-membre">✅ Aucune tâche en cours, bravo !</td></tr>
+              <tr><td colspan="5" class="empty-cell-membre">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" style="vertical-align: middle; margin-right:6px;">
+                  <path d="M20 6L9 17l-5-5" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                Aucune tâche en cours, bravo !
+              </td></tr>
             }
           </tbody>
         </table>

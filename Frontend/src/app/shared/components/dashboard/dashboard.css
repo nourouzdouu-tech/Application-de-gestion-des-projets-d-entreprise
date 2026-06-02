@@ -1522,10 +1522,10 @@
   font-size: 28px;
 }
 
-.kpi-manager-card.pending .kpi-manager-icon { background: #fff7ed; }
-.kpi-manager-card.assigned .kpi-manager-icon { background: #dcfce7; }
-.kpi-manager-card.rejected .kpi-manager-icon { background: #fef2f2; }
-.kpi-manager-card.total .kpi-manager-icon { background: #f3e8ff; }
+.kpi-manager-card.pending .kpi-manager-icon { background: #fff7ed; color: #c2410c; }
+.kpi-manager-card.assigned .kpi-manager-icon { background: #dcfce7; color: #047857; }
+.kpi-manager-card.rejected .kpi-manager-icon { background: #fef2f2; color: #b91c1c; }
+.kpi-manager-card.total .kpi-manager-icon { background: #f3e8ff; color: #7c3aed; }
 
 .kpi-manager-info {
   flex: 1;
@@ -1988,10 +1988,10 @@
   font-size: 26px;
 }
 
-.kpi-membre-icon.purple { background: #f3e8ff; }
-.kpi-membre-icon.green { background: #dcfce7; }
-.kpi-membre-icon.orange { background: #fff7ed; }
-.kpi-membre-icon.red { background: #fef2f2; }
+.kpi-membre-icon.purple { background: #f3e8ff; color: #7c3aed; }
+.kpi-membre-icon.green { background: #dcfce7; color: #047857; }
+.kpi-membre-icon.orange { background: #fff7ed; color: #c2410c; }
+.kpi-membre-icon.red { background: #fef2f2; color: #b91c1c; }
 
 .kpi-membre-info {
   flex: 1;
@@ -2508,12 +2508,12 @@
   font-size: 26px;
 }
 
-.kpi-admin-icon.blue { background: #eff6ff; }
-.kpi-admin-icon.green { background: #dcfce7; }
-.kpi-admin-icon.orange { background: #fff7ed; }
-.kpi-admin-icon.purple { background: #f3e8ff; }
-.kpi-admin-icon.teal { background: #f0fdf4; }
-.kpi-admin-icon.pink { background: #fdf2f8; }
+.kpi-admin-icon.blue { background: #eff6ff; color: #1d4ed8; }
+.kpi-admin-icon.green { background: #dcfce7; color: #047857; }
+.kpi-admin-icon.orange { background: #fff7ed; color: #c2410c; }
+.kpi-admin-icon.purple { background: #f3e8ff; color: #7c3aed; }
+.kpi-admin-icon.teal { background: #f0fdf4; color: #0f766e; }
+.kpi-admin-icon.pink { background: #fdf2f8; color: #be185d; }
 
 .kpi-admin-info {
   flex: 1;
@@ -4162,4 +4162,13 @@
   color: #94a3b8;
   font-size: 13px;
   padding: 8px 0;
+}
+/* Fix temporaire : cache la 5ème KPI card Chef Projet */
+.chef-reporting .kpi-manager-grid {
+  grid-template-columns: repeat(4, 1fr) !important;
+}
+
+.chef-reporting .kpi-manager-grid > *:nth-child(n+5) {
+  display: none !important;
+
 }

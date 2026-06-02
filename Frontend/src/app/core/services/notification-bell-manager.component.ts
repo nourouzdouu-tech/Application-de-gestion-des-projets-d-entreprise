@@ -13,7 +13,10 @@ import { NotificationService as ToastService } from './notification.service';
   template: `
     <div class="notification-container">
       <button class="notification-btn" (click)="toggleDropdown()" [class.has-notifications]="unreadCount > 0">
-        🔔
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+          <path d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118.6 14.6V11c0-3.07-1.64-5.64-4.6-6.32V4a1.4 1.4 0 10-2.8 0v0.68C7.04 5.36 5.4 7.93 5.4 11v3.6c0 .53-.21 1.04-.595 1.415L3.4 17h5" stroke-linecap="round" stroke-linejoin="round"></path>
+          <path d="M13.73 21a2 2 0 01-3.46 0" stroke-linecap="round" stroke-linejoin="round"></path>
+        </svg>
         @if (unreadCount > 0) {
           <span class="badge">{{ unreadCount > 99 ? '99+' : unreadCount }}</span>
         }
@@ -25,19 +28,23 @@ import { NotificationService as ToastService } from './notification.service';
             <h3>Notifications Manager</h3>
             @if (unreadCount > 0) {
               <button (click)="markAllAsRead($event)" class="mark-all-btn">
-                ✅ Tout lire
+                Tout marquer lu
               </button>
             }
           </div>
           
           <div class="dropdown-content">
-            @if (loading) {
+            @if (loading && notifications.length === 0) {
               <div class="loading">Chargement...</div>
             }
             
             @if (!loading && notifications.length === 0) {
               <div class="no-notifications">
-                🔔 Aucune notification
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" style="vertical-align:middle; margin-right:8px;">
+                  <path d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118.6 14.6V11c0-3.07-1.64-5.64-4.6-6.32V4a1.4 1.4 0 10-2.8 0v0.68C7.04 5.36 5.4 7.93 5.4 11v3.6c0 .53-.21 1.04-.595 1.415L3.4 17h5" stroke-linecap="round" stroke-linejoin="round"></path>
+                  <path d="M13.73 21a2 2 0 01-3.46 0" stroke-linecap="round" stroke-linejoin="round"></path>
+                </svg>
+                Aucune notification
               </div>
             }
             
@@ -45,7 +52,6 @@ import { NotificationService as ToastService } from './notification.service';
               <div class="notification-item" 
                    [class.unread]="!notif.read"
                    (click)="onNotificationClick(notif)">
-                <div class="notification-icon">{{ getIcon(notif.type) }}</div>
                 <div class="notification-content">
                   <div class="notification-title">{{ notif.title }}</div>
                   <div class="notification-message">{{ notif.content }}</div>
@@ -292,7 +298,9 @@ export class NotificationBellManagerComponent implements OnInit, OnDestroy {
   toggleDropdown(): void {
     this.isOpen = !this.isOpen;
     if (this.isOpen) {
-      this.loadNotifications();
+      if (this.notifications.length === 0) {
+        this.loadNotifications();
+      }
       this.loadUnreadCount();
     }
   }
@@ -354,16 +362,4 @@ export class NotificationBellManagerComponent implements OnInit, OnDestroy {
     return date.toLocaleDateString('fr-FR');
   }
   
-  getIcon(type: string): string {
-    const icons: {[key: string]: string} = {
-      'PROJECT_ASSIGNED_TO_MANAGER': '📁',
-      'PROJECT_PENDING_VALIDATION': '📋',
-      'PROJECT_VALIDATED_BY_MANAGER': '✅',
-      'PROJECT_REJECTED_BY_MANAGER': '❌',
-      'TASK_ASSIGNED': '📋',
-      'TASK_VALIDATED': '✅',
-      'TASK_REJECTED': '❌'
-    };
-    return icons[type] || '🔔';
-  }
 }

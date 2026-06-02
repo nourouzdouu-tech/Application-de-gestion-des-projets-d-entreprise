@@ -13,7 +13,10 @@ import { NotificationService as ToastService } from './notification.service';
   template: `
     <div class="notification-container">
       <button class="notification-btn" (click)="toggleDropdown()" [class.has-notifications]="unreadCount > 0">
-        🔔
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+          <path d="M15 17h5l-1.405-1.405A2.032 2.032 0 0 1 18 14.158V11a6 6 0 1 0-12 0v3.159c0 .538-.214 1.055-.595 1.436L4 17h5" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M13.73 21a2 2 0 0 1-3.46 0" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
         @if (unreadCount > 0) {
           <span class="badge">{{ unreadCount > 99 ? '99+' : unreadCount }}</span>
         }
@@ -25,19 +28,26 @@ import { NotificationService as ToastService } from './notification.service';
             <h3>Notifications Chef de Projet</h3>
             @if (unreadCount > 0) {
               <button (click)="markAllAsRead($event)" class="mark-all-btn">
-                ✅ Tout lire
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" style="vertical-align: middle; margin-right:6px;">
+                  <path d="M20 6L9 17l-5-5" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                Tout lire
               </button>
             }
           </div>
           
           <div class="dropdown-content">
-            @if (loading) {
+            @if (loading && notifications.length === 0) {
               <div class="loading">Chargement...</div>
             }
             
             @if (!loading && notifications.length === 0) {
               <div class="no-notifications">
-                🔔 Aucune notification
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" style="vertical-align: middle; margin-right:6px;">
+                  <path d="M15 17h5l-1.405-1.405A2.032 2.032 0 0 1 18 14.158V11a6 6 0 1 0-12 0v3.159c0 .538-.214 1.055-.595 1.436L4 17h5" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M13.73 21a2 2 0 0 1-3.46 0" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                Aucune notification
               </div>
             }
             
@@ -45,7 +55,6 @@ import { NotificationService as ToastService } from './notification.service';
               <div class="notification-item" 
                    [class.unread]="!notif.read"
                    (click)="onNotificationClick(notif)">
-                <div class="notification-icon">{{ getIcon(notif.type) }}</div>
                 <div class="notification-content">
                   <div class="notification-title">{{ notif.title }}</div>
                   <div class="notification-message">{{ notif.content }}</div>
@@ -302,7 +311,9 @@ export class NotificationBellChefComponent implements OnInit, OnDestroy {
   toggleDropdown(): void {
     this.isOpen = !this.isOpen;
     if (this.isOpen) {
-      this.loadNotifications();
+      if (this.notifications.length === 0) {
+        this.loadNotifications();
+      }
       this.loadUnreadCount();
     }
   }

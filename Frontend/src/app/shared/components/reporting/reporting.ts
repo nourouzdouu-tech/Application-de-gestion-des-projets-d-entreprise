@@ -1,6 +1,8 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
+import { AuthService } from '../../../core/services/auth.service';
 import {
   ReportingService,
   ProjectReportDto,
@@ -68,7 +70,11 @@ export class ReportingComponent implements OnInit {
   userStatusData: UserStatusReportDto | null = null;
   projectsByManager: ManagerProjectDto[] = [];
 
-  constructor(private reportingService: ReportingService) {
+  constructor(
+    private reportingService: ReportingService,
+    private authService: AuthService,
+    private router: Router
+  ) {
     const currentYear = new Date().getFullYear();
     for (let y = currentYear; y >= currentYear - 5; y--) {
       this.years.push(y);
@@ -129,6 +135,59 @@ export class ReportingComponent implements OnInit {
     return this.filteredProjectsByManager.slice(start, start + this.itemsPerPage);
   }
 
+  get canViewProjectsGlobal(): boolean {
+    return this.authService.hasAnyRole(['MANAGER', 'CHEF_PROJET', 'RESPONSABLE_CONTRAT']);
+  }
+
+  get canViewProjectsOverdue(): boolean {
+    return this.authService.hasAnyRole(['MANAGER', 'CHEF_PROJET', 'RESPONSABLE_CONTRAT']);
+  }
+
+  get canViewTasksOverdue(): boolean {
+    return this.authService.hasAnyRole(['MEMBRE_EQUIPE', 'CHEF_PROJET']);
+  }
+
+
+  get canViewUsersNoProfile(): boolean {
+    return this.authService.hasAnyRole(['ADMIN']);
+  }
+
+  get canViewUsersByStatus(): boolean {
+    return this.authService.hasRole('ADMIN');
+  }
+
+  get canViewProjectsByManager(): boolean {
+    return this.authService.hasRole('RESPONSABLE_CONTRAT');
+  }
+
+  get hasAvailableReports(): boolean {
+    return (
+      this.canViewProjectsGlobal ||
+      this.canViewProjectsOverdue ||
+      this.canViewTasksOverdue ||
+      this.canViewUsersNoProfile ||
+      this.canViewUsersByStatus ||
+      this.canViewProjectsByManager
+    );
+  }
+
+  isReportAllowed(type: ReportType): boolean {
+    switch (type) {
+      case 'projects-global':
+        return this.canViewProjectsGlobal;
+      case 'projects-overdue':
+        return this.canViewProjectsOverdue;
+      case 'tasks-overdue':
+        return this.canViewTasksOverdue;
+      case 'users-no-profile':
+        return this.canViewUsersNoProfile;
+      case 'users-by-status':
+        return this.canViewUsersByStatus;
+      case 'projects-by-manager':
+        return this.canViewProjectsByManager;
+    }
+  }
+
   get totalPages(): number {
     let totalItems = 0;
     switch (this.activeReport) {
@@ -150,6 +209,9 @@ export class ReportingComponent implements OnInit {
   }
 
   openReport(type: ReportType): void {
+    if (!this.isReportAllowed(type)) {
+      return;
+    }
     this.activeReport = type;
     this.currentPage = 1;
     this.loadReport(type);
@@ -175,6 +237,24 @@ export class ReportingComponent implements OnInit {
     this.usersNoProfileData = [];
     this.userStatusData = null;
     this.projectsByManager = [];
+  }
+
+  goToDashboard(): void {
+    const roles = this.authService.getRoles();
+
+    if (roles.includes('ADMIN')) {
+      this.router.navigate(['/admin/dashboard']);
+    } else if (roles.includes('CHEF_PROJET')) {
+      this.router.navigate(['/chef-projet/dashboard']);
+    } else if (roles.includes('MANAGER')) {
+      this.router.navigate(['/manager/dashboard']);
+    } else if (roles.includes('RESPONSABLE_CONTRAT')) {
+      this.router.navigate(['/responsable-contrat/dashboard']);
+    } else if (roles.includes('MEMBRE_EQUIPE')) {
+      this.router.navigate(['/membre-equipe/dashboard']);
+    } else {
+      this.router.navigate(['/manager/dashboard']);
+    }
   }
 
   loadReport(type: ReportType): void {
@@ -261,7 +341,7 @@ export class ReportingComponent implements OnInit {
     }
     select.value = '';
   }
-  private exportExcel(): void {
+  exportExcel(): void {
   switch (this.activeReport) {
     case 'projects-global':
       this.reportingService.exportProjectsExcel(
@@ -291,7 +371,7 @@ export class ReportingComponent implements OnInit {
       break;
   }
 }
-  private exportPdf(): void {
+  exportPdf(): void {
   switch (this.activeReport) {
     case 'projects-global':
       this.reportingService.exportProjectsPdf(
@@ -534,7 +614,13 @@ private exportProjectsByManagerPdf(): void {
       </style>
     </head>
     <body>
-      <h1>📊 Projets par Manager</h1>
+      <h1>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" style="vertical-align: middle; margin-right:8px;">
+          <path d="M3 3v18h18" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M7 13l3-3 3 3 4-6" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        Projets par Manager
+      </h1>
       
       <div class="header-info">
         <p><strong>Date de génération :</strong> ${new Date().toLocaleDateString('fr-FR')} à ${new Date().toLocaleTimeString('fr-FR')}</p>
@@ -543,8 +629,21 @@ private exportProjectsByManagerPdf(): void {
       
       <div class="filters">
         <div class="filter-title">Filtres appliqués :</div>
-        <span class="filter-badge">💰 ${this.filterFacture === 'factured' ? 'Facturés uniquement' : this.filterFacture === 'not-factured' ? 'Non facturés uniquement' : 'Tous les projets'}</span>
-        <span class="filter-badge">👔 ${this.selectedManager === 'all' ? 'Tous les managers' : this.selectedManager}</span>
+        <span class="filter-badge">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" style="vertical-align: middle; margin-right:6px;">
+            <path d="M12 1v22" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M17 5H9a4 4 0 0 0 0 8h6a4 4 0 0 1 0 8H7" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          ${this.filterFacture === 'factured' ? 'Facturés uniquement' : this.filterFacture === 'not-factured' ? 'Non facturés uniquement' : 'Tous les projets'}
+        </span>
+        <span class="filter-badge">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" style="vertical-align: middle; margin-right:6px;">
+            <path d="M17 21v-2a4 4 0 0 0-3-3.87" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M7 21v-2a4 4 0 0 1 3-3.87" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M12 7a4 4 0 1 0 0-8 4 4 0 0 0 0 8z"/>
+          </svg>
+          ${this.selectedManager === 'all' ? 'Tous les managers' : this.selectedManager}
+        </span>
       </div>
       
       <table>

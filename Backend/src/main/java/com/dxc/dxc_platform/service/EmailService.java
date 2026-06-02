@@ -41,21 +41,67 @@ public class EmailService {
     @Value("${spring.mail.username}")
     private String fromEmail;
 
+    @Value("${app.base-url}")
+    private String applicationBaseUrl;
+
     /**
      * Envoyer un email simple en texte
      */
     public void sendSimpleEmail(String to, String subject, String content) {
-        try {
-            SimpleMailMessage message = new SimpleMailMessage();
-            message.setFrom(fromEmail);
-            message.setTo(to);
-            message.setSubject(subject);
-            message.setText(content);
-            mailSender.send(message);
-            log.info("Email envoyé à {}", to);
-        } catch (Exception e) {
-            log.error("Erreur lors de l'envoi d'email à {}: {}", to, e.getMessage());
+        sendStyledEmail(to, subject, subject, content, null, null);
+    }
+
+    public void sendStyledEmail(String to, String subject, String title, String content, String buttonText, String buttonUrl) {
+        String htmlContent = buildStyledHtmlContent(title, content, buttonText, buttonUrl);
+        sendHtmlEmail(to, subject, htmlContent);
+    }
+
+    private String buildStyledHtmlContent(String title, String body, String buttonText, String buttonUrl) {
+        title = stripEmojis(title != null ? title : "Notification");
+        body = stripEmojis(body != null ? body : "");
+        body = escapeHtml(body);
+
+        StringBuilder bodyHtml = new StringBuilder();
+        String[] paragraphs = body.split("\n\n");
+        for (String paragraph : paragraphs) {
+            String trimmed = paragraph.trim();
+            if (trimmed.isEmpty()) {
+                continue;
+            }
+            bodyHtml.append("<p style=\"margin:0 0 16px; line-height:1.6; font-size:14px; color:#334155;\">")
+                    .append(trimmed.replace("\n", "<br/>"))
+                    .append("</p>");
         }
+
+        StringBuilder html = new StringBuilder();
+        html.append("<!DOCTYPE html><html><head><meta charset=\"UTF-8\"><title>")
+            .append(escapeHtml(title))
+            .append("</title><style type=\"text/css\">body{margin:0;padding:0;background-color:#f4f6fb;font-family:Arial,sans-serif;color:#111827;}*{box-sizing:border-box;}a{color:#7c3aed;text-decoration:none;} .wrapper{width:100%;padding:24px 0;} .container{max-width:620px;margin:0 auto;background:#ffffff;border-radius:16px;border:1px solid #e2e8f0;overflow:hidden;} .header{background:#7c3aed;color:#ffffff;padding:24px 28px;} .header h1{margin:0;font-size:22px;line-height:1.2;} .header p{margin:10px 0 0;font-size:14px;color:#d8b4fe;} .content{padding:28px;} .footer{background:#f8fafc;padding:20px 28px;color:#64748b;font-size:13px;text-align:center;}</style></head><body><div class=\"wrapper\"><div class=\"container\"><div class=\"header\"><h1>")
+            .append(escapeHtml(title))
+            .append("</h1><p>Notification automatique de la plateforme DXC.</p></div><div class=\"content\">")
+            .append(bodyHtml)
+            .append("<p style=\"margin:0;\">Merci de vous connecter à la plateforme pour plus de détails.</p>");
+
+        html.append("</div><div class=\"footer\"><p>Cet e-mail est envoyé automatiquement. Merci de ne pas y répondre.</p><p>© DXC Technology - Plateforme de gestion de projets</p></div></div></div></body></html>");
+        return html.toString();
+    }
+
+    private String stripEmojis(String text) {
+        if (text == null) {
+            return null;
+        }
+        return text.replaceAll("[\\x{1F300}-\\x{1F6FF}\\x{1F900}-\\x{1F9FF}\\x{2600}-\\x{27BF}\\x{FE0F}]", "");
+    }
+
+    private String escapeHtml(String text) {
+        if (text == null) {
+            return null;
+        }
+        return text.replace("&", "&amp;")
+                .replace("<", "&lt;")
+                .replace(">", "&gt;")
+                .replace("\"", "&quot;")
+                .replace("'", "&#39;");
     }
 
 
@@ -68,7 +114,7 @@ public class EmailService {
             MimeMessageHelper helper = new MimeMessageHelper(message, true, "UTF-8");
             helper.setFrom(fromEmail);
             helper.setTo(to);
-            helper.setSubject(subject);
+            helper.setSubject(stripEmojis(subject));
             helper.setText(htmlContent, true);
             mailSender.send(message);
             log.info("Email HTML envoyé à {}", to);
@@ -95,35 +141,32 @@ public class EmailService {
      * Notification d'assignation de tâche
      */
     public void notifyTaskAssigned(Task task, User assignedTo, User assignedBy) {
-        String subject = "📋 Nouvelle tâche assignée - " + task.getTitle();
+        String subject = "Nouvelle tâche assignée - " + task.getTitle();
+        String title = "Nouvelle tâche assignée";
+
         String content = String.format("""
             Bonjour %s,
-            
-            Une nouvelle tâche vous a été assignée :
-            
+
+            Une nouvelle tâche vous a été assignée.
+
             Tâche : %s
             Projet : %s
             Échéance : %s
             Priorité : %s
             Description : %s
-            
+
             Assigné par : %s
-            
-            Connectez-vous à la plateforme pour plus de détails.
-            
-            ---
-            Cet email a été envoyé automatiquement. Merci de ne pas y répondre.
-            © DXC Technology - Plateforme de gestion de projets
             """,
-                assignedTo.getPrenom(),
+                assignedTo.getPrenom() != null ? assignedTo.getPrenom() : assignedTo.getEmail(),
                 task.getTitle(),
                 task.getProject() != null ? task.getProject().getName() : "N/A",
-                task.getEstimatedEndDate() != null ? task.getEstimatedEndDate().toString() : "Non définie",
+                task.getEstimatedEndDate() != null ? task.getEstimatedEndDate().format(DateTimeFormatter.ofPattern("dd/MM/yyyy")) : "Non définie",
                 task.getPriority() != null ? task.getPriority().name() : "MOYENNE",
                 task.getDescription() != null ? task.getDescription() : "Aucune description",
                 assignedBy != null ? assignedBy.getFullName() : "Administrateur"
         );
-        sendSimpleEmail(assignedTo.getEmail(), subject, content);
+
+        sendStyledEmail(assignedTo.getEmail(), subject, title, content, "Ouvrir la plateforme", applicationBaseUrl);
     }
 
     /**
