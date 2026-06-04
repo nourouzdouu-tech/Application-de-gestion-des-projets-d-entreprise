@@ -765,3 +765,88 @@
   color: #94A3B8 !important;
   border: 1px solid #E2E8F0;
 }
+/* ══════════════════════════════════
+   FILTRES PAR STATUT
+══════════════════════════════════ */
+.filter-tabs {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.filter-tab {
+  height: 38px;
+  padding: 0 18px;
+  border-radius: 999px;
+  border: 1.5px solid #e2e8f0;
+  background: #fff;
+  color: #64748b;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s;
+  font-family: 'Inter', sans-serif;
+}
+
+.filter-tab:hover {
+  border-color: #c4b5fd;
+  color: #7c3aed;
+  background: #faf7ff;
+}
+
+/* Tous — violet */
+.filter-tab.active {
+  background: #7c3aed;
+  border-color: #7c3aed;
+  color: #fff;
+}
+
+/* En cours — vert */
+.filter-tab--encours.active {
+  background: #059669;
+  border-color: #059669;
+  color: #fff;
+}
+
+/* Clôturés — gris ardoise */
+.filter-tab--cloture.active {
+  background: #64748b;
+  border-color: #64748b;
+  color: #fff;
+}
+/* Filtre équipe */
+.filter-equipe {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 38px;
+  padding: 0 14px;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 999px;
+  background: #fff;
+  color: #64748b;
+  transition: border-color 0.15s;
+  white-space: nowrap;
+}
+
+.filter-equipe:focus-within {
+  border-color: #c4b5fd;
+}
+
+.filter-equipe svg {
+  flex-shrink: 0;
+  color: #94a3b8;
+}
+
+.filter-equipe select {
+  border: none;
+  outline: none;
+  background: transparent;
+  color: #0f172a;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: 'Inter', sans-serif;
+}

@@ -114,14 +114,18 @@
   color: #182235;
 }
 
-/* Search */
-.search-row {
+/* Search and Filter */
+.search-filter-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 15px;
   margin-bottom: 20px;
 }
 
 .search-box {
   position: relative;
-  width: 100%;
+  flex: 1;
   max-width: 420px;
 }
 
@@ -156,6 +160,36 @@
   background: #ffffff;
   box-shadow: 0 0 0 2px rgba(124, 77, 255, 0.12);
   border: 1px solid #e5ddff;
+}
+
+/* Status Tabs */
+.status-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.status-tab {
+  padding: 10px 16px;
+  border-radius: 999px;
+  border: 1px solid #e5e7eb;
+  background: #ffffff;
+  color: #334155;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all .15s ease;
+}
+
+.status-tab:hover {
+  background: #f8fafc;
+}
+
+.status-tab.active {
+  background: #7c3aed;
+  color: #ffffff;
+  border-color: #7c3aed;
 }
 
 /* Table card */

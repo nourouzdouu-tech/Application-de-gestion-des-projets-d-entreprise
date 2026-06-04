@@ -134,22 +134,32 @@ export class ReviewProjetsComponent implements OnInit {
   }
 
   readonly filteredProjects = computed(() => {
+    let result = this.projects();
     const term = this.searchTerm().trim().toLowerCase();
+    const statusFilter = this.selectedStatus().trim();
 
-    if (!term) return this.projects();
+    // Filtre par statut
+    if (statusFilter) {
+      result = result.filter((p) => p.status === statusFilter);
+    }
 
-    return this.projects().filter((project) =>
-      [
-        project.name,
-        project.client,
-        project.status,
-        project.code,
-        project.chefProjetName ?? ''
-      ]
-        .join(' ')
-        .toLowerCase()
-        .includes(term)
-    );
+    // Filtre par recherche
+    if (term) {
+      result = result.filter((project) =>
+        [
+          project.name,
+          project.client,
+          project.status,
+          project.code,
+          project.chefProjetName ?? ''
+        ]
+          .join(' ')
+          .toLowerCase()
+          .includes(term)
+      );
+    }
+
+    return result;
   });
 
   readonly totalPages = computed(() =>
@@ -162,6 +172,8 @@ export class ReviewProjetsComponent implements OnInit {
     const end = start + this.pageSize;
     return this.filteredProjects().slice(start, end);
   });
+
+  readonly selectedStatus = signal('');
 
   readonly countAValider = computed(
     () =>
@@ -194,6 +206,15 @@ export class ReviewProjetsComponent implements OnInit {
 
   onSearchChange(): void {
     this.currentPage.set(1);
+  }
+
+  setStatusFilter(status: string): void {
+    this.selectedStatus.set(status);
+    this.currentPage.set(1);
+  }
+
+  isStatusActive(status: string): boolean {
+    return this.selectedStatus() === status;
   }
 
   goToPage(page: number): void {

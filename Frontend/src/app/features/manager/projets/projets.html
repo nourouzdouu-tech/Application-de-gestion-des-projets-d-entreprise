@@ -56,7 +56,7 @@
 </article>
   </div>
 
-  <div class="search-row">
+  <div class="search-filter-row">
     <div class="search-box">
       <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <circle cx="11" cy="11" r="7"></circle>
@@ -69,6 +69,12 @@
         (ngModelChange)="searchTerm.set($event); onSearchChange()"
         placeholder="Rechercher par projet,client,statut"
       />
+    </div>
+    <div class="status-tabs">
+      <button type="button" class="status-tab" [class.active]="isStatusActive('')" (click)="setStatusFilter('')">Tous</button>
+      <button type="button" class="status-tab" [class.active]="isStatusActive('En cours de validation')" (click)="setStatusFilter('En cours de validation')">En cours de validation</button>
+      <button type="button" class="status-tab" [class.active]="isStatusActive('Assigné')" (click)="setStatusFilter('Assigné')">Assigné</button>
+      <button type="button" class="status-tab" [class.active]="isStatusActive('REJETE')" (click)="setStatusFilter('REJETE')">Rejeté</button>
     </div>
   </div>
 

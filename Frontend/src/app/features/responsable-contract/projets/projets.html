@@ -184,7 +184,8 @@
   <button
     class="icon-action-btn icon-billing"
     type="button"
-    [title]="project.status === 'CLOTURE' ? 'Action désactivée' : 'Calculer la facture'"
+    [disabled]="project.status !== 'EN_COURS'"
+    [title]="project.status !== 'EN_COURS' ? 'Action désactivée (disponible seulement en cours de réalisation)' : 'Calculer la facture'"
     (click)="goToBilling(project)">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
       <rect x="4" y="3" width="16" height="18" rx="2" />
