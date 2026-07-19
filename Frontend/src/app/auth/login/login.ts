@@ -53,7 +53,7 @@ export class Login implements OnInit {
       this.biometricAvailable =
         await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable();
     }
-    // ✅ Détecte correctement FaceID sur Windows (Windows Hello)
+    // je Détecte correctement FaceID sur Windows (Windows Hello)
     const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent);
     const isWindows = /Windows/.test(navigator.userAgent);
     

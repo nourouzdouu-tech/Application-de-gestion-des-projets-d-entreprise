@@ -43,8 +43,6 @@ export interface UserResponse {
   roles: RoleSummary[];
   profileId?: number;
   profileLibelle?: string;
-  createdAt?: string;
-  updatedAt?: string;
 }
 
 export interface UserCreateRequest {
@@ -105,7 +103,6 @@ export interface ClientResponse {
   nom: string;
   representantsCount: number;
   representants: Representant[];
-  createdAt?: string;
 }
 
 export interface ClientCreateRequest {

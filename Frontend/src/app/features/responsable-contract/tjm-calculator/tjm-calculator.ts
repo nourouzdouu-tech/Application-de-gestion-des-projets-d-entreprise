@@ -241,7 +241,7 @@ export class TjmCalculatorComponent implements OnInit {
     this.calculateTotals();
     this.clearMessage();
   }
-
+// Construit un objet JSON avec toutes les lignes + totaux et le stock dans localStorage
   saveBilling(): void {
     const payload: SavedBillingData = {
       projectId: this.projectId,

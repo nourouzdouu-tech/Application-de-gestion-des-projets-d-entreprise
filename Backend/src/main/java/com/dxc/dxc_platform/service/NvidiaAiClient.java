@@ -22,7 +22,7 @@ public class NvidiaAiClient {
     private static final String MODEL =
             "mistralai/mistral-large-3-675b-instruct-2512";
 
-    @SuppressWarnings("unchecked")
+
     public String chat(String prompt) {
         HttpHeaders headers = new HttpHeaders();
         headers.setBearerAuth(apiKey);
@@ -41,7 +41,7 @@ public class NvidiaAiClient {
 
         HttpEntity<Map<String, Object>> request = new HttpEntity<>(body, headers);
 
-        // Retry 3 fois avec délai exponentiel si 429
+
         int maxRetries = 3;
         for (int attempt = 1; attempt <= maxRetries; attempt++) {
             try {
@@ -60,7 +60,7 @@ public class NvidiaAiClient {
                             "Limite API dépassée après " + maxRetries + " tentatives. " +
                                     "Réessayez dans quelques secondes.", e);
                 }
-                // Attendre avant de réessayer : 2s, 4s, 8s
+
                 try {
                     long waitMs = (long) Math.pow(2, attempt) * 1000L;
                     System.out.println("⏳ Rate limit 429 — attente " + waitMs + "ms (tentative " + attempt + "/" + maxRetries + ")");

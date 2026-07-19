@@ -18,7 +18,7 @@ import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-  // ← MANQUAIT
+
 public class WebAuthnCredentialRepositoryImpl implements CredentialRepository {
 
     private static final Logger log = LoggerFactory.getLogger(WebAuthnCredentialRepositoryImpl.class);

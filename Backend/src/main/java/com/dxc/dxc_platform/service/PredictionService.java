@@ -53,7 +53,7 @@ public class PredictionService {
                     "La prédiction est uniquement disponible pour les projets EN_COURS");
         }
 
-        // Cache valide → retourner sans appel IA
+
         if (isCacheValid(project)) {
             System.out.println("📦 Cache utilisé pour projet " + project.getName());
             return new RiskPredictionResult(
@@ -81,7 +81,7 @@ public class PredictionService {
             catch (Exception e) { System.err.println("⚠️ Email: " + e.getMessage()); }
         }
 
-        // ✅ PAS d'appel recommandation ici — sera chargé séparément depuis le cache
+
         return result;
     }
 

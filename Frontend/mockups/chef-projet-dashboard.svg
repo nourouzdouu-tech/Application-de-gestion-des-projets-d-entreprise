@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="900" viewBox="0 0 1440 900">
+  <style>
+    .bg{fill:#f4f6f8}
+    .sidebar{fill:#1f2937}
+    .accent{fill:#2563eb}
+    .card{fill:#ffffff;stroke:#e6eef8;stroke-width:1}
+    .muted{fill:#6b7280;font-family:Arial, Helvetica, sans-serif;font-size:13px}
+    .title{fill:#111827;font-family:Arial, Helvetica, sans-serif;font-size:18px;font-weight:700}
+    .h1{font-size:24px}
+    .small{font-size:12px}
+  </style>
+
+  <rect class="bg" x="0" y="0" width="1440" height="900" rx="0"/>
+
+  <!-- Sidebar -->
+  <rect class="sidebar" x="0" y="0" width="220" height="900" rx="0"/>
+  <text x="26" y="52" fill="#fff" font-family="Arial" font-size="20" font-weight="700">DXC</text>
+  <g transform="translate(0,100)">
+    <text x="24" y="0" fill="#9ca3af" font-family="Arial" font-size="13">Tableau de bord</text>
+    <text x="24" y="36" fill="#fff" font-family="Arial" font-size="15" font-weight="700">Chef projet</text>
+    <text x="24" y="72" fill="#9ca3af" font-family="Arial" font-size="13">Projets</text>
+    <text x="24" y="108" fill="#9ca3af" font-family="Arial" font-size="13">Équipes</text>
+    <text x="24" y="144" fill="#9ca3af" font-family="Arial" font-size="13">Tâches</text>
+  </g>
+
+  <!-- Header -->
+  <rect x="220" y="0" width="1220" height="72" fill="#fff"/>
+  <text x="240" y="44" class="h1 title">Tableau de bord — Chef projet</text>
+  <circle cx="1400" cy="36" r="18" fill="#ef4444"/>
+  <text x="1395" y="42" fill="#fff" font-family="Arial" font-size="12">3</text>
+
+  <!-- Summary cards -->
+  <g transform="translate(240,100)">
+    <rect class="card" x="0" y="0" width="300" height="100" rx="8"/>
+    <text x="18" y="30" class="muted">Projets en cours</text>
+    <text x="18" y="64" class="title" font-size="28">7</text>
+
+    <rect class="card" x="340" y="0" width="300" height="100" rx="8"/>
+    <text x="358" y="30" class="muted">Tâches ouvertes</text>
+    <text x="358" y="64" class="title" font-size="28">42</text>
+
+    <rect class="card" x="680" y="0" width="300" height="100" rx="8"/>
+    <text x="698" y="30" class="muted">Équipe disponible</text>
+    <text x="698" y="64" class="title" font-size="28">4</text>
+  </g>
+
+  <!-- Charts + Activity -->
+  <g transform="translate(240,220)">
+    <rect class="card" x="0" y="0" width="720" height="320" rx="8"/>
+    <text x="18" y="28" class="muted">Avancement des projets</text>
+    <!-- fake chart lines -->
+    <g transform="translate(30,60)">
+      <rect x="0" y="0" width="660" height="220" fill="#f8fafc" rx="6"/>
+      <polyline points="10,160 80,130 160,110 240,140 320,80 400,100 480,70 560,50 640,40" fill="none" stroke="#2563eb" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+    </g>
+
+    <rect class="card" x="760" y="0" width="380" height="320" rx="8"/>
+    <text x="778" y="28" class="muted">Activité récente</text>
+    <g transform="translate(778,60)">
+      <text x="0" y="30" class="small muted">- Paul a assigné la tâche #123</text>
+      <text x="0" y="54" class="small muted">- Réunion sprint planifiée</text>
+      <text x="0" y="78" class="small muted">- Nouvelle demande client: Analyse</text>
+    </g>
+  </g>
+
+  <!-- Table des tâches -->
+  <g transform="translate(240,560)">
+    <rect class="card" x="0" y="0" width="900" height="240" rx="8"/>
+    <text x="18" y="28" class="muted">Tâches critiques</text>
+    <g transform="translate(18,48)">
+      <rect x="0" y="0" width="860" height="36" fill="#f8fafc" rx="6"/>
+      <text x="12" y="24" class="muted">#123 - Intégration API — Paul — Échéance: 12/06</text>
+      <rect x="0" y="48" width="860" height="36" rx="6" fill="#fff"/>
+      <text x="12" y="72" class="muted">#118 - Tests unitaires — Marie — Échéance: 08/06</text>
+      <rect x="0" y="96" width="860" height="36" rx="6" fill="#fff"/>
+      <text x="12" y="120" class="muted">#110 - Déploiement staging — Équipe Ops — Échéance: 05/06</text>
+    </g>
+  </g>
+
+  <!-- Right column quick stats -->
+  <g transform="translate(1160,220)">
+    <rect x="0" y="360" width="260" height="440" class="card" rx="8"/>
+    <text x="18" y="28" class="muted" transform="translate(-920,0)">Notifications</text>
+    <g transform="translate(-920,60)">
+      <rect x="980" y="260" width="220" height="48" rx="6" fill="#fff"/>
+      <text x="994" y="292" class="muted">Nouvelle demande approbation</text>
+      <rect x="980" y="318" width="220" height="48" rx="6" fill="#fff"/>
+      <text x="994" y="350" class="muted">Message: Client X</text>
+    </g>
+  </g>
+
+  <!-- Footer hint -->
+  <text x="240" y="860" class="muted">Maquette générée — Desktop 1440×900</text>
+</svg>

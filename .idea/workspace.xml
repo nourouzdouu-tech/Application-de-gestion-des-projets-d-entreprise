@@ -5,14 +5,11 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="d6d90c51-4d5c-4da4-945a-1cea9d95d7af" name="Changes" comment="">
-      <change afterPath="$PROJECT_DIR$/Backend/.dockerignore" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Backend/Dockerfile" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/Frontend/Dockerfile" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/docker-compose.yml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/Frontend/.github/workflows/ci.yaml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Backend/pom.xml" beforeDir="false" afterPath="$PROJECT_DIR$/Backend/pom.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/Backend/src/main/java/com/dxc/dxc_platform/config/WebSocketConfig.java" beforeDir="false" afterPath="$PROJECT_DIR$/Backend/src/main/java/com/dxc/dxc_platform/config/WebSocketConfig.java" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Backend/src/main/java/com/dxc/dxc_platform/dto/ProjectSelectDto.java" beforeDir="false" afterPath="$PROJECT_DIR$/Backend/src/main/java/com/dxc/dxc_platform/dto/reporting/ProjectSelectDto.java" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Backend/src/main/java/com/dxc/dxc_platform/dto/ProjectSelectDto.java" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/Backend/src/main/java/com/dxc/dxc_platform/dto/TaskReportDto.java" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/Backend/src/main/java/com/dxc/dxc_platform/dto/TeamSelectDto.java" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/Backend/src/main/java/com/dxc/dxc_platform/dto/UserReportDto.java" beforeDir="false" />

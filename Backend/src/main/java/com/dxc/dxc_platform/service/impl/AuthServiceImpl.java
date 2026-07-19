@@ -122,7 +122,7 @@ public class AuthServiceImpl implements AuthService {
                     "Connexion réussie pour " + email,
                     email, ipAddress);
 
-            // ✅ SI CONNEXION RÉUSSIE AVEC UN MOT DE PASSE TEMPORAIRE NON EXPIRÉ
+            // SI CONNEXION RÉUSSIE AVEC UN MOT DE PASSE TEMPORAIRE NON EXPIRÉ
             boolean mustChangePassword = user.isMustChangePassword() && !user.isTempPasswordExpired();
 
             return new AuthDto.Response(
@@ -148,7 +148,7 @@ public class AuthServiceImpl implements AuthService {
 
     
 
-    // MODIFIEZ la méthode changePassword
+
     @Override
     @Transactional
     public void changePassword(String email, AuthDto.ChangePasswordRequest request) {

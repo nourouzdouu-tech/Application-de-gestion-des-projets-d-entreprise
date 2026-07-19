@@ -5,7 +5,7 @@ run-name: Fati Harmony
 on:
   push:
     branches:
-      - main
+      - fati
 
 jobs:
   building:

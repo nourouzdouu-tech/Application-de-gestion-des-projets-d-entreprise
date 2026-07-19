@@ -65,7 +65,7 @@ public class WebAuthnServiceImpl implements WebAuthnService {
                         .user(UserIdentity.builder()
                                 .name(n)
                                 .displayName(user.getPrenom() + " " + user.getNom())
-                                // ← BASE64 (cohérent avec ce que l'authenticator retourne)
+
                                 .id(new ByteArray(Base64.getEncoder()
                                         .encode(user.getId().toString().getBytes(StandardCharsets.UTF_8))))
                                 .build())

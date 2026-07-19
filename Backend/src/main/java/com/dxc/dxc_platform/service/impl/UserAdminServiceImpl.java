@@ -43,7 +43,7 @@ public class UserAdminServiceImpl implements UserAdminService {
     private final AuditService auditService;
     private final EmailService emailService;
 
-    // ✅ Durée de validité du mot de passe temporaire (2 heures = 120 minutes)
+    //  Durée de validité du mot de passe temporaire (2 heures = 120 minutes)
     private static final long TEMP_PASSWORD_VALIDITY_MINUTES = 120;
 
     public UserAdminServiceImpl(UserRepository userRepository,
@@ -96,7 +96,7 @@ public class UserAdminServiceImpl implements UserAdminService {
         user.setDeleted(false);
         user.setRoles(roles);
         user.setProfile(profile);
-        user.setTempPasswordExpiry(null); // ✅ Initialiser à null
+        user.setTempPasswordExpiry(null); //  Initialiser à null
 
         User saved = userRepository.save(user);
 
@@ -235,7 +235,7 @@ public class UserAdminServiceImpl implements UserAdminService {
         );
     }
 
-    // ✅ NOUVELLE MÉTHODE : changement de mot de passe par l'utilisateur lui-même avec vérification d'expiration
+    //  changement de mot de passe par l'utilisateur lui-même avec vérification d'expiration
     @Override
     public void changePassword(Long id, String newPassword) {
         User user = userRepository.findByIdAndDeletedFalse(id)
@@ -273,7 +273,7 @@ public class UserAdminServiceImpl implements UserAdminService {
                 getCurrentUserEmail(), null);
     }
 
-    // ✅ Méthode améliorée pour générer un mot de passe temporaire plus sécurisé
+    //  Méthode améliorée pour générer un mot de passe temporaire plus sécurisé
     private String generateTempPassword() {
         String chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%";
         StringBuilder sb = new StringBuilder();

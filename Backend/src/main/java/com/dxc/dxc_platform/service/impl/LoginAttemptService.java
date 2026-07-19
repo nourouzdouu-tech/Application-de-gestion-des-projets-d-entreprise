@@ -105,23 +105,20 @@ public class LoginAttemptService {
             }
 
             // 2. Envoyer les emails aux admins
-            String subject = "🔐 ALERTE SECURITE - Compte verrouillé - " + lockedUser.getEmail();
+            String subject = "ALERTE SECURITE - Compte verrouillé - " + lockedUser.getEmail();
             String emailContent = String.format("""
-            ⚠️ ALERTE DE SÉCURITÉ ⚠️
+            ALERTE SECURITE - Compte verrouillé - %s
             
-            Bonjour Admin,
+            Notification automatique de la plateforme DXC.
             
             Le compte suivant a été automatiquement verrouillé après 3 tentatives de connexion échouées :
             
-            ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-            📧 Email : %s
-            👤 Nom   : %s %s
-            🌐 IP    : %s
-            🔒 Statut : VERROUILLÉ
-            ⏰ Date   : %s
-            ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+            Email : %s
+            Nom   : %s %s
+            Statut : VERROUILLÉ
+            Date   : %s
             
-            🔑 Action requise :
+            Action requise :
             Pour déverrouiller ce compte, veuillez :
             1. Vous connecter à l'interface d'administration
             2. Rechercher cet utilisateur
@@ -133,9 +130,9 @@ public class LoginAttemptService {
             © DXC Technology - Plateforme de gestion de projets
             """,
                     lockedUser.getEmail(),
+                    lockedUser.getEmail(),
                     lockedUser.getPrenom() != null ? lockedUser.getPrenom() : "",
                     lockedUser.getNom() != null ? lockedUser.getNom() : "",
-                    ipAddress,
                     LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss"))
             );
 

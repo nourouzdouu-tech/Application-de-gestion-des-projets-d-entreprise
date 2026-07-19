@@ -96,7 +96,7 @@ public class User {
         this.tempPasswordExpiry = tempPasswordExpiry;
     }
 
-    // ✅ Méthode pour vérifier si le mot de passe temporaire est expiré
+    //  Méthode pour vérifier si le mot de passe temporaire est expiré
     public boolean isTempPasswordExpired() {
         if (tempPasswordExpiry == null) {
             return false;

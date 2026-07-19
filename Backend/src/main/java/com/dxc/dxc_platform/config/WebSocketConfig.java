@@ -102,8 +102,11 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     // Ajoutez cette méthode dans votre WebSocketConfig existant
     @Override
     public void configureMessageBroker(MessageBrokerRegistry config) {
+        // Canal sur lequel les clients écoutent
         config.enableSimpleBroker("/topic", "/queue", "/user");
+        // Préfixe pour envoyer du client vers le serveur
         config.setApplicationDestinationPrefixes("/app");
+        // Pour cibler un utilisateur précis
         config.setUserDestinationPrefix("/user");
     }
 

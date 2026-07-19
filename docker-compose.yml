@@ -1,0 +1,45 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: dxc-db
+    environment:
+      POSTGRES_DB: gestion_projet
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgrespostgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - dxc-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build: ./Backend
+    container_name: dxc-backend
+    environment:
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_NAME: gestion_projet
+      DB_USERNAME: postgres
+      DB_PASSWORD: postgrespostgres
+      MAIL_USERNAME: ""
+      MAIL_PASSWORD: ""
+    ports:
+      - "8080:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  frontend:
+    build: ./Frontend
+    container_name: dxc-frontend
+    ports:
+      - "4200:80"
+    depends_on:
+      - backend
+
+volumes:
+  dxc-db-data:

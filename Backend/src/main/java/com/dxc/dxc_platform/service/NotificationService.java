@@ -83,7 +83,7 @@ public class NotificationService {
 
     private void sendRealTimeNotification(Long userId, NotificationDto notification) {
         try {
-            // Envoyer la notification
+
             Map<String, Object> wsMessage = new HashMap<>();
             wsMessage.put("type", "new_notification");
             wsMessage.put("notification", notification);
@@ -94,7 +94,7 @@ public class NotificationService {
                     wsMessage
             );
 
-            // Envoyer le compteur mis à jour
+
             userRepository.findById(userId).ifPresent(user -> {
                 long unreadCount = getUnreadCountForUser(user);
                 Map<String, Object> countMessage = new HashMap<>();
