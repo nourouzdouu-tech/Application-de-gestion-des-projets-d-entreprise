@@ -35,7 +35,7 @@ jobs:
           ls -la
 
       - name: Install Dependencies for Angular Project
-        run: npm install
+        run: npm install --legacy-peer-deps 
 
       - name: Run Tests for Angular Project
         run: npm test || true
