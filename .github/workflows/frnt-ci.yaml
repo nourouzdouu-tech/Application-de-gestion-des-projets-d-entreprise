@@ -19,10 +19,18 @@ jobs:
       - name: List files in the current directory
         run: ls -la
 
-      - name: Use Node.js 16
+      - name: Use Node.js 20
         uses: actions/setup-node@v2
         with:
-          node-version: '16'
+          node-version: '20'
+      
+      - name: Verify Node.js and npm versions
+        run: |
+          node -v
+          npm -v
+
+      - name: Change directory to Angular project
+        run: cd Frontend
 
       - name: Install Dependencies for Angular Project
         run: npm install
