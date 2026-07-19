@@ -18,9 +18,6 @@ import java.time.LocalDate;
 import java.util.Comparator;
 import java.util.List;
 import java.util.stream.Collectors;
-import com.dxc.dxc_platform.dto.ManagerProjectDto;
-import com.dxc.dxc_platform.dto.ManagerProjectMemberDto;
-import java.util.ArrayList;
 
 @Service
 public class ReportingServiceImpl implements ReportingService {
@@ -39,79 +36,7 @@ public class ReportingServiceImpl implements ReportingService {
         this.userRepository = userRepository;
         this.teamRepository = teamRepository;
     }
-    @Override
-    public List<ManagerProjectDto> getProjectsByManager() {
-        return projectRepository.findAll().stream()
-                .filter(p -> !p.isDeleted())
-                .map(this::toManagerProjectDto)
-                .collect(Collectors.toList());
-    }
 
-    private ManagerProjectDto toManagerProjectDto(Project p) {
-        String chefProjetName = null;
-        if (p.getChefProjet() != null) {
-            chefProjetName = (p.getChefProjet().getPrenom() != null ? p.getChefProjet().getPrenom() : "") +
-                    " " + (p.getChefProjet().getNom() != null ? p.getChefProjet().getNom() : "");
-            chefProjetName = chefProjetName.trim();
-            if (chefProjetName.isEmpty()) chefProjetName = null;
-        }
-
-        String managerName = null;
-        if (p.getManager() != null) {
-            managerName = (p.getManager().getPrenom() != null ? p.getManager().getPrenom() : "") +
-                    " " + (p.getManager().getNom() != null ? p.getManager().getNom() : "");
-            managerName = managerName.trim();
-            if (managerName.isEmpty()) managerName = null;
-        }
-
-        String teamName = p.getTeam() != null ? p.getTeam().getName() : null;
-
-        List<ManagerProjectMemberDto> members = new ArrayList<>();
-        if (p.getTeam() != null && p.getTeam().getMembers() != null) {
-            members = p.getTeam().getMembers().stream()
-                    .map(m -> {
-                        String profileLibelle = "Non défini";
-                        if (m.getProfile() != null && m.getProfile().getLibelle() != null) {
-                            profileLibelle = m.getProfile().getLibelle();
-                        }
-
-                        String role = "Membre";
-                        if (m.getRoles() != null && !m.getRoles().isEmpty()) {
-                            role = m.getRoles().iterator().next().getDescription();
-                            if (role == null) role = "Membre";
-                        }
-
-                        return new ManagerProjectMemberDto(
-                                m.getId(),
-                                (m.getPrenom() != null ? m.getPrenom() : "") + " " + (m.getNom() != null ? m.getNom() : ""),
-                                m.getEmail(),
-                                profileLibelle,
-                                0, // TJM par défaut
-                                role
-                        );
-                    })
-                    .collect(Collectors.toList());
-        }
-
-        // Un projet est facturé s'il est pré-validé ou validé
-        boolean isFactured = p.getStatus() == ProjectStatus.PRE_VALIDE ||
-                p.getStatus() == ProjectStatus.VALIDE;
-
-        return new ManagerProjectDto(
-                p.getId(),
-                p.getName(),
-                p.getClient() != null ? p.getClient() : "Non défini",
-                p.getStatus() != null ? p.getStatus().toString() : "INCONNU",
-                p.getDescription() != null ? p.getDescription() : "",
-                p.getStartDate(),
-                p.getEndDate(),
-                teamName,
-                chefProjetName,
-                managerName,
-                isFactured,
-                members
-        );
-    }
     @Override
     public List<ProjectReportDto> getProjectsReport(Integer year, String status, Long teamId) {
         return projectRepository.findAll().stream()
@@ -251,7 +176,7 @@ public class ReportingServiceImpl implements ReportingService {
                 u.getEmail(),
                 u.getNom(),
                 u.getPrenom(),
-                roles,
+                roles,                        // Maintenant contient tous les rôles
                 u.isEnabled(),
                 u.isLocked(),
                 u.getFailedAttempts(),

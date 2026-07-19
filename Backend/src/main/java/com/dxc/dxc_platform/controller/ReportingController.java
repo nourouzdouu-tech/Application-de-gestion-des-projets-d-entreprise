@@ -1,5 +1,4 @@
 package com.dxc.dxc_platform.controller;
-import com.dxc.dxc_platform.dto.ManagerProjectDto;
 import com.dxc.dxc_platform.dto.reporting.TaskReportDto;
 import com.dxc.dxc_platform.dto.ProjectReportDto;
 import com.dxc.dxc_platform.dto.UserStatusReportDto;
@@ -236,11 +235,5 @@ public class ReportingController {
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
                 .contentType(MediaType.APPLICATION_PDF)
                 .body(pdf);
-    }
-
-    @GetMapping("/projects/by-manager")
-    @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<List<ManagerProjectDto>> getProjectsByManager() {
-        return ResponseEntity.ok(reportingService.getProjectsByManager());
     }
 }
