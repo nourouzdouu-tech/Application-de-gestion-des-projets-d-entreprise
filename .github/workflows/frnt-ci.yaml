@@ -29,11 +29,6 @@ jobs:
           node -v
           npm -v
 
-      - name: Change directory to Angular project
-        run: |
-          cd Frontend
-          ls -la
-
       - name: Install Dependencies for Angular Project
         run: npm install
         working-directory: ./Frontend
