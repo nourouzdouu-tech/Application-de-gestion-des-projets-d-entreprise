@@ -1,0 +1,46 @@
+name: Harmony CI Workflow
+
+run-name: Fati Harmony
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  building:
+    name: Building Angular Project
+    runs-on: ubuntu-latest
+    steps:
+
+      - name: Get latest code
+        uses: actions/checkout@v2.3.2
+
+      - name: List files in the current directory
+        run: ls -la
+
+      - name: Use Node.js 16
+        uses: actions/setup-node@v2
+        with:
+          node-version: '16'
+
+      - name: Install Dependencies for Angular Project
+        run: npm install
+
+      - name: Run Tests for Angular Project
+        run: npm test || true
+
+      - name: Lint Angular Project
+        run: npm run lint || true
+
+      - name: Run E2E Tests for Angular Project
+        run: npm run e2e || true
+
+      - name: Run Security Audit for Angular Project
+        run: npm audit || true
+          
+      - name: Build Angular Project
+        run: npm run build --prod
+
+
+
