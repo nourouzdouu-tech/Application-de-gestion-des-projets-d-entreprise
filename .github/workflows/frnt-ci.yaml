@@ -6,6 +6,14 @@ on:
   push:
     branches:
       - fati
+    paths:
+      - Frontend/**
+  pull_request:
+    branches:
+      - fati
+    paths:
+      - Frontend/**
+
 
 jobs:
   building-testing-project:
